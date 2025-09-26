@@ -406,10 +406,9 @@ async def extract_pdf_text(pdf_url: str) -> Dict[str, Any]:
             "pdf_url": pdf_url
         }
 
-# MCP Tools Implementation
+# Internal helper functions
 
-@mcp.tool
-async def comprehensive_search(query: str, limit: int = 5, include_full_text: bool = False) -> List[Dict[str, Any]]:
+async def _comprehensive_search_internal(query: str, limit: int = 5, include_full_text: bool = False) -> Dict[str, Any]:
     """
     Comprehensive search across multiple academic databases with fallback support.
 
@@ -494,7 +493,25 @@ async def comprehensive_search(query: str, limit: int = 5, include_full_text: bo
         "query": query
     }
 
-    return [result_summary]
+    return result_summary
+
+# MCP Tools Implementation
+
+@mcp.tool
+async def comprehensive_search(query: str, limit: int = 5, include_full_text: bool = False) -> List[Dict[str, Any]]:
+    """
+    Comprehensive search across multiple academic databases with fallback support.
+
+    Args:
+        query: Search query for publications
+        limit: Maximum number of results to return (default: 5)
+        include_full_text: Whether to attempt full text extraction (default: False)
+
+    Returns:
+        List of papers with metadata from multiple sources
+    """
+    result = await _comprehensive_search_internal(query, limit, include_full_text)
+    return [result]
 
 @mcp.tool
 async def search_publications(query: str, limit: int = 5) -> List[Dict[str, Any]]:
@@ -508,11 +525,9 @@ async def search_publications(query: str, limit: int = 5) -> List[Dict[str, Any]
     Returns:
         List of publication information dictionaries
     """
-    # Use comprehensive search but return just the results
-    comprehensive_result = await comprehensive_search(query, limit, include_full_text=False)
-    if comprehensive_result and comprehensive_result[0].get("results"):
-        return comprehensive_result[0]["results"]
-    return []
+    # Use internal search function
+    result = await _comprehensive_search_internal(query, limit, include_full_text=False)
+    return result.get("results", [])
 
 @mcp.tool
 async def search_author(name: str, limit: int = 5) -> List[Dict[str, Any]]:
@@ -611,11 +626,11 @@ async def get_full_text_by_title(title: str, extract_text: bool = True) -> Dict[
         Dictionary with paper metadata and full text if available
     """
     try:
-        # Search across all sources
-        results = await comprehensive_search(title, 1, include_full_text=extract_text)
+        # Use internal search function
+        result = await _comprehensive_search_internal(title, 1, include_full_text=extract_text)
 
-        if results and results[0].get("results"):
-            paper = results[0]["results"][0]
+        if result.get("results"):
+            paper = result["results"][0]
             return paper
 
         return {"error": f"Paper '{title}' not found"}
@@ -701,9 +716,9 @@ async def search_with_full_text(query: str, limit: int = 3, extract_text: bool =
     Returns:
         List of papers with metadata and full text when available
     """
-    result = await comprehensive_search(query, limit, include_full_text=extract_text)
-    if result and result[0].get("results"):
-        return result[0]["results"]
+    result = await _comprehensive_search_internal(query, limit, include_full_text=extract_text)
+    if result.get("results"):
+        return result["results"]
     return []
 
 @mcp.tool
