@@ -58,13 +58,13 @@ Add to your `claude_desktop_config.json`:
 Run this command in Claude Code:
 
 ```bash
-claude mcp add -s project scholarly-enhanced -- uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-enhanced
+claude mcp add -s project scholarly-enhanced -- uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-mcp
 ```
 
 or
 
 ```bash
-/mcp add scholarly-enhanced uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-enhanced
+/mcp add scholarly-enhanced uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-mcp
 ```
 
 ## 📋 Available Tools (6 Optimized Functions)
