@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import re
+import sys
 import tempfile
 import time
 from dataclasses import dataclass
@@ -580,7 +581,12 @@ async def _comprehensive_search_internal(query: str, limit: int = 5, include_ful
 # MCP Tools Implementation
 
 @mcp.tool
-async def comprehensive_search(query: str, limit: int = 5, include_full_text: bool = False) -> List[Dict[str, Any]]:
+async def comprehensive_search(
+    query: str,
+    limit: int = 5,
+    include_full_text: bool = False,
+    download_and_convert: bool = False
+) -> List[Dict[str, Any]]:
     """
     Comprehensive search across multiple academic databases with fallback support.
 
@@ -588,11 +594,28 @@ async def comprehensive_search(query: str, limit: int = 5, include_full_text: bo
         query: Search query for publications
         limit: Maximum number of results to return (default: 5)
         include_full_text: Whether to attempt full text extraction (default: False)
+        download_and_convert: Whether to download and convert papers to markdown (default: False)
 
     Returns:
         List of papers with metadata from multiple sources
     """
     result = await _comprehensive_search_internal(query, limit, include_full_text)
+
+    # Optionally download and convert papers
+    if download_and_convert and result.get("results"):
+        papers = result["results"]
+        for paper in papers[:min(3, len(papers))]:  # Limit to first 3 papers
+            pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
+            if pdf_url:
+                try:
+                    download_result = await download_and_convert_paper(pdf_url)
+                    if download_result.get("success"):
+                        paper["local_pdf"] = download_result.get("pdf_path")
+                        paper["local_markdown"] = download_result.get("markdown_path")
+                        paper["markdown_characters"] = download_result.get("markdown_characters", 0)
+                except Exception as e:
+                    paper["download_error"] = str(e)
+
     return [result]
 
 @mcp.tool
@@ -654,13 +677,18 @@ async def search_author(name: str, limit: int = 5) -> List[Dict[str, Any]]:
         return [{"error": f"Author search failed: {str(e)}"}]
 
 @mcp.tool
-async def get_full_text_by_doi(doi: str, extract_text: bool = True) -> Dict[str, Any]:
+async def get_full_text_by_doi(
+    doi: str,
+    extract_text: bool = True,
+    download_as_markdown: bool = False
+) -> Dict[str, Any]:
     """
     Get full text of a paper using its DOI.
 
     Args:
         doi: DOI of the paper
         extract_text: Whether to extract text from PDF (default: True)
+        download_as_markdown: Whether to download and convert to markdown (default: False)
 
     Returns:
         Dictionary with paper metadata and full text if available
@@ -676,6 +704,15 @@ async def get_full_text_by_doi(doi: str, extract_text: bool = True) -> Dict[str,
             semantic_results = await search_semantic_scholar(paper.get("title", ""), 1)
             if semantic_results and semantic_results[0].get("open_access_pdf"):
                 pdf_url = semantic_results[0]["open_access_pdf"]
+
+                # Download and convert to markdown if requested
+                if download_as_markdown:
+                    download_result = await download_and_convert_paper(pdf_url)
+                    if download_result.get("success"):
+                        paper["local_pdf"] = download_result.get("pdf_path")
+                        paper["local_markdown"] = download_result.get("markdown_path")
+                        paper["markdown_characters"] = download_result.get("markdown_characters", 0)
+                        paper["conversion_method"] = "pymupdf4llm (zero-token)"
 
                 if extract_text:
                     text_result = await extract_pdf_text(pdf_url)
@@ -996,6 +1033,191 @@ async def search_with_full_text(query: str, limit: int = 3, extract_text: bool =
     if result.get("results"):
         return result["results"]
     return []
+
+@mcp.tool
+async def download_and_convert_paper(
+    pdf_url: str,
+    convert_to_markdown: bool = True,
+    output_dir: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Download a PDF and optionally convert it to markdown (default behavior).
+
+    This function uses ZERO AI tokens for conversion - it calls an external
+    converter script that uses pymupdf4llm to convert PDFs directly to markdown.
+
+    Args:
+        pdf_url: URL of the PDF to download
+        convert_to_markdown: If True (default), convert to markdown. If False, keep as PDF only.
+        output_dir: Optional output directory (default: downloaded_papers/)
+
+    Returns:
+        Dictionary with download and conversion results
+    """
+    import subprocess
+    import hashlib
+
+    # Set default output directory
+    if output_dir is None:
+        output_dir = "downloaded_papers"
+
+    # Create directory structure
+    pdf_dir = os.path.join(output_dir, "pdfs")
+    markdown_dir = os.path.join(output_dir, "markdown")
+    os.makedirs(pdf_dir, exist_ok=True)
+    os.makedirs(markdown_dir, exist_ok=True)
+
+    # Generate filename from URL hash
+    url_hash = hashlib.md5(pdf_url.encode()).hexdigest()[:8]
+
+    # Try to extract paper ID from URL
+    filename_base = url_hash
+    if "arxiv.org" in pdf_url:
+        # Extract arXiv ID
+        match = re.search(r'(\d+\.\d+)', pdf_url)
+        if match:
+            filename_base = f"arxiv_{match.group(1)}"
+    elif "doi.org" in pdf_url:
+        # Extract DOI
+        doi_part = pdf_url.split("doi.org/")[-1].replace("/", "_")
+        filename_base = f"doi_{doi_part}"
+
+    pdf_path = os.path.join(pdf_dir, f"{filename_base}.pdf")
+    markdown_path = os.path.join(markdown_dir, f"{filename_base}.md")
+
+    try:
+        # Download PDF
+        import requests
+        response = requests.get(pdf_url, timeout=60)
+
+        if response.status_code != 200:
+            return {
+                "success": False,
+                "error": f"Failed to download PDF: HTTP {response.status_code}"
+            }
+
+        # Save PDF
+        with open(pdf_path, 'wb') as f:
+            f.write(response.content)
+
+        result = {
+            "success": True,
+            "pdf_path": pdf_path,
+            "pdf_size": len(response.content),
+            "pdf_url": pdf_url
+        }
+
+        # Convert to markdown if requested (default)
+        if convert_to_markdown:
+            # Call standalone converter script - uses ZERO AI tokens
+            converter_script = os.path.join(os.path.dirname(__file__), "pdf_to_markdown_converter.py")
+
+            try:
+                # Run converter as subprocess
+                cmd = [
+                    sys.executable,
+                    converter_script,
+                    pdf_path,
+                    "--output", markdown_path,
+                    "--json"
+                ]
+
+                process = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+
+                if process.returncode == 0:
+                    conversion_result = json.loads(process.stdout)
+                    result.update({
+                        "markdown_path": markdown_path,
+                        "markdown_characters": conversion_result.get("total_characters", 0),
+                        "conversion_time": conversion_result.get("conversion_time", 0),
+                        "conversion_method": "pymupdf4llm (zero-token)"
+                    })
+                else:
+                    result["conversion_error"] = process.stderr
+
+            except subprocess.TimeoutExpired:
+                result["conversion_error"] = "Conversion timeout"
+            except Exception as e:
+                result["conversion_error"] = str(e)
+
+        return result
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Download failed: {str(e)}"
+        }
+
+@mcp.tool
+async def batch_convert_local_pdfs(
+    directory: str = "articles",
+    output_dir: Optional[str] = None
+) -> Dict[str, Any]:
+    """
+    Convert all PDFs in a directory to markdown using zero AI tokens.
+
+    This function calls an external converter script that uses pymupdf4llm
+    to convert PDFs directly to markdown without any text passing through
+    the AI context.
+
+    Args:
+        directory: Directory containing PDFs (default: articles/)
+        output_dir: Optional output directory for markdown files
+
+    Returns:
+        Dictionary with batch conversion results
+    """
+    import subprocess
+
+    # Set default output directory
+    if output_dir is None:
+        output_dir = os.path.join(directory, "markdown")
+
+    # Call standalone converter script with batch mode
+    converter_script = os.path.join(os.path.dirname(__file__), "pdf_to_markdown_converter.py")
+
+    try:
+        cmd = [
+            sys.executable,
+            converter_script,
+            directory,
+            "--batch",
+            "--output-dir", output_dir,
+            "--json"
+        ]
+
+        process = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120  # 2 minute timeout for batch
+        )
+
+        if process.returncode == 0:
+            result = json.loads(process.stdout)
+            result["conversion_method"] = "pymupdf4llm batch (zero-token)"
+            return result
+        else:
+            return {
+                "success": False,
+                "error": process.stderr
+            }
+
+    except subprocess.TimeoutExpired:
+        return {
+            "success": False,
+            "error": "Batch conversion timeout"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Batch conversion failed: {str(e)}"
+        }
 
 @mcp.tool
 async def get_api_status() -> Dict[str, Any]:
