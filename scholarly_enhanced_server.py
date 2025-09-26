@@ -97,12 +97,17 @@ def setup_scholarly_proxy():
 
 def create_http_client() -> httpx.AsyncClient:
     """Create HTTP client with redirect handling and HTTP/2 support"""
-    ua = UserAgent()
+    try:
+        ua = UserAgent()
+        user_agent = ua.random
+    except:
+        user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
     return httpx.AsyncClient(
         follow_redirects=True,
         http2=True,
         timeout=60.0,
-        headers={"User-Agent": ua.random},
+        headers={"User-Agent": user_agent},
         limits=httpx.Limits(max_connections=20, max_keepalive_connections=10)
     )
 
@@ -125,7 +130,19 @@ async def search_crossref(query: str, limit: int = 5) -> List[Dict[str, Any]]:
             "mailto": config.crossref_email  # Use polite pool
         }
 
-        async with create_http_client() as client:
+        try:
+            ua = UserAgent()
+            user_agent = ua.random
+        except:
+            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+        async with httpx.AsyncClient(
+            follow_redirects=True,
+            http2=True,
+            timeout=60.0,
+            headers={"User-Agent": user_agent},
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10)
+        ) as client:
             response = await client.get(url, params=params)
 
             if response.status_code == 200:
@@ -183,7 +200,19 @@ async def search_semantic_scholar(query: str, limit: int = 5) -> List[Dict[str, 
         if config.semantic_scholar_api_key:
             headers["x-api-key"] = config.semantic_scholar_api_key
 
-        async with create_http_client() as client:
+        try:
+            ua = UserAgent()
+            user_agent = ua.random
+        except:
+            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+        async with httpx.AsyncClient(
+            follow_redirects=True,
+            http2=True,
+            timeout=60.0,
+            headers={"User-Agent": user_agent},
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10)
+        ) as client:
             response = await client.get(url, params=params, headers=headers)
 
             if response.status_code == 429:
@@ -354,57 +383,110 @@ async def search_google_scholar_fallback(query: str, limit: int = 5) -> List[Dic
         return []
 
 async def extract_pdf_text(pdf_url: str) -> Dict[str, Any]:
-    """Extract text from PDF with redirect handling"""
+    """Extract text from PDF with redirect handling and fallback methods"""
     cache_key = f"pdf_text:{pdf_url}"
     cached = cache.get(cache_key)
     if cached:
         return cached
 
-    try:
-        async with create_http_client() as client:
-            response = await client.get(pdf_url)
+    # Try arXiv HTML extraction first (most reliable for arXiv papers)
+    if "arxiv.org" in pdf_url:
+        try:
+            # Convert PDF URL to abstract page URL
+            if "/pdf/" in pdf_url:
+                abstract_url = pdf_url.replace("/pdf/", "/abs/").replace(".pdf", "")
+            else:
+                abstract_url = pdf_url.replace(".pdf", "")
+
+            import requests
+            response = requests.get(abstract_url, timeout=30)
 
             if response.status_code == 200:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-                    tmp_file.write(response.content)
-                    tmp_path = tmp_file.name
+                html_content = response.text
 
-                # Extract text
-                doc = fitz.open(tmp_path)
-                full_text = ""
+                # Extract abstract and paper info
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(html_content, 'html.parser')
 
-                for page_num in range(len(doc)):
-                    page = doc.load_page(page_num)
-                    text = page.get_text()
+                # Extract title
+                title_elem = soup.find('h1', class_='title')
+                title = title_elem.get_text().replace('Title:', '').strip() if title_elem else "Unknown Title"
+
+                # Extract abstract
+                abstract_elem = soup.find('blockquote', class_='abstract')
+                abstract = abstract_elem.get_text().replace('Abstract:', '').strip() if abstract_elem else ""
+
+                # Extract authors
+                authors_elem = soup.find('div', class_='authors')
+                authors = authors_elem.get_text().replace('Authors:', '').strip() if authors_elem else ""
+
+                # Check for source files link
+                source_link = soup.find('a', string='Other formats')
+                source_available = bool(source_link)
+
+                if abstract or title:
+                    full_text = f"Title: {title}\n\nAuthors: {authors}\n\nAbstract:\n{abstract}"
+                    if source_available:
+                        full_text += f"\n\nNote: LaTeX source files are available at {abstract_url.replace('/abs/', '/format/')}"
+
+                    result = {
+                        "text": full_text,
+                        "extraction_method": "arXiv HTML",
+                        "pdf_url": pdf_url,
+                        "abstract_url": abstract_url,
+                        "source_available": source_available,
+                        "success": True
+                    }
+                    cache.set(cache_key, result, expire=86400 * 30)
+                    return result
+
+        except Exception as e:
+            pass  # Fall back to other methods
+
+    # Try simple PDF text extraction
+    try:
+        import requests
+        response = requests.get(pdf_url, timeout=60)
+
+        if response.status_code == 200:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
+                tmp_file.write(response.content)
+                tmp_path = tmp_file.name
+
+            # Extract text using PyMuPDF
+            doc = fitz.open(tmp_path)
+            full_text = ""
+            num_pages = len(doc)
+
+            for page_num in range(num_pages):  # Extract all pages
+                page = doc.load_page(page_num)
+                text = page.get_text()
+                if text.strip():
                     full_text += f"\n--- Page {page_num + 1} ---\n{text}\n"
 
-                doc.close()
-                os.unlink(tmp_path)  # Cleanup
+            doc.close()
+            os.unlink(tmp_path)  # Cleanup
 
+            if full_text.strip() and len(full_text.strip()) > 100:
                 result = {
-                    "text": full_text,
-                    "num_pages": len(doc),
+                    "text": full_text,  # No character limit
+                    "num_pages": num_pages,
                     "extraction_method": "PyMuPDF",
                     "pdf_url": pdf_url,
                     "success": True
                 }
-
-                # Cache extracted text permanently (or until cache cleanup)
-                cache.set(cache_key, result, expire=86400 * 30)  # 30 days
+                cache.set(cache_key, result, expire=86400 * 30)
                 return result
-            else:
-                return {
-                    "success": False,
-                    "error": f"HTTP {response.status_code}",
-                    "pdf_url": pdf_url
-                }
 
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "pdf_url": pdf_url
-        }
+        pass
+
+    # If all methods failed
+    return {
+        "success": False,
+        "error": "PDF extraction failed - trying fallback methods",
+        "pdf_url": pdf_url
+    }
 
 # Internal helper functions
 
@@ -700,8 +782,88 @@ async def extract_pdf_text_from_url(pdf_url: str) -> Dict[str, Any]:
     Returns:
         Dictionary with extracted text and metadata
     """
-    result = await extract_pdf_text(pdf_url)
-    return result
+    try:
+        result = await extract_pdf_text(pdf_url)
+        return result
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Function error: {str(e)}",
+            "pdf_url": pdf_url
+        }
+
+@mcp.tool
+async def extract_pdf_text_from_local_file(file_path: str) -> Dict[str, Any]:
+    """
+    Extract text from a local PDF file.
+
+    Args:
+        file_path: Path to local PDF file
+
+    Returns:
+        Dictionary with extracted text and metadata
+    """
+    import os
+    import tempfile
+
+    cache_key = f"local_pdf_text:{file_path}"
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+
+    if not os.path.exists(file_path):
+        return {
+            "success": False,
+            "error": f"File not found: {file_path}",
+            "file_path": file_path
+        }
+
+    if not file_path.lower().endswith('.pdf'):
+        return {
+            "success": False,
+            "error": f"File is not a PDF: {file_path}",
+            "file_path": file_path
+        }
+
+    try:
+        # Extract text using PyMuPDF
+        doc = fitz.open(file_path)
+        full_text = ""
+        num_pages = len(doc)
+
+        for page_num in range(num_pages):  # Extract all pages
+            page = doc.load_page(page_num)
+            text = page.get_text()
+            if text.strip():
+                full_text += f"\n--- Page {page_num + 1} ---\n{text}\n"
+
+        doc.close()
+
+        if full_text.strip() and len(full_text.strip()) > 100:
+            result = {
+                "text": full_text,  # No character limit
+                "num_pages": num_pages,
+                "extraction_method": "PyMuPDF Local",
+                "file_path": file_path,
+                "file_size": os.path.getsize(file_path),
+                "text_length": len(full_text),
+                "success": True
+            }
+            cache.set(cache_key, result, expire=86400 * 30)
+            return result
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"PDF extraction failed: {str(e)}",
+            "file_path": file_path
+        }
+
+    return {
+        "success": False,
+        "error": "PDF extraction failed - no text found",
+        "file_path": file_path
+    }
 
 @mcp.tool
 async def search_with_full_text(query: str, limit: int = 3, extract_text: bool = False) -> List[Dict[str, Any]]:
