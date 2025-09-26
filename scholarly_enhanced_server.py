@@ -902,24 +902,73 @@ async def extract_pdf_text_from_local_file(file_path: str) -> Dict[str, Any]:
         "file_path": file_path
     }
 
-@mcp.tool
-async def convert_pdf_to_markdown(file_path: str, title: str = "", authors: list = None) -> Dict[str, Any]:
+async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", authors: list = None) -> Dict[str, Any]:
     """
-    Convert a local PDF file to formatted markdown.
-
-    Args:
-        file_path: Path to local PDF file
-        title: Optional title for the paper
-        authors: Optional list of authors
-
-    Returns:
-        Dictionary with markdown content and metadata
+    Internal function to convert a local PDF file to formatted markdown.
     """
     import os
     import re
+    import tempfile
 
-    # First extract the PDF text
-    pdf_result = await extract_pdf_text_from_local_file(file_path)
+    # First extract the PDF text - duplicate the logic to avoid MCP tool calling MCP tool
+
+    cache_key = f"local_pdf_text:{file_path}"
+    cached = cache.get(cache_key)
+    if cached:
+        pdf_result = cached
+    else:
+        if not os.path.exists(file_path):
+            return {
+                "success": False,
+                "error": f"File not found: {file_path}",
+                "file_path": file_path
+            }
+
+        if not file_path.lower().endswith('.pdf'):
+            return {
+                "success": False,
+                "error": f"File is not a PDF: {file_path}",
+                "file_path": file_path
+            }
+
+        try:
+            # Extract text using PyMuPDF
+            doc = fitz.open(file_path)
+            full_text = ""
+            num_pages = len(doc)
+
+            for page_num in range(num_pages):  # Extract all pages
+                page = doc.load_page(page_num)
+                text = page.get_text()
+                if text.strip():
+                    full_text += f"\n--- Page {page_num + 1} ---\n{text}\n"
+
+            doc.close()
+
+            if full_text.strip() and len(full_text.strip()) > 100:
+                pdf_result = {
+                    "text": full_text,  # No character limit
+                    "num_pages": num_pages,
+                    "extraction_method": "PyMuPDF Local",
+                    "file_path": file_path,
+                    "file_size": os.path.getsize(file_path),
+                    "text_length": len(full_text),
+                    "success": True
+                }
+                cache.set(cache_key, pdf_result, expire=86400 * 30)
+            else:
+                pdf_result = {
+                    "success": False,
+                    "error": "PDF extraction failed - no text found",
+                    "file_path": file_path
+                }
+
+        except Exception as e:
+            pdf_result = {
+                "success": False,
+                "error": f"PDF extraction failed: {str(e)}",
+                "file_path": file_path
+            }
 
     if not pdf_result.get("success"):
         return pdf_result
@@ -1015,6 +1064,21 @@ async def convert_pdf_to_markdown(file_path: str, title: str = "", authors: list
         "pages_extracted": pdf_result.get('num_pages', 0),
         "text_length": len(raw_text)
     }
+
+@mcp.tool
+async def convert_pdf_to_markdown(file_path: str, title: str = "", authors: list = None) -> Dict[str, Any]:
+    """
+    Convert a local PDF file to formatted markdown.
+
+    Args:
+        file_path: Path to local PDF file
+        title: Optional title for the paper
+        authors: Optional list of authors
+
+    Returns:
+        Dictionary with markdown content and metadata
+    """
+    return await _convert_pdf_to_markdown_internal(file_path, title, authors)
 
 @mcp.tool
 async def search_with_full_text(query: str, limit: int = 3, extract_text: bool = False) -> List[Dict[str, Any]]:
