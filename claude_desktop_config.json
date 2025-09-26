@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "scholarly-enhanced": {
+      "command": "fastmcp",
+      "args": [
+        "run",
+        "https://github.com/your-username/scholarly-mcp.git",
+        "--entrypoint",
+        "scholarly_enhanced_server.py:mcp"
+      ],
+      "env": {
+        "UNPAYWALL_EMAIL": "research@example.com"
+      }
+    }
+  }
+}
