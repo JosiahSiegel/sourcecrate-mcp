@@ -408,7 +408,49 @@ async def get_papers(
         # Get papers to specific folder
         get_papers("quantum computing", output_dir="quantum_research")
     """
-    return await download_papers(query, limit, output_dir)
+    # Ensure output directory exists
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    # Lazy import utilities
+    _ensure_scholarly_setup()
+    utils = _lazy_import_utils()
+
+    # Search for papers with download enabled
+    result = await utils['comprehensive_search_internal'](query, limit, include_full_text=False)
+
+    downloaded_count = 0
+
+    # Download and convert papers
+    if result.get("results"):
+        for paper in result["results"][:limit]:
+            pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
+            if pdf_url:
+                try:
+                    # Generate safe filename
+                    title = paper.get("title", "paper")[:50]
+                    safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                    output_path = Path(output_dir) / f"{safe_title}.md"
+
+                    # Download PDF
+                    pdf_content = await utils['download_pdf'](pdf_url)
+                    if pdf_content:
+                        # Convert to markdown
+                        markdown_content = await utils['convert_pdf_to_markdown_content'](pdf_content, paper.get("title", ""))
+                        if markdown_content:
+                            # Save markdown file
+                            success = await utils['save_markdown_file'](str(output_path), markdown_content)
+                            if success:
+                                paper["local_markdown"] = str(output_path)
+                                paper["markdown_characters"] = len(markdown_content)
+                                downloaded_count += 1
+                except Exception as e:
+                    paper["download_error"] = str(e)
+
+    # Add download metadata
+    result["downloaded_count"] = downloaded_count
+    result["output_directory"] = output_dir
+
+    return [result]
 
 
 @mcp.tool
