@@ -95,7 +95,7 @@ def setup_scholarly_proxy():
         api_status["google_scholar"] = False
         return False
 
-async def create_http_client() -> httpx.AsyncClient:
+def create_http_client() -> httpx.AsyncClient:
     """Create HTTP client with redirect handling and HTTP/2 support"""
     ua = UserAgent()
     return httpx.AsyncClient(
