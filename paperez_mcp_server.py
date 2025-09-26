@@ -81,7 +81,8 @@ def _lazy_import_utils():
         convert_pdf_to_markdown_content,
         comprehensive_search_internal,
         download_pdf,
-        save_markdown_file
+        save_markdown_file,
+        smart_downloadable_search
     )
     from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
     return {
@@ -90,7 +91,8 @@ def _lazy_import_utils():
         'comprehensive_search_internal': comprehensive_search_internal,
         'download_pdf': download_pdf,
         'save_markdown_file': save_markdown_file,
-        'extract_pdf_text_from_local_file': extract_pdf_text_from_local_file
+        'extract_pdf_text_from_local_file': extract_pdf_text_from_local_file,
+        'smart_downloadable_search': smart_downloadable_search
     }
 
 """
@@ -414,17 +416,20 @@ async def get_papers(
     # Lazy import utilities
     _ensure_scholarly_setup()
     utils = _lazy_import_utils()
+    search_funcs = _lazy_import_search_functions()
 
-    # Search for papers with download enabled
-    result = await utils['comprehensive_search_internal'](query, limit, include_full_text=False)
+    # Use smart search to find ONLY downloadable papers
+    downloadable_papers = await utils['smart_downloadable_search'](
+        query, limit, search_funcs, utils, api_status
+    )
 
     downloaded_count = 0
 
-    # Download and convert papers
-    if result.get("results"):
-        for paper in result["results"][:limit]:
-            pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
-            if pdf_url:
+    # Convert downloaded papers to markdown and save
+    # (downloadable_papers already contains verified downloadable papers)
+    for paper in downloadable_papers:
+        pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
+        if pdf_url:
                 try:
                     # Generate safe filename
                     title = paper.get("title", "paper")[:50]
