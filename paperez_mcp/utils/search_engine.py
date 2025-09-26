@@ -12,6 +12,9 @@ from ..api_clients import (
     search_pubmed,
     search_google_scholar_fallback
 )
+from ..api_clients.core_client import search_core
+from ..api_clients.doaj_client import search_doaj
+from ..api_clients.socarxiv_client import search_socarxiv, search_osf_preprints_general
 from ..config import api_status
 from .pdf_processor import extract_pdf_text
 

@@ -7,12 +7,8 @@ robust caching, and graceful error handling. Built with modular architecture.
 """
 
 import asyncio
-import json
 import logging
 import os
-import subprocess
-import sys
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -33,7 +29,7 @@ logger = logging.getLogger(__name__)
 mcp = FastMCP("PaperezMCP - Academic Paper Research Made Easy")
 
 # Lazy import helpers
-def _ensure_scholarly_setup():
+def _ensure_scholarly_setup() -> None:
     """Lazy initialization of scholarly proxy setup"""
     global _scholarly_setup_done
     if not _scholarly_setup_done:
@@ -41,7 +37,7 @@ def _ensure_scholarly_setup():
         setup_scholarly_proxy()
         _scholarly_setup_done = True
 
-def _ensure_pymupdf4llm():
+def _ensure_pymupdf4llm() -> Any:
     """Lazy import of pymupdf4llm"""
     global _PYMUPDF4LLM_AVAILABLE
     if _PYMUPDF4LLM_AVAILABLE is None:
@@ -57,32 +53,43 @@ def _ensure_pymupdf4llm():
         return pymupdf4llm
     return None
 
-def _lazy_import_search_functions():
+def _lazy_import_search_functions() -> Dict[str, Any]:
     """Lazy import of search API functions"""
     from paperez_mcp.api_clients import (
-        search_crossref,
-        search_semantic_scholar,
         search_arxiv,
+        search_crossref,
+        search_google_scholar_fallback,
         search_pubmed,
-        search_google_scholar_fallback
+        search_semantic_scholar,
     )
+    from paperez_mcp.api_clients.core_client import search_core
+    from paperez_mcp.api_clients.doaj_client import search_doaj
+    from paperez_mcp.api_clients.socarxiv_client import (
+        search_osf_preprints_general,
+        search_socarxiv,
+    )
+
     return {
         'crossref': search_crossref,
         'semantic_scholar': search_semantic_scholar,
         'arxiv': search_arxiv,
         'pubmed': search_pubmed,
-        'google_scholar': search_google_scholar_fallback
+        'google_scholar': search_google_scholar_fallback,
+        'core': search_core,
+        'doaj': search_doaj,
+        'socarxiv': search_socarxiv,
+        'osf_preprints': search_osf_preprints_general
     }
 
-def _lazy_import_utils():
+def _lazy_import_utils() -> Dict[str, Any]:
     """Lazy import of utility functions"""
     from paperez_mcp.utils import (
-        extract_pdf_text,
-        convert_pdf_to_markdown_content,
         comprehensive_search_internal,
+        convert_pdf_to_markdown_content,
         download_pdf,
+        extract_pdf_text,
         save_markdown_file,
-        smart_downloadable_search
+        smart_downloadable_search,
     )
     from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
     return {
@@ -553,7 +560,7 @@ async def search_authors(name: str, limit: int = 5) -> List[Dict[str, Any]]:
     # Use Google Scholar for author search as it's most comprehensive for this
     if api_status["google_scholar"]:
         try:
-            def _search_author():
+            def _search_author() -> List[Dict[str, Any]]:
                 from scholarly import scholarly
                 search_query = scholarly.search_author(name)
                 results = []
@@ -659,7 +666,7 @@ async def extract_pdf_text(file_path: str) -> Dict[str, Any]:
     return utils['extract_pdf_text_from_local_file'](file_path)
 
 
-async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", authors: list = None, output_path: Optional[str] = None) -> Dict[str, Any]:
+async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", authors: Optional[List[str]] = None, output_path: Optional[str] = None) -> Dict[str, Any]:
     """
     Internal function to convert a local PDF file to formatted markdown.
     Duplicates PDF extraction logic to avoid MCP tool calling MCP tool.
@@ -679,7 +686,7 @@ async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", aut
         # Create output directory if it doesn't exist
         os.makedirs(os.path.dirname(markdown_path), exist_ok=True)
 
-        save_result = save_markdown_file(result["markdown"], markdown_path)
+        save_result = utils['save_markdown_file'](result["markdown"], markdown_path)
         if save_result.get("success"):
             result["markdown_path"] = markdown_path
 
@@ -690,7 +697,7 @@ async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", aut
 async def convert_pdf_to_markdown(
     file_path: str,
     title: str = "",
-    authors: list = None,
+    authors: Optional[List[str]] = None,
     output_path: Optional[str] = None
 ) -> Dict[str, Any]:
     """
@@ -803,11 +810,13 @@ async def download_and_convert_paper(
         Dictionary with download and conversion results
     """
     try:
+        utils = _lazy_import_utils()
+
         if output_dir is None:
             output_dir = os.getcwd()
 
         # Download PDF
-        download_result = await download_pdf(pdf_url, output_dir)
+        download_result = await utils['download_pdf'](pdf_url, output_dir)
 
         if not download_result.get("success"):
             return download_result
@@ -816,14 +825,15 @@ async def download_and_convert_paper(
 
         # Convert to markdown if requested
         if convert_to_markdown:
-            if PYMUPDF4LLM_AVAILABLE:
+            pymupdf4llm = _ensure_pymupdf4llm()
+            if pymupdf4llm:
                 # Use pymupdf4llm directly (zero tokens)
                 try:
                     markdown_content = pymupdf4llm.to_markdown(pdf_path)
 
                     # Save markdown
                     markdown_path = pdf_path.replace('.pdf', '.md')
-                    save_result = save_markdown_file(markdown_content, markdown_path)
+                    save_result = utils['save_markdown_file'](markdown_content, markdown_path)
 
                     if save_result.get("success"):
                         return {
@@ -971,6 +981,8 @@ async def batch_convert_pdfs(
                     print(f"✗ {file['input_file']}: {file.get('error', 'Unknown error')}")
     """
     try:
+        utils = _lazy_import_utils()
+
         if not os.path.isdir(directory):
             return {
                 "success": False,
@@ -1003,7 +1015,7 @@ async def batch_convert_pdfs(
                     filename = pdf_file.stem + "_full.md"
                     output_path = os.path.join(output_dir, filename)
 
-                    save_result = save_markdown_file(result["markdown"], output_path)
+                    save_result = utils['save_markdown_file'](result["markdown"], output_path)
                     if save_result.get("success"):
                         successful += 1
                         results.append({
@@ -1134,7 +1146,7 @@ async def get_status() -> Dict[str, Any]:
     }
 
 
-def main():
+def main() -> None:
     """Main entry point for the server"""
     print("🚀 Starting PaperezMCP Server...")
     print("📚 Primary tools:")
