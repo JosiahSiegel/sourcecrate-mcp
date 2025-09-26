@@ -154,36 +154,25 @@ All file-saving tools default to current directory and accept custom output path
 
 
 @mcp.tool
-async def search_papers(
+async def browse_papers(
     query: str,
-    limit: int = 5,
-    include_full_text: bool = False,  # ⚠️ False = metadata only, True = full text in memory
-    download_and_convert: bool = False  # ⚠️ False = no files, True = downloads PDFs as markdown files (max 3)
+    limit: int = 10
 ) -> List[Dict[str, Any]]:
     """
-    🔍 DISCOVERY: Find and browse papers (metadata/abstracts only)
+    🔍 BROWSE: Find and explore papers (metadata/abstracts only)
 
-    This function is for DISCOVERING and BROWSING papers - it returns metadata only by default.
+    This function is for DISCOVERING and BROWSING papers - metadata/abstracts only.
     Use this when you want to explore what's available before downloading.
 
-    ⚠️ DEFAULT BEHAVIOR = METADATA/ABSTRACTS ONLY (no full papers, no files saved)
+    ⚠️ METADATA ONLY: Returns titles, authors, abstracts, DOIs - no full paper content
 
     FOR GETTING ACTUAL PAPERS:
-    📄 Use download_papers("topic") or get_papers("topic") instead!
+    📄 Use get_papers("topic") or download_papers("topic") instead!
     📄 These functions automatically download full papers as markdown files
 
-    TO GET FULL PAPERS WITH THIS FUNCTION:
-    ✅ search_papers("topic", download_and_convert=True) - Downloads up to 3 papers as markdown files
-    ✅ search_papers("topic", include_full_text=True) - Gets full text in memory (no files)
-    ❌ search_papers("topic") - Only gets metadata/abstracts
-
-    🎯 BETTER ALTERNATIVES FOR "get papers on topic":
-    📄 download_papers("topic", limit=5) - Downloads 5 full papers as files
-    📄 get_papers("topic", limit=3) - Same as download_papers()
-
     🔄 WHEN TO USE EACH FUNCTION:
-    "Browse papers" → search_papers("topic", limit=10)
-    "Get papers" → download_papers("topic", limit=5) or get_papers("topic")
+    "Browse papers" → browse_papers("topic", limit=20) - Fast metadata overview
+    "Get papers" → get_papers("topic", limit=5) - Download full papers as files
     "Save papers" → download_papers("topic", output_dir="my_papers")
 
     Search academic papers across multiple databases with optional full-text extraction and download.
@@ -300,29 +289,16 @@ async def search_papers(
     # Lazy import utilities
     _ensure_scholarly_setup()
     utils = _lazy_import_utils()
-    result = await utils['comprehensive_search_internal'](query, limit, include_full_text)
 
-    # Optionally download and convert papers
-    if download_and_convert and result.get("results"):
-        for paper in result["results"][:3]:  # Limit to top 3 papers
-            pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
-            if pdf_url:
-                try:
-                    download_result = await download_and_convert_paper(pdf_url)
-                    if download_result.get("success"):
-                        paper["local_pdf"] = download_result.get("pdf_path")
-                        paper["local_markdown"] = download_result.get("markdown_path")
-                        paper["markdown_characters"] = download_result.get("markdown_characters", 0)
-                except Exception as e:
-                    paper["download_error"] = str(e)
-
+    # Get metadata only - no downloads
+    result = await utils['comprehensive_search_internal'](query, limit, include_full_text=False)
     return [result]
 
 
 @mcp.tool
 async def download_papers(
     query: str,
-    limit: int = 3,
+    limit: int = 5,
     output_dir: str = "papers"
 ) -> List[Dict[str, Any]]:
     """
@@ -338,7 +314,7 @@ async def download_papers(
 
     Args:
         query: Search query (keywords, DOI, title, or author)
-        limit: Maximum papers to download (default: 3, max recommended: 5)
+        limit: Maximum papers to download (default: 5, recommended: 5-10)
         output_dir: Directory to save markdown files (default: "papers")
 
     Returns:
@@ -403,7 +379,7 @@ async def download_papers(
 @mcp.tool
 async def get_papers(
     query: str,
-    limit: int = 3,
+    limit: int = 5,
     output_dir: str = "papers"
 ) -> List[Dict[str, Any]]:
     """
@@ -419,7 +395,7 @@ async def get_papers(
 
     Args:
         query: Search query (keywords, DOI, title, or author)
-        limit: Maximum papers to get (default: 3, max recommended: 5)
+        limit: Maximum papers to get (default: 5, recommended: 5-10)
         output_dir: Directory to save papers (default: "papers")
 
     Returns:
@@ -1071,16 +1047,18 @@ async def get_status() -> Dict[str, Any]:
 def main():
     """Main entry point for the server"""
     print("🚀 Starting PaperezMCP Server...")
-    print("📚 Available tools:")
-    print("  - search_papers: Search academic papers across multiple databases")
-    print("  - search_authors: Find author profiles with citation metrics")
-    print("  - extract_pdf_text: Extract text from local PDF files")
-    print("  - convert_pdf_to_markdown: Convert PDF to markdown format")
-    print("  - batch_convert_pdfs: Convert multiple PDFs in a directory")
-    print("  - get_status: Check system health and API status")
+    print("📚 Primary tools:")
+    print("  📄 get_papers: Get full papers as files (most users want this)")
+    print("  📄 download_papers: Same as get_papers but more explicit")
+    print("  🔍 browse_papers: Quick metadata overview (titles/abstracts only)")
+    print("  👤 search_authors: Find author profiles with citation metrics")
+    print("  📝 extract_pdf_text: Extract text from local PDF files")
+    print("  🔄 convert_pdf_to_markdown: Convert PDF to markdown format")
+    print("  📁 batch_convert_pdfs: Convert multiple PDFs in a directory")
+    print("  🔧 get_status: Check system health and API status")
     print("")
-    print("⚠️  IMPORTANT: For full papers, use download_and_convert=True")
-    print("   Default behavior returns only metadata/abstracts!")
+    print("🎯 QUICK START: Use get_papers('topic') to download full papers!")
+    print("   Only use browse_papers() if you just want to explore titles/abstracts.")
     print("")
     print("🔗 PaperezMCP ready at: stdio")
     mcp.run()

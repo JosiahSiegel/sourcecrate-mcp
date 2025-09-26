@@ -19,16 +19,16 @@
       "server": "paperez-mcp",
       "tools": [
         {
-          "name": "search_papers",
-          "description": "🔍 DISCOVERY: Find and browse papers (metadata/abstracts only). For getting actual papers, use download_papers() or get_papers() instead!"
+          "name": "get_papers",
+          "description": "📄 GET PAPERS: Download full academic papers as markdown files. Use when users say 'get papers' - this is the primary function most users want."
         },
         {
           "name": "download_papers",
-          "description": "📄 GET FULL PAPERS: Download academic papers as markdown files. Use this when you want actual paper content, not just metadata."
+          "description": "📄 DOWNLOAD PAPERS: Download academic papers as markdown files. Same as get_papers() but more explicit about downloading."
         },
         {
-          "name": "get_papers",
-          "description": "📄 GET FULL PAPERS: Alias for download_papers(). Use when users say 'get papers' - downloads full papers as markdown files."
+          "name": "browse_papers",
+          "description": "🔍 BROWSE: Explore papers (metadata/abstracts only). For quick overview before downloading. Use get_papers() if you want actual papers."
         },
         {
           "name": "search_authors",
@@ -62,11 +62,11 @@
     ]
   },
   "usage": {
-    "critical_warning": "⚠️ search_papers() returns only metadata! For full papers use download_papers() or get_papers() instead.",
+    "critical_warning": "⚠️ Most users want get_papers() for actual papers. browse_papers() only returns metadata!",
     "common_workflows": {
-      "get_full_papers": "download_papers('topic', limit=5) or get_papers('topic')",
-      "browse_metadata": "search_papers('topic', limit=10)",
-      "save_to_folder": "download_papers('topic', output_dir='my_papers')"
+      "get_papers_default": "get_papers('topic', limit=5) - Primary function for getting papers",
+      "browse_first": "browse_papers('topic', limit=20) - Quick overview before downloading",
+      "save_to_folder": "get_papers('topic', output_dir='my_papers') - Save to specific directory"
     }
   },
   "preferences": {
