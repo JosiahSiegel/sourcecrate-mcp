@@ -301,7 +301,7 @@ async def browse_papers(
 async def download_papers(
     query: str,
     limit: int = 5,
-    output_dir: str = "papers"
+    output_dir: str = ".paperez"
 ) -> List[Dict[str, Any]]:
     """
     📄 GET FULL PAPERS: Download academic papers as markdown files
@@ -317,7 +317,7 @@ async def download_papers(
     Args:
         query: Search query (keywords, DOI, title, or author)
         limit: Maximum papers to download (default: 5, recommended: 5-10)
-        output_dir: Directory to save markdown files (default: "papers")
+        output_dir: Directory to save markdown files (default: ".paperez")
 
     Returns:
         List containing single dict with:
@@ -356,18 +356,34 @@ async def download_papers(
                     safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
                     output_path = Path(output_dir) / f"{safe_title}.md"
 
-                    # Download PDF
-                    pdf_content = await utils['download_pdf'](pdf_url)
-                    if pdf_content:
-                        # Convert to markdown
-                        markdown_content = await utils['convert_pdf_to_markdown_content'](pdf_content, paper.get("title", ""))
-                        if markdown_content:
+                    # Download PDF to file
+                    download_result = await utils['download_pdf'](pdf_url, output_dir)
+                    if download_result.get("success"):
+                        pdf_file_path = download_result["pdf_path"]
+
+                        # Convert PDF to markdown
+                        markdown_result = utils['convert_pdf_to_markdown_content'](
+                            pdf_file_path,
+                            paper.get("title", ""),
+                            paper.get("authors", [])
+                        )
+
+                        if markdown_result.get("success"):
+                            markdown_content = markdown_result["markdown"]
+
                             # Save markdown file
-                            success = await utils['save_markdown_file'](str(output_path), markdown_content)
-                            if success:
+                            save_result = utils['save_markdown_file'](markdown_content, str(output_path))
+                            if save_result.get("success"):
                                 paper["local_markdown"] = str(output_path)
                                 paper["markdown_characters"] = len(markdown_content)
                                 downloaded_count += 1
+
+                                # Clean up PDF file since we only need the markdown
+                                try:
+                                    import os
+                                    os.remove(pdf_file_path)
+                                except Exception:
+                                    pass  # If cleanup fails, continue silently
                 except Exception as e:
                     paper["download_error"] = str(e)
 
@@ -382,7 +398,7 @@ async def download_papers(
 async def get_papers(
     query: str,
     limit: int = 5,
-    output_dir: str = "papers"
+    output_dir: str = ".paperez"
 ) -> List[Dict[str, Any]]:
     """
     📄 GET FULL PAPERS: Alias for download_papers()
@@ -455,9 +471,15 @@ async def get_papers(
                         save_result = utils['save_markdown_file'](markdown_content, str(output_path))
                         if save_result.get("success"):
                             paper["local_markdown"] = str(output_path)
-                            paper["local_pdf"] = pdf_file_path
                             paper["markdown_characters"] = len(markdown_content)
                             downloaded_count += 1
+
+                            # Clean up PDF file since we only need the markdown
+                            try:
+                                import os
+                                os.remove(pdf_file_path)
+                            except Exception:
+                                pass  # If cleanup fails, continue silently
                         else:
                             paper["download_error"] = f"Failed to save markdown: {save_result.get('error')}"
                     else:

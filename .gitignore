@@ -95,6 +95,5 @@ logs/
 # FastMCP specific
 .fastmcp/
 
-articles*/
-downloaded_papers/
 test_*/
+.paperez/

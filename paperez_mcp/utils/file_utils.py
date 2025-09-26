@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 import httpx
 
 
-async def download_pdf(pdf_url: str, output_dir: str = "downloaded_papers") -> Dict[str, Any]:
+async def download_pdf(pdf_url: str, output_dir: str = ".paperez") -> Dict[str, Any]:
     """
     Download a PDF from URL to local directory.
 
