@@ -1,8 +1,8 @@
 {
   "version": "2.0",
-  "description": "Enhanced Scholarly MCP Server - 6 Optimized Tools for Academic Research",
+  "description": "PaperezMCP - Academic Paper Research Made Easy - 6 Optimized Tools",
   "mcpServers": {
-    "scholarly-enhanced": {
+    "paperez-mcp": {
       "command": "uvx",
       "args": [
         "--from",
@@ -16,7 +16,7 @@
   },
   "tools": [
     {
-      "server": "scholarly-enhanced",
+      "server": "paperez-mcp",
       "tools": [
         {
           "name": "search_papers",
@@ -46,7 +46,7 @@
     }
   ],
   "installation": {
-    "command": "claude mcp add -s project scholarly-enhanced -- uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-mcp",
+    "command": "claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp",
     "requirements": [
       "Python 3.8+",
       "uvx (for zero-installation)",
@@ -62,7 +62,7 @@
     }
   },
   "preferences": {
-    "default_server": "scholarly-enhanced",
+    "default_server": "paperez-mcp",
     "timeout": 180,
     "retry_attempts": 3,
     "log_level": "INFO"

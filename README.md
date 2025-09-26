@@ -1,10 +1,10 @@
-# Enhanced Scholarly MCP Server 🚀
+# PaperezMCP 📚🚀
 
-> **Full-text academic paper retrieval through the Model Context Protocol (MCP)**
+> **Academic paper research made easy through the Model Context Protocol (MCP)**
 
-A comprehensive, modular MCP server that provides multi-source academic search with unlimited full-text PDF extraction and zero-token markdown conversion. Features robust API fallback, intelligent caching, and **true zero-installation deployment** via uvx.
+PaperezMCP is a comprehensive MCP server that makes academic research effortless. Get papers from multiple databases, extract full-text content, and convert PDFs to markdown - all with zero-installation via uvx.
 
-[![GitHub](https://img.shields.io/badge/GitHub-JosiahSiegel%2Fscholarly--mcp-blue)](https://github.com/JosiahSiegel/scholarly-mcp)
+[![GitHub](https://img.shields.io/badge/GitHub-JosiahSiegel%2Fpaperz--mcp-blue)](https://github.com/JosiahSiegel/paperez-mcp)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -38,7 +38,7 @@ Add to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "scholarly-enhanced": {
+    "paperez-mcp": {
       "command": "uvx",
       "args": [
         "--from",
@@ -58,13 +58,13 @@ Add to your `claude_desktop_config.json`:
 Run this command in Claude Code:
 
 ```bash
-claude mcp add -s project scholarly-enhanced -- uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-mcp
+claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp
 ```
 
 or
 
 ```bash
-/mcp add scholarly-enhanced uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-mcp
+/mcp add paperez-mcp uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp
 ```
 
 ## 📋 Available Tools (6 Optimized Functions)
@@ -92,7 +92,7 @@ or
 |------|-------------|---------|
 | **`get_status`** | Check API health and system configuration | Troubleshooting, monitoring |
 
-## 🚨 CRITICAL USAGE GUIDE
+## 🚨 CRITICAL: Getting Full Papers vs Metadata
 
 ### ❌ Common Mistake (Returns Only Summaries)
 ```python
@@ -139,26 +139,26 @@ for paper in papers[0]["results"]:
 
 ```bash
 # Search for papers
-/mcp call scholarly-enhanced search_publications '{"query": "machine learning", "limit": 3}'
+/mcp call paperez-mcp search_papers '{"query": "machine learning", "limit": 3}'
 
 # Find an author
-/mcp call scholarly-enhanced search_author '{"name": "Geoffrey Hinton", "limit": 1}'
+/mcp call paperez-mcp search_authors '{"name": "Geoffrey Hinton", "limit": 1}'
 ```
 
 ### Full-Text Retrieval & Processing
 
 ```bash
 # Comprehensive search with multi-source fallback
-/mcp call scholarly-enhanced comprehensive_search '{"query": "transformer attention mechanism", "limit": 3, "include_full_text": true}'
+/mcp call paperez-mcp search_papers '{"query": "transformer attention mechanism", "limit": 3, "include_full_text": true}'
 
 # Get unlimited text from paper (no character limits)
-/mcp call scholarly-enhanced get_full_text_by_title '{"title": "Attention Is All You Need", "extract_text": true}'
+/mcp call paperez-mcp search_papers '{"query": "Attention Is All You Need", "include_full_text": true}'
 
 # Download and convert to markdown (zero AI tokens)
-/mcp call scholarly-enhanced download_and_convert_paper '{"pdf_url": "https://arxiv.org/pdf/1706.03762.pdf"}'
+/mcp call paperez-mcp convert_pdf_to_markdown '{"pdf_url": "https://arxiv.org/pdf/1706.03762.pdf"}'
 
 # Convert local PDF to structured markdown
-/mcp call scholarly-enhanced convert_pdf_to_markdown '{"file_path": "/path/to/paper.pdf", "title": "Paper Title"}'
+/mcp call paperez-mcp convert_pdf_to_markdown '{"file_path": "/path/to/paper.pdf"}'
 ```
 
 ### Natural Language with AI

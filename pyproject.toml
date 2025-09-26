@@ -1,7 +1,7 @@
 [project]
-name = "scholarly-mcp"
+name = "paperez-mcp"
 version = "1.0.0"
-description = "Enhanced MCP server with full-text retrieval for academic papers via Google Scholar"
+description = "PaperezMCP - Academic paper research made easy with full-text retrieval and multi-source search"
 authors = [{name = "Josiah Siegel"}]
 readme = "README.md"
 license = {text = "MIT"}
@@ -45,13 +45,13 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/JosiahSiegel/scholarly-mcp"
-Repository = "https://github.com/JosiahSiegel/scholarly-mcp"
-Issues = "https://github.com/JosiahSiegel/scholarly-mcp/issues"
-Documentation = "https://github.com/JosiahSiegel/scholarly-mcp#readme"
+Homepage = "https://github.com/JosiahSiegel/paperez-mcp"
+Repository = "https://github.com/JosiahSiegel/paperez-mcp"
+Issues = "https://github.com/JosiahSiegel/paperez-mcp/issues"
+Documentation = "https://github.com/JosiahSiegel/paperez-mcp#readme"
 
 [project.scripts]
-scholarly-mcp = "scholarly_enhanced_server:main"
+paperez-mcp = "scholarly_enhanced_server:main"
 
 [project.optional-dependencies]
 dev = [

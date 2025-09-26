@@ -1,11 +1,11 @@
 {
   "mcpServers": {
-    "scholarly-enhanced": {
+    "paperez-mcp": {
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/JosiahSiegel/scholarly-mcp.git",
-        "scholarly-mcp"
+        "git+https://github.com/JosiahSiegel/paperez-mcp.git",
+        "paperez-mcp"
       ],
       "env": {
         "UNPAYWALL_EMAIL": "your_email@example.com"

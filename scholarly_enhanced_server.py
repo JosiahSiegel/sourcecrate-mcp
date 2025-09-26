@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Enhanced Scholarly MCP Server
+PaperezMCP - Academic Paper Research Made Easy
 
 A comprehensive academic research server with multi-source fallback,
 robust caching, and graceful error handling. Built with modular architecture.
@@ -48,7 +48,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize FastMCP server
-mcp = FastMCP("Enhanced Scholarly MCP Server - Modular Version")
+mcp = FastMCP("PaperezMCP - Academic Paper Research Made Easy")
 
 # Setup scholarly proxy on startup
 setup_scholarly_proxy()
@@ -904,7 +904,7 @@ async def get_status() -> Dict[str, Any]:
 
 def main():
     """Main entry point for the server"""
-    print("🚀 Starting Enhanced Scholarly MCP Server...")
+    print("🚀 Starting PaperezMCP Server...")
     print("📚 Available tools:")
     print("  - search_papers: Search academic papers across multiple databases")
     print("  - search_authors: Find author profiles with citation metrics")
@@ -916,7 +916,7 @@ def main():
     print("⚠️  IMPORTANT: For full papers, use download_and_convert=True")
     print("   Default behavior returns only metadata/abstracts!")
     print("")
-    print("🔗 Server running at: stdio")
+    print("🔗 PaperezMCP ready at: stdio")
     mcp.run()
 
 
