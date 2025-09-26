@@ -451,9 +451,14 @@ async def get_papers(
                 except Exception as e:
                     paper["download_error"] = str(e)
 
-    # Add download metadata
-    result["downloaded_count"] = downloaded_count
-    result["output_directory"] = output_dir
+    # Create result summary
+    result = {
+        "results": downloadable_papers,
+        "total_found": len(downloadable_papers),
+        "downloaded_count": downloaded_count,
+        "output_directory": output_dir,
+        "query": query
+    }
 
     return [result]
 
