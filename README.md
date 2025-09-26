@@ -213,9 +213,65 @@ The server automatically finds full text from:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## 🔧 Troubleshooting Guide
+
+### Common Issues & Solutions
+
+#### 1. "Cannot Fetch from Google Scholar" Error
+**Problem**: Google Scholar blocks automated requests.
+**Solutions**:
+- **Immediate**: Use `comprehensive_search` which tries multiple sources
+- **Wait**: 10-15 minutes before retrying Google Scholar
+- **Alternative**: Use specific DOI/title searches instead of broad queries
+- **API Keys**: Get ScraperAPI key for reliable Google Scholar access
+
+#### 2. HTTP 429 (Rate Limited) Errors
+**Problem**: Hitting API rate limits.
+**Solutions**:
+- **Semantic Scholar**: Get free API key for higher limits
+- **Automatic Retry**: Server handles exponential backoff automatically
+- **Reduce Frequency**: Space out requests more
+
+#### 3. "'FunctionTool' object is not callable"
+**Problem**: Fixed in latest version through proper async/sync handling.
+**Solution**: Ensure you're using the latest version from GitHub.
+
+#### 4. MCP Server Not Detected
+**Problem**: Configuration or path issues.
+**Solutions**:
+1. Verify `.mcp.json` syntax and location
+2. Restart Claude Code/Desktop after changes
+3. Use absolute uvx path if needed:
+   ```json
+   "command": "/home/node/.local/bin/uvx"
+   ```
+
+#### 5. PDF Extraction Failures
+**Problem**: PDF access restrictions or parsing issues.
+**Solutions**:
+- Use `find_open_access_versions` for alternative URLs
+- Try different open access sources
+- Some PDFs may be protected or have complex layouts
+
+### Best Practices
+
+1. **Start with Comprehensive Search**: Use `comprehensive_search` for best multi-source results
+2. **Specific Queries**: Use precise terms and author names when possible
+3. **API Keys**: Set up Semantic Scholar API key for better reliability
+4. **Error Handling**: Server implements automatic retry - let it work
+5. **Rate Limiting**: Avoid burst requests, space out queries
+
+### Performance Tips
+
+- Use specific titles/DOIs instead of broad searches when possible
+- Enable full-text extraction only when needed (slower)
+- For biomedical research, the server automatically tries PubMed
+- Combine searches: discovery first, then specific lookups
+
 ## 🆘 Support
 
 - **Documentation**: This README
+- **Troubleshooting**: See guide above
 - **Issues**: [GitHub Issues](https://github.com/JosiahSiegel/scholarly-mcp/issues)
 - **Repository**: [GitHub](https://github.com/JosiahSiegel/scholarly-mcp)
 

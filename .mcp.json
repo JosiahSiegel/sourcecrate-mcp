@@ -3,7 +3,7 @@
   "description": "Enhanced Scholarly MCP Server with Full-Text Retrieval - Zero Installation via uvx",
   "mcpServers": {
     "scholarly-enhanced": {
-      "command": "uvx",
+      "command": "/home/node/.local/bin/uvx",
       "args": [
         "--from",
         "git+https://github.com/JosiahSiegel/scholarly-mcp.git",
