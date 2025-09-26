@@ -546,5 +546,9 @@ def extract_pdf_text_from_url(pdf_url: str) -> Dict[str, Any]:
         return {"error": f"PDF extraction failed: {str(e)}"}
 
 # Run the server
-if __name__ == "__main__":
+def main():
+    """Main entry point for the server"""
     mcp.run()
+
+if __name__ == "__main__":
+    main()

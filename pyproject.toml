@@ -1,0 +1,77 @@
+[project]
+name = "scholarly-mcp"
+version = "1.0.0"
+description = "Enhanced MCP server with full-text retrieval for academic papers via Google Scholar"
+authors = [{name = "Josiah Siegel"}]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+keywords = ["academic", "research", "scholar", "mcp", "papers", "full-text", "arxiv", "citations"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Education",
+    "Topic :: Text Processing :: Linguistic"
+]
+
+dependencies = [
+    "fastmcp>=2.6.0",
+    "scholarly>=1.7.11",
+    "httpx>=0.25.0",
+    "aiohttp>=3.8.0",
+    "requests>=2.28.0",
+    "PyMuPDF>=1.23.0",
+    "pdfplumber>=0.10.0",
+    "lxml>=4.9.0",
+    "asyncio-throttle>=1.0.2"
+]
+
+[project.urls]
+Homepage = "https://github.com/JosiahSiegel/scholarly-mcp"
+Repository = "https://github.com/JosiahSiegel/scholarly-mcp"
+Issues = "https://github.com/JosiahSiegel/scholarly-mcp/issues"
+Documentation = "https://github.com/JosiahSiegel/scholarly-mcp#readme"
+
+[project.scripts]
+scholarly-mcp = "scholarly_enhanced_server:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0"
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+select = ["E", "F", "W", "B", "I", "N", "UP"]
+ignore = ["E501", "B008"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

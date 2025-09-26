@@ -1,18 +1,16 @@
 {
   "version": "1.0",
-  "description": "Enhanced Scholarly MCP Server with Full-Text Retrieval - Deploy from GitHub URL",
+  "description": "Enhanced Scholarly MCP Server with Full-Text Retrieval - Zero Installation via uvx",
   "mcpServers": {
     "scholarly-enhanced": {
-      "command": "python3",
-      "args": ["scholarly_enhanced_server.py"],
-      "cwd": "/mnt/d/repos/scholarly-mcp",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/JosiahSiegel/scholarly-mcp.git",
+        "scholarly-mcp"
+      ],
       "env": {
-        "UNPAYWALL_EMAIL": "research@example.com",
-        "MAX_PDF_SIZE_MB": "50",
-        "PDF_TIMEOUT": "60",
-        "ENABLE_CACHING": "false",
-        "PROXY_TYPE": "none",
-        "RATE_LIMIT_DELAY": "1.0"
+        "UNPAYWALL_EMAIL": "research@example.com"
       }
     }
   },
@@ -34,15 +32,15 @@
         },
         {
           "name": "find_open_access_versions",
-          "description": "Find open access versions using multiple sources (Unpaywall, Semantic Scholar, arXiv)"
+          "description": "Find open access versions using multiple sources"
         },
         {
           "name": "get_full_text_by_doi",
-          "description": "Retrieve full text of a paper using its DOI with PDF extraction"
+          "description": "Retrieve full text of a paper using its DOI"
         },
         {
           "name": "get_full_text_by_title",
-          "description": "Retrieve full text of a paper using its title with PDF extraction"
+          "description": "Retrieve full text of a paper using its title"
         },
         {
           "name": "search_with_full_text",
@@ -50,39 +48,17 @@
         },
         {
           "name": "extract_pdf_text_from_url",
-          "description": "Extract text from any PDF URL using PyMuPDF"
+          "description": "Extract text from any PDF URL"
         },
         {
           "name": "search_organizations",
-          "description": "Search for academic organizations and institutions"
+          "description": "Search for academic organizations"
         },
         {
           "name": "get_bibtex_citation",
-          "description": "Generate BibTeX citation for a publication by title"
+          "description": "Generate BibTeX citation for a publication"
         }
       ]
-    }
-  ],
-  "resources": [
-    {
-      "uri": "file://README.md",
-      "name": "Project Documentation",
-      "description": "Enhanced Scholarly MCP Server documentation and features"
-    },
-    {
-      "uri": "file://SETUP_GUIDE.md",
-      "name": "Setup Guide",
-      "description": "Complete setup and deployment instructions"
-    },
-    {
-      "uri": "file://examples/",
-      "name": "Usage Examples",
-      "description": "Client usage examples and code samples"
-    },
-    {
-      "uri": "file://enhanced_config.py",
-      "name": "Configuration",
-      "description": "Server configuration and environment setup"
     }
   ],
   "preferences": {
@@ -90,41 +66,5 @@
     "timeout": 120,
     "retry_attempts": 3,
     "log_level": "INFO"
-  },
-  "development": {
-    "test_command": "python3 test_local.py",
-    "install_command": "pip install -r requirements_enhanced.txt",
-    "start_command": "python3 scholarly_enhanced_server.py"
-  },
-  "metadata": {
-    "title": "Enhanced Scholarly MCP Server",
-    "author": "Claude Code",
-    "version": "1.0.0",
-    "license": "MIT",
-    "repository": "https://github.com/your-username/scholarly-mcp",
-    "keywords": [
-      "academic",
-      "research",
-      "papers",
-      "scholar",
-      "pdf",
-      "full-text",
-      "open-access",
-      "arxiv",
-      "citations",
-      "mcp",
-      "fastmcp"
-    ],
-    "capabilities": [
-      "Google Scholar integration",
-      "Multi-source open access detection",
-      "Full PDF text extraction",
-      "arXiv preprint access",
-      "Citation analysis",
-      "BibTeX generation",
-      "Rate limiting",
-      "Error handling",
-      "Async processing"
-    ]
   }
 }
