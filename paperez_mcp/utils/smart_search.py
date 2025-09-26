@@ -8,7 +8,6 @@ from datetime import datetime
 from typing import Dict, List, Any
 
 from ..config import config
-from .topic_classifier import get_recommended_sources, should_skip_source_for_topic, get_topic_explanation
 from .query_processor import generate_alternative_queries, optimize_query_for_source
 from .enhanced_classifier import EnhancedTopicClassifier
 from .query_intent import QueryIntentDetector
@@ -68,10 +67,7 @@ async def smart_downloadable_search(
         topic_classification = {"primary_topic": "Unknown", "confidence": 0.0}
         source_rankings = [('arxiv', 0.8), ('semantic_scholar', 0.7), ('crossref', 0.5)]
 
-    # Legacy topic analysis for backward compatibility
-    topic_analysis = None
-    if config.enable_topic_detection:
-        topic_analysis = get_topic_explanation(query)
+    # Enhanced routing has replaced legacy topic detection
 
     # Initialize comprehensive search logging with enhanced analytics
     search_log = {
@@ -91,7 +87,6 @@ async def smart_downloadable_search(
         },
         "routing_recommendations": routing_recommendations,
         "source_rankings": source_rankings[:5],  # Top 5 sources
-        "legacy_topic_analysis": topic_analysis,
         "total_candidates": 0,
         "unique_candidates": 0,
         "download_attempts": 0,
@@ -129,29 +124,19 @@ async def smart_downloadable_search(
     adjusted_priority.sort(key=lambda x: x[2], reverse=True)
     source_priority = [(name, desc) for name, desc, _ in adjusted_priority]
 
-    # Fallback to legacy system if no enhanced rankings available
+    # Enhanced routing is primary - fallback to default order if no rankings
     if not source_priority:
-        if config.enable_topic_detection and topic_analysis:
-            recommended_sources = get_recommended_sources(query)
-            for source in recommended_sources:
-                if source in source_descriptions:
-                    source_priority.append((source, source_descriptions[source]))
-
-            all_sources = ['arxiv', 'semantic_scholar', 'crossref', 'pubmed', 'google_scholar', 'core', 'doaj', 'socarxiv', 'osf_preprints']
-            for source in all_sources:
-                if source not in recommended_sources and source in source_descriptions:
-                    source_priority.append((source, f"{source_descriptions[source]} (lower priority)"))
-        else:
-            source_priority = [
-                ('arxiv', 'arXiv has highest PDF availability'),
-                ('semantic_scholar', 'Semantic Scholar often has open access PDFs'),
-                ('core', 'CORE open access repository'),
-                ('crossref', 'CrossRef comprehensive but mostly paywalled'),
-                ('doaj', 'DOAJ open access journals'),
-                ('socarxiv', 'SocArXiv social science preprints'),
-                ('pubmed', 'PubMed for biomedical open access'),
-                ('google_scholar', 'Google Scholar fallback')
-            ]
+        source_priority = [
+            ('arxiv', 'arXiv default priority'),
+            ('semantic_scholar', 'Semantic Scholar default priority'),
+            ('core', 'CORE default priority'),
+            ('crossref', 'CrossRef default priority'),
+            ('doaj', 'DOAJ default priority'),
+            ('socarxiv', 'SocArXiv default priority'),
+            ('pubmed', 'PubMed default priority'),
+            ('google_scholar', 'Google Scholar default priority'),
+            ('osf_preprints', 'OSF Preprints default priority')
+        ]
 
     logger.info(f"🚀 Enhanced source priority: {[s[0] for s in source_priority]}")
 
@@ -191,17 +176,7 @@ async def smart_downloadable_search(
                         skip_source = True
                         skip_reason = f"Biomedical query, {source_name} not relevant"
 
-                # Legacy topic-based skipping (fallback)
-                if config.enable_topic_detection and should_skip_source_for_topic(source_name, query):
-                    skip_source = True
-                    skip_reason = "Legacy topic-based skip"
-
-                # Legacy PubMed biomedical check (for backward compatibility)
-                if source_name == 'pubmed' and not config.enable_topic_detection:
-                    biomedical_terms = ['gene', 'protein', 'disease', 'medical', 'clinical', 'drug', 'therapy', 'patient', 'cancer', 'treatment']
-                    if not any(term in query.lower() for term in biomedical_terms):
-                        skip_source = True
-                        skip_reason = "Legacy biomedical check failed"
+                # Enhanced routing handles all source selection intelligently
 
                 if skip_source:
                     search_log["results_per_source"][source_name] = {
@@ -236,9 +211,7 @@ async def smart_downloadable_search(
                             # Use first expansion as fallback
                             optimized_query = expansions[0]
 
-                    # Legacy query optimization (fallback)
-                    if config.enable_query_reformulation and optimized_query == query:
-                        optimized_query = optimize_query_for_source(query, source_name)
+                    # Enhanced routing provides intelligent query optimization
 
                     if optimized_query != query:
                         logger.info(f"🔧 Enhanced query optimization for {source_name}: '{optimized_query}'")

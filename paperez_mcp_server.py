@@ -84,7 +84,6 @@ def _lazy_import_search_functions() -> Dict[str, Any]:
 def _lazy_import_utils() -> Dict[str, Any]:
     """Lazy import of utility functions"""
     from paperez_mcp.utils import (
-        comprehensive_search_internal,
         convert_pdf_to_markdown_content,
         download_pdf,
         extract_pdf_text,
@@ -95,7 +94,6 @@ def _lazy_import_utils() -> Dict[str, Any]:
     return {
         'extract_pdf_text': extract_pdf_text,
         'convert_pdf_to_markdown_content': convert_pdf_to_markdown_content,
-        'comprehensive_search_internal': comprehensive_search_internal,
         'download_pdf': download_pdf,
         'save_markdown_file': save_markdown_file,
         'extract_pdf_text_from_local_file': extract_pdf_text_from_local_file,
@@ -298,10 +296,27 @@ async def browse_papers(
     # Lazy import utilities
     _ensure_scholarly_setup()
     utils = _lazy_import_utils()
+    search_funcs = _lazy_import_search_functions()
 
-    # Get metadata only - no downloads
-    result = await utils['comprehensive_search_internal'](query, limit, include_full_text=False)
-    return [result]
+    # Use enhanced routing for metadata search (no downloads)
+    papers = await utils['smart_downloadable_search'](
+        query, limit, search_funcs, utils, api_status
+    )
+
+    # Convert to browse format (metadata only, remove download info)
+    browse_results = []
+    for paper in papers:
+        browse_paper = {k: v for k, v in paper.items()
+                       if k not in ['download_success', 'local_markdown', 'markdown_characters']}
+        browse_results.append(browse_paper)
+
+    return [{
+        "results": browse_results,
+        "total_found": len(browse_results),
+        "api_status": api_status,
+        "sources_used": list(set(paper.get("source", "Unknown") for paper in browse_results)),
+        "query": query
+    }]
 
 
 @mcp.tool
@@ -346,15 +361,18 @@ async def download_papers(
     # Lazy import utilities
     _ensure_scholarly_setup()
     utils = _lazy_import_utils()
+    search_funcs = _lazy_import_search_functions()
 
-    # Search for papers with download enabled
-    result = await utils['comprehensive_search_internal'](query, limit, include_full_text=False)
+    # Use enhanced routing for intelligent source selection and download
+    downloadable_papers = await utils['smart_downloadable_search'](
+        query, limit, search_funcs, utils, api_status
+    )
 
     downloaded_count = 0
 
-    # Download and convert papers
-    if result.get("results"):
-        for paper in result["results"][:limit]:
+    # Convert downloadable papers to markdown files
+    # (downloadable_papers already contains verified downloadable papers)
+    for paper in downloadable_papers:
             pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
             if pdf_url:
                 try:
@@ -394,11 +412,13 @@ async def download_papers(
                 except Exception as e:
                     paper["download_error"] = str(e)
 
-    # Add download metadata
-    result["downloaded_count"] = downloaded_count
-    result["output_directory"] = output_dir
-
-    return [result]
+    return [{
+        "results": downloadable_papers,
+        "total_found": len(downloadable_papers),
+        "downloaded_count": downloaded_count,
+        "output_directory": output_dir,
+        "query": query
+    }]
 
 
 @mcp.tool
