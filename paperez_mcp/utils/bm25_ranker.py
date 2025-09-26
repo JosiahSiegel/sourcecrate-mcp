@@ -175,7 +175,11 @@ class BM25SourceRanker:
                     # Historical documents (comprehensive coverage)
                     "declaration", "treaty", "historical", "history", "document",
                     "archive", "primary source", "manuscript", "diplomatic",
-                    "government", "official", "colonial", "political"
+                    "government", "official", "colonial", "political",
+
+                    # Economic and financial topics
+                    "banking", "federal reserve", "economics", "finance", "monetary",
+                    "business", "corporate", "financial", "economic", "money"
                 ],
                 domain_focus=["all"],
                 content_type="aggregator",
@@ -212,6 +216,14 @@ class BM25SourceRanker:
                     "conflict", "peace", "settlement", "mandate", "territory",
                     "nationalism", "sovereignty", "diplomacy", "international relations",
                     "british", "ottoman", "palestine", "zionism", "middle east",
+
+                    # Economic and financial history
+                    "banking", "federal reserve", "central bank", "monetary", "finance",
+                    "economic", "financial", "capitalism", "business", "corporate",
+                    "wall street", "investment", "securities", "bonds", "stock market",
+                    "depression", "recession", "panic", "crisis", "bubble",
+                    "morgan", "rockefeller", "rothschild", "warburg", "aldrich",
+                    "jekyll island", "money trust", "banking reform", "currency",
 
                     # Historical/Cultural
                     "historical", "cultural", "heritage", "tradition", "civilization",
