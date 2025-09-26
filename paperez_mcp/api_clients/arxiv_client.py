@@ -24,8 +24,14 @@ async def search_arxiv(query: str, limit: int = 5) -> List[Dict[str, Any]]:
 
     try:
         def _search_arxiv():
+            # Format query for phrase search - wrap in quotes if it contains multiple words
+            formatted_query = query
+            if ' ' in query.strip() and not (query.strip().startswith('"') and query.strip().endswith('"')):
+                # For multi-word queries, use title and abstract search with phrase matching
+                formatted_query = f'ti:"{query}" OR abs:"{query}"'
+
             search = arxiv.Search(
-                query=query,
+                query=formatted_query,
                 max_results=limit,
                 sort_by=arxiv.SortCriterion.Relevance
             )

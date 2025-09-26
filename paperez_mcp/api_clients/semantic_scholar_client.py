@@ -24,8 +24,14 @@ async def search_semantic_scholar(query: str, limit: int = 5) -> List[Dict[str, 
 
     try:
         url = "https://api.semanticscholar.org/graph/v1/paper/search"
+
+        # Format query for phrase search - wrap in quotes if it contains multiple words
+        formatted_query = query
+        if ' ' in query.strip() and not (query.strip().startswith('"') and query.strip().endswith('"')):
+            formatted_query = f'"{query}"'
+
         params = {
-            "query": query,
+            "query": formatted_query,
             "limit": limit,
             "fields": "paperId,title,authors,year,abstract,venue,citationCount,url,openAccessPdf"
         }

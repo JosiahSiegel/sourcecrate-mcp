@@ -25,8 +25,14 @@ async def search_crossref(query: str, limit: int = 5) -> List[Dict[str, Any]]:
     try:
         # Use CrossRef REST API directly
         url = "https://api.crossref.org/works"
+
+        # Format query for phrase search - wrap in quotes if it contains multiple words
+        formatted_query = query
+        if ' ' in query.strip() and not (query.strip().startswith('"') and query.strip().endswith('"')):
+            formatted_query = f'"{query}"'
+
         params = {
-            "query": query,
+            "query": formatted_query,
             "rows": limit,
             "sort": "relevance",
             "order": "desc",
