@@ -42,15 +42,31 @@ async def smart_downloadable_search(
     all_candidates = []
 
     # Enhanced analysis using new classification system
-    enhanced_classifier = EnhancedTopicClassifier()
-    intent_detector = QueryIntentDetector()
-    bm25_ranker = BM25SourceRanker()
+    topic_classification = None
+    intent_analysis = None
+    routing_recommendations = None
+    source_rankings = []
 
-    # Perform comprehensive query analysis
-    topic_classification = enhanced_classifier.classify_query_enhanced(query)
-    intent_analysis = intent_detector.analyze_query(query)
-    routing_recommendations = intent_detector.get_routing_recommendations(query)
-    source_rankings = bm25_ranker.rank_sources(query)
+    try:
+        enhanced_classifier = EnhancedTopicClassifier()
+        intent_detector = QueryIntentDetector()
+        bm25_ranker = BM25SourceRanker()
+
+        # Perform comprehensive query analysis
+        topic_classification = enhanced_classifier.classify_query_enhanced(query)
+        intent_analysis = intent_detector.analyze_query(query)
+        routing_recommendations = intent_detector.get_routing_recommendations(query)
+        source_rankings = bm25_ranker.rank_sources(query)
+
+        logger.info(f"🧠 Enhanced Topic Classification: {topic_classification}")
+        logger.info(f"🎯 Query Intent: {intent_analysis.intent.value} (confidence: {intent_analysis.confidence:.2f})")
+        logger.info(f"⏰ Temporal Preference: {intent_analysis.temporal_preference.value}")
+        logger.info(f"🏆 Top Sources: {[s[0] for s in source_rankings[:5]]}")
+    except Exception as e:
+        logger.warning(f"❌ Enhanced routing failed, falling back to legacy: {e}")
+        # Set defaults for fallback
+        topic_classification = {"primary_topic": "Unknown", "confidence": 0.0}
+        source_rankings = [('arxiv', 0.8), ('semantic_scholar', 0.7), ('crossref', 0.5)]
 
     # Legacy topic analysis for backward compatibility
     topic_analysis = None
@@ -68,10 +84,10 @@ async def smart_downloadable_search(
         "search_strategy": "enhanced_smart_downloadable",
         "topic_classification": topic_classification,
         "intent_analysis": {
-            "intent": intent_analysis.intent.value,
-            "temporal_preference": intent_analysis.temporal_preference.value,
-            "confidence": intent_analysis.confidence,
-            "complexity": intent_analysis.complexity
+            "intent": intent_analysis.intent.value if intent_analysis else "unknown",
+            "temporal_preference": intent_analysis.temporal_preference.value if intent_analysis else "neutral",
+            "confidence": intent_analysis.confidence if intent_analysis else 0.0,
+            "complexity": intent_analysis.complexity if intent_analysis else "simple"
         },
         "routing_recommendations": routing_recommendations,
         "source_rankings": source_rankings[:5],  # Top 5 sources
@@ -82,10 +98,6 @@ async def smart_downloadable_search(
         "successful_downloads": 0
     }
 
-    logger.info(f"🧠 Enhanced Topic Classification: {topic_classification}")
-    logger.info(f"🎯 Query Intent: {intent_analysis.intent.value} (confidence: {intent_analysis.confidence:.2f})")
-    logger.info(f"⏰ Temporal Preference: {intent_analysis.temporal_preference.value}")
-    logger.info(f"🏆 Top Sources: {[s[0] for s in source_rankings[:5]]}")
 
     # Enhanced strategy using new classification system
     source_descriptions = {
@@ -107,7 +119,7 @@ async def smart_downloadable_search(
             source_priority.append((source_name, f"{source_descriptions[source_name]} (score: {score:.3f})"))
 
     # Apply intent-based source preferences as secondary weighting
-    intent_preferences = intent_analysis.source_preferences
+    intent_preferences = intent_analysis.source_preferences if intent_analysis else {}
     adjusted_priority = []
     for source_name, description in source_priority:
         preference_score = intent_preferences.get(source_name, 0.5)
@@ -170,12 +182,12 @@ async def smart_downloadable_search(
                     skip_reason = f"Low intent-based preference ({intent_preference:.3f})"
 
                 # Domain-specific skipping logic
-                if topic_classification['primary_topic'] == 'Computer Science':
-                    if source_name == 'pubmed' and topic_classification['confidence'] > 0.7:
+                if topic_classification and topic_classification.get('primary_topic') == 'Computer Science':
+                    if source_name == 'pubmed' and topic_classification.get('confidence', 0) > 0.7:
                         skip_source = True
                         skip_reason = "Computer Science query, PubMed not relevant"
-                elif topic_classification['primary_topic'] in ['Medicine', 'Biology']:
-                    if source_name in ['socarxiv'] and topic_classification['confidence'] > 0.7:
+                elif topic_classification and topic_classification.get('primary_topic') in ['Medicine', 'Biology']:
+                    if source_name in ['socarxiv'] and topic_classification.get('confidence', 0) > 0.7:
                         skip_source = True
                         skip_reason = f"Biomedical query, {source_name} not relevant"
 
@@ -207,15 +219,15 @@ async def smart_downloadable_search(
                     optimized_query = query
 
                     # Use query expansions from intent analysis
-                    if routing_recommendations.get('query_expansions'):
+                    if routing_recommendations and routing_recommendations.get('query_expansions'):
                         # Select best expansion for this source based on intent and temporal preference
                         expansions = routing_recommendations['query_expansions']
-                        if expansions and intent_analysis.temporal_preference.value == 'recent':
+                        if expansions and intent_analysis and intent_analysis.temporal_preference.value == 'recent':
                             # For recent queries, try temporal expansions first
                             temporal_expansions = [exp for exp in expansions if any(term in exp.lower() for term in ['recent', 'latest', '2024', '2025'])]
                             if temporal_expansions:
                                 optimized_query = temporal_expansions[0]
-                        elif expansions and intent_analysis.intent.value == 'survey_review':
+                        elif expansions and intent_analysis and intent_analysis.intent.value == 'survey_review':
                             # For review queries, try review-focused expansions
                             review_expansions = [exp for exp in expansions if any(term in exp.lower() for term in ['review', 'survey', 'state of the art'])]
                             if review_expansions:
