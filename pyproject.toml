@@ -51,7 +51,7 @@ Issues = "https://github.com/JosiahSiegel/paperez-mcp/issues"
 Documentation = "https://github.com/JosiahSiegel/paperez-mcp#readme"
 
 [project.scripts]
-paperez-mcp = "scholarly_enhanced_server:main"
+paperez-mcp = "paperez_mcp_server:main"
 
 [project.optional-dependencies]
 dev = [

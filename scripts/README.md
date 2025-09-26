@@ -30,7 +30,7 @@ python3 scripts/validate_mcp_server.py
 
 The validation is integrated with pre-commit hooks in `.pre-commit-config.yaml`:
 
-1. **MCP Server Validation** - Runs on `scholarly_enhanced_server.py` changes
+1. **MCP Server Validation** - Runs on `paperez_mcp_server.py` changes
 2. **Python Syntax Check** - Runs on all `.py` files
 
 ### Setup Pre-commit
@@ -53,7 +53,7 @@ pre-commit run --all-files
 python3 scripts/simple_mcp_check.py
 
 # Test syntax compilation
-python3 -m py_compile scholarly_enhanced_server.py
+python3 -m py_compile paperez_mcp_server.py
 ```
 
 ## What Gets Validated

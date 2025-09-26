@@ -20,7 +20,15 @@
       "tools": [
         {
           "name": "search_papers",
-          "description": "🚨 CRITICAL: Use download_and_convert=True for full papers! Default returns only metadata/abstracts. Search academic papers across multiple databases with optional full-text extraction and download."
+          "description": "🔍 DISCOVERY: Find and browse papers (metadata/abstracts only). For getting actual papers, use download_papers() or get_papers() instead!"
+        },
+        {
+          "name": "download_papers",
+          "description": "📄 GET FULL PAPERS: Download academic papers as markdown files. Use this when you want actual paper content, not just metadata."
+        },
+        {
+          "name": "get_papers",
+          "description": "📄 GET FULL PAPERS: Alias for download_papers(). Use when users say 'get papers' - downloads full papers as markdown files."
         },
         {
           "name": "search_authors",
@@ -54,11 +62,11 @@
     ]
   },
   "usage": {
-    "critical_warning": "⚠️ search_papers() returns only metadata by default! Use download_and_convert=True for full papers as files.",
+    "critical_warning": "⚠️ search_papers() returns only metadata! For full papers use download_papers() or get_papers() instead.",
     "common_workflows": {
-      "get_3_full_papers": "search_papers('topic', limit=3, download_and_convert=True)",
-      "get_10_metadata": "search_papers('topic', limit=10)",
-      "get_full_text_memory": "search_papers('topic', limit=5, include_full_text=True)"
+      "get_full_papers": "download_papers('topic', limit=5) or get_papers('topic')",
+      "browse_metadata": "search_papers('topic', limit=10)",
+      "save_to_folder": "download_papers('topic', output_dir='my_papers')"
     }
   },
   "preferences": {

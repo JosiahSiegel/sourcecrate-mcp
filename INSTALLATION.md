@@ -18,7 +18,7 @@ cd paperez-mcp
 pip install -r requirements.txt
 
 # Run server directly
-python scholarly_enhanced_server.py
+python paperez_mcp_server.py
 ```
 
 ## Verification

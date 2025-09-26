@@ -101,7 +101,7 @@ def check_mcp_structure(file_path):
 
 def main():
     """Run all validation checks."""
-    server_file = Path("scholarly_enhanced_server.py")
+    server_file = Path("paperez_mcp_server.py")
 
     if not server_file.exists():
         print(f"✗ MCP server file not found: {server_file}")

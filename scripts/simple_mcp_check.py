@@ -11,7 +11,7 @@ from pathlib import Path
 
 def main():
     """Simple syntax and import check for MCP server."""
-    server_file = "scholarly_enhanced_server.py"
+    server_file = "paperez_mcp_server.py"
 
     if not Path(server_file).exists():
         print(f"✗ {server_file} not found")
@@ -24,7 +24,7 @@ def main():
 
         # Try basic import test (will fail gracefully on missing deps)
         try:
-            import scholarly_enhanced_server
+            import paperez_mcp_server
             print("✓ MCP server imports successfully")
         except ImportError as e:
             if 'fastmcp' in str(e) or 'scholarly' in str(e):

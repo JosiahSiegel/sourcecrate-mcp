@@ -25,8 +25,8 @@ except ImportError:
 from fastmcp import FastMCP
 
 # Import modular components
-from scholarly_mcp.config import config, api_status, cache
-from scholarly_mcp.api_clients import (
+from paperez_mcp.config import config, api_status, cache
+from paperez_mcp.api_clients import (
     search_crossref,
     search_semantic_scholar,
     search_arxiv,
@@ -34,14 +34,14 @@ from scholarly_mcp.api_clients import (
     search_google_scholar_fallback,
     setup_scholarly_proxy
 )
-from scholarly_mcp.utils import (
+from paperez_mcp.utils import (
     extract_pdf_text,
     convert_pdf_to_markdown_content,
     comprehensive_search_internal,
     download_pdf,
     save_markdown_file
 )
-from scholarly_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
+from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -121,23 +121,30 @@ async def search_papers(
     download_and_convert: bool = False  # ⚠️ False = no files, True = downloads PDFs as markdown files (max 3)
 ) -> List[Dict[str, Any]]:
     """
-    🚨 CRITICAL: READ THIS FIRST 🚨
+    🔍 DISCOVERY: Find and browse papers (metadata/abstracts only)
 
-    DEFAULT BEHAVIOR = METADATA/ABSTRACTS ONLY (no full papers, no files saved)
+    This function is for DISCOVERING and BROWSING papers - it returns metadata only by default.
+    Use this when you want to explore what's available before downloading.
 
-    TO GET FULL PAPERS AS FILES:
+    ⚠️ DEFAULT BEHAVIOR = METADATA/ABSTRACTS ONLY (no full papers, no files saved)
+
+    FOR GETTING ACTUAL PAPERS:
+    📄 Use download_papers("topic") or get_papers("topic") instead!
+    📄 These functions automatically download full papers as markdown files
+
+    TO GET FULL PAPERS WITH THIS FUNCTION:
     ✅ search_papers("topic", download_and_convert=True) - Downloads up to 3 papers as markdown files
     ✅ search_papers("topic", include_full_text=True) - Gets full text in memory (no files)
-    ❌ search_papers("topic") - Only gets metadata/abstracts (what you probably don't want)
+    ❌ search_papers("topic") - Only gets metadata/abstracts
 
-    🎯 FOR YOUR REQUEST "get 10 papers on topic":
-    Option 1: search_papers("topic", limit=3, download_and_convert=True) - Get 3 full papers as files
-    Option 2: Use the multi-step workflow below for 10 full papers
+    🎯 BETTER ALTERNATIVES FOR "get papers on topic":
+    📄 download_papers("topic", limit=5) - Downloads 5 full papers as files
+    📄 get_papers("topic", limit=3) - Same as download_papers()
 
-    🔄 COMMON WORKFLOWS:
-    "Get paper info" → search_papers("topic", limit=10)
-    "Save 3 full papers" → search_papers("topic", limit=3, download_and_convert=True)
-    "Save 10 full papers" → Multi-step approach (see MULTI-STEP PROCESSES below)
+    🔄 WHEN TO USE EACH FUNCTION:
+    "Browse papers" → search_papers("topic", limit=10)
+    "Get papers" → download_papers("topic", limit=5) or get_papers("topic")
+    "Save papers" → download_papers("topic", output_dir="my_papers")
 
     Search academic papers across multiple databases with optional full-text extraction and download.
     Searches CrossRef, Semantic Scholar, arXiv, PubMed, and Google Scholar with intelligent fallback.
@@ -269,6 +276,116 @@ async def search_papers(
     return [result]
 
 
+@mcp.tool
+async def download_papers(
+    query: str,
+    limit: int = 3,
+    output_dir: str = "papers"
+) -> List[Dict[str, Any]]:
+    """
+    📄 GET FULL PAPERS: Download academic papers as markdown files
+
+    This function is designed for when you want to actually GET papers, not just search for them.
+    It automatically downloads PDFs and converts them to markdown files.
+
+    Use this when:
+    - User says "get papers", "download papers", "save papers"
+    - You want actual paper content as files
+    - Need papers for analysis, reading, or citation
+
+    Args:
+        query: Search query (keywords, DOI, title, or author)
+        limit: Maximum papers to download (default: 3, max recommended: 5)
+        output_dir: Directory to save markdown files (default: "papers")
+
+    Returns:
+        List containing single dict with:
+        - results: List of paper objects with local file paths
+        - total_found: Number of papers found
+        - downloaded_count: Number successfully downloaded
+        - output_directory: Where files were saved
+
+    Example Usage:
+        # Get 3 papers on machine learning
+        download_papers("machine learning transformers", limit=3)
+
+        # Save to specific directory
+        download_papers("climate change", limit=5, output_dir="climate_papers")
+    """
+    # Ensure output directory exists
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    # Search for papers with download enabled
+    result = await comprehensive_search_internal(query, limit, include_full_text=False)
+
+    downloaded_count = 0
+
+    # Download and convert papers
+    if result.get("results"):
+        for paper in result["results"][:limit]:
+            pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
+            if pdf_url:
+                try:
+                    # Generate safe filename
+                    title = paper.get("title", "paper")[:50]
+                    safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                    output_path = Path(output_dir) / f"{safe_title}.md"
+
+                    # Download PDF
+                    pdf_content = await download_pdf(pdf_url)
+                    if pdf_content:
+                        # Convert to markdown
+                        markdown_content = await convert_pdf_to_markdown_content(pdf_content, paper.get("title", ""))
+                        if markdown_content:
+                            # Save markdown file
+                            success = await save_markdown_file(str(output_path), markdown_content)
+                            if success:
+                                paper["local_markdown"] = str(output_path)
+                                paper["markdown_characters"] = len(markdown_content)
+                                downloaded_count += 1
+                except Exception as e:
+                    paper["download_error"] = str(e)
+
+    # Add download metadata
+    result["downloaded_count"] = downloaded_count
+    result["output_directory"] = output_dir
+
+    return [result]
+
+
+@mcp.tool
+async def get_papers(
+    query: str,
+    limit: int = 3,
+    output_dir: str = "papers"
+) -> List[Dict[str, Any]]:
+    """
+    📄 GET FULL PAPERS: Alias for download_papers()
+
+    This is an alias for download_papers() that matches natural language.
+    When users say "get papers", they typically want the actual papers, not metadata.
+
+    Use this when:
+    - User says "get papers on [topic]"
+    - User wants actual content, not just summaries
+    - Need papers for research or analysis
+
+    Args:
+        query: Search query (keywords, DOI, title, or author)
+        limit: Maximum papers to get (default: 3, max recommended: 5)
+        output_dir: Directory to save papers (default: "papers")
+
+    Returns:
+        Same as download_papers() - papers saved as markdown files
+
+    Example Usage:
+        # Get papers on a topic
+        get_papers("neural networks", limit=5)
+
+        # Get papers to specific folder
+        get_papers("quantum computing", output_dir="quantum_research")
+    """
+    return await download_papers(query, limit, output_dir)
 
 
 @mcp.tool
