@@ -104,13 +104,13 @@ async def smart_downloadable_search(
             attempted_downloads += 1
             try:
                 # Test if PDF is actually downloadable
-                pdf_content = await utils['download_pdf'](pdf_url)
-                if pdf_content:
+                download_result = await utils['download_pdf'](pdf_url)
+                if download_result.get("success"):
                     paper["download_success"] = True
                     downloadable_papers.append(paper)
                     logger.info(f"✓ Downloaded paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}")
                 else:
-                    paper["download_error"] = "PDF content unavailable"
+                    paper["download_error"] = download_result.get("error", "PDF content unavailable")
                     logger.debug(f"✗ Failed to download: {paper.get('title', '')[:50]}")
             except Exception as e:
                 paper["download_error"] = str(e)
