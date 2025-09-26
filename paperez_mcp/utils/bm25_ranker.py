@@ -298,19 +298,22 @@ class BM25SourceRanker:
 
     def _compute_idf_scores(self):
         """Pre-compute IDF scores for all terms across sources."""
-        # Collect all terms from all sources
+        # Collect all terms from all sources (tokenize specialty terms)
         all_terms = set()
         for profile in self.source_profiles.values():
-            all_terms.update(profile.specialty_terms)
+            for specialty_term in profile.specialty_terms:
+                # Tokenize each specialty term to get individual words
+                words = self._tokenize_query(specialty_term)
+                all_terms.update(words)
 
         # Calculate IDF for each term
         total_sources = len(self.source_profiles)
 
         for term in all_terms:
-            # Count sources containing this term
+            # Count sources containing this term (check within specialty term strings)
             sources_with_term = sum(
                 1 for profile in self.source_profiles.values()
-                if term in profile.specialty_terms
+                if any(term in specialty_term.lower() for specialty_term in profile.specialty_terms)
             )
 
             # Calculate IDF
@@ -335,12 +338,12 @@ class BM25SourceRanker:
 
         score = 0.0
         query_term_counts = Counter(query_terms)
-        source_term_counts = Counter(source_terms)
 
         for term, query_tf in query_term_counts.items():
-            if term in source_term_counts:
-                # Term frequency in source
-                source_tf = source_term_counts[term]
+            # Calculate term frequency in source (count occurrences in all specialty terms)
+            source_tf = sum(source_term.count(term) for source_term in source_terms)
+
+            if source_tf > 0:
 
                 # Get IDF score
                 idf = self.idf_cache.get(term, 0.0)
