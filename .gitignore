@@ -94,3 +94,5 @@ logs/
 
 # FastMCP specific
 .fastmcp/
+
+OrchestrateAI/*
