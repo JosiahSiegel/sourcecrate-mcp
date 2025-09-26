@@ -53,25 +53,61 @@ mcp = FastMCP("Enhanced Scholarly MCP Server - Modular Version")
 # Setup scholarly proxy on startup
 setup_scholarly_proxy()
 
+"""
+OPTIMIZED MCP TOOLS - 6 Essential Functions
+
+This modular server provides 6 optimized MCP tools for academic research:
+
+1. search_papers - Comprehensive search across 5 academic databases
+   - Multi-source search (CrossRef, Semantic Scholar, arXiv, PubMed, Google Scholar)
+   - Optional full-text extraction and PDF download/conversion
+   - Supports DOI queries, author searches, and keyword searches
+
+2. search_authors - Author profile search with citation metrics
+   - Google Scholar integration for author profiles
+   - Returns citation count, h-index, i10-index, and affiliations
+
+3. extract_pdf_text - Local PDF text extraction
+   - PyMuPDF-based extraction with unlimited character support
+   - Handles complex academic document layouts
+
+4. convert_pdf_to_markdown - Single PDF to markdown conversion
+   - Zero-token conversion using pymupdf4llm
+   - Preserves document structure and formatting
+
+5. batch_convert_pdfs - Batch PDF to markdown conversion
+   - Processes entire directories of PDFs
+   - Zero-token conversion with progress tracking
+
+6. get_status - System health and configuration status
+   - API operational status for all databases
+   - Cache statistics and configuration details
+
+All file-saving tools default to current directory and accept custom output paths.
+"""
+
 
 @mcp.tool
-async def comprehensive_search(
+async def search_papers(
     query: str,
     limit: int = 5,
     include_full_text: bool = False,
     download_and_convert: bool = False
 ) -> List[Dict[str, Any]]:
     """
-    Comprehensive search across multiple academic databases with fallback support.
+    Search academic papers across multiple databases with optional full-text extraction and download.
+
+    Searches CrossRef, Semantic Scholar, arXiv, PubMed, and Google Scholar with intelligent fallback.
+    Supports DOI queries (use "doi:10.1000/xyz"), author queries, and keyword searches.
 
     Args:
-        query: Search query for publications
+        query: Search query (keywords, DOI with "doi:" prefix, title, or author)
         limit: Maximum number of results to return (default: 5)
-        include_full_text: Whether to attempt full text extraction (default: False)
-        download_and_convert: Whether to download and convert papers to markdown (default: False)
+        include_full_text: Extract full text from PDFs when available (default: False)
+        download_and_convert: Download PDFs and convert to markdown (default: False)
 
     Returns:
-        List of papers with metadata from multiple sources
+        List of papers with metadata, optional full text, and optional local files
     """
     result = await comprehensive_search_internal(query, limit, include_full_text)
 
@@ -92,16 +128,23 @@ async def comprehensive_search(
     return [result]
 
 
-@mcp.tool
-async def search_publications(query: str, limit: int = 5) -> List[Dict[str, Any]]:
-    """Search for publications by keywords or title"""
-    result = await comprehensive_search_internal(query, limit, include_full_text=False)
-    return result.get("results", [])
 
 
 @mcp.tool
-async def search_author(name: str, limit: int = 5) -> List[Dict[str, Any]]:
-    """Search for authors by name"""
+async def search_authors(name: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """
+    Search for academic authors by name.
+
+    Returns author profiles with affiliation, research interests, citation metrics,
+    and publication indices from Google Scholar.
+
+    Args:
+        name: Author name to search for
+        limit: Maximum number of authors to return (default: 5)
+
+    Returns:
+        List of author profiles with citation count, h-index, and i10-index
+    """
     # Use Google Scholar for author search as it's most comprehensive for this
     if api_status["google_scholar"]:
         try:
@@ -137,141 +180,32 @@ async def search_author(name: str, limit: int = 5) -> List[Dict[str, Any]]:
     return []
 
 
-@mcp.tool
-async def get_full_text_by_doi(
-    doi: str,
-    extract_text: bool = True,
-    download_as_markdown: bool = False
-) -> Dict[str, Any]:
-    """
-    Get full text of a paper using its DOI.
 
-    Args:
-        doi: DOI of the paper
-        extract_text: Whether to extract text from PDF (default: True)
-        download_as_markdown: Whether to download and convert to markdown (default: False)
 
-    Returns:
-        Dictionary with paper metadata and full text if available
-    """
-    # Search for the paper by DOI
-    query = f"doi:{doi}"
-    results = await search_crossref(query, 1)
 
-    if results:
-        paper = results[0]
-        pdf_url = f"https://sci-hub.se/{doi}"  # Try sci-hub as fallback
 
-        if paper.get("url"):
-            try:
-                # Download and convert to markdown if requested
-                if download_as_markdown:
-                    download_result = await download_and_convert_paper(pdf_url)
-                    if download_result.get("success"):
-                        paper["local_pdf"] = download_result.get("pdf_path")
-                        paper["local_markdown"] = download_result.get("markdown_path")
-                        paper["markdown_characters"] = download_result.get("markdown_characters", 0)
 
-                # Extract text if requested
-                if extract_text:
-                    text_result = await extract_pdf_text(pdf_url)
-                    if text_result.get("success"):
-                        paper["full_text"] = text_result["text"]
-                        paper["text_length"] = len(text_result["text"])
-                        paper["extraction_method"] = text_result["extraction_method"]
 
-            except Exception as e:
-                paper["extraction_error"] = str(e)
-
-        return paper
-
-    return {"error": f"Paper with DOI {doi} not found"}
 
 
 @mcp.tool
-async def get_full_text_by_title(title: str, extract_text: bool = True) -> Dict[str, Any]:
-    """
-    Get full text of a paper using its title.
-
-    Args:
-        title: Title of the paper
-        extract_text: Whether to extract text from PDF (default: True)
-
-    Returns:
-        Dictionary with paper metadata and full text if available
-    """
-    # Search for the exact title
-    result = await comprehensive_search_internal(title, 1, include_full_text=extract_text)
-
-    if result.get("results"):
-        return result["results"][0]
-
-    return {"error": f"Paper with title '{title}' not found"}
-
-
-@mcp.tool
-async def find_open_access_versions(title: str, doi: str = "") -> Dict[str, Any]:
-    """
-    Find open access versions of a paper using multiple sources.
-
-    Args:
-        title: Title of the paper
-        doi: DOI of the paper (optional)
-
-    Returns:
-        Dictionary with open access information from multiple sources
-    """
-    # Use comprehensive search to find open access versions
-    result = await comprehensive_search_internal(title, 3)
-
-    open_access_sources = []
-    for paper in result.get("results", []):
-        if paper.get("open_access_pdf") or paper.get("pdf_url"):
-            open_access_sources.append({
-                "source": paper.get("source"),
-                "pdf_url": paper.get("open_access_pdf") or paper.get("pdf_url"),
-                "title": paper.get("title"),
-                "doi": paper.get("doi", "")
-            })
-
-    return {
-        "title": title,
-        "doi": doi,
-        "open_access_sources": open_access_sources,
-        "total_sources": len(open_access_sources)
-    }
-
-
-@mcp.tool
-async def extract_pdf_text_from_url(pdf_url: str) -> Dict[str, Any]:
-    """
-    Extract text from a PDF URL.
-
-    Args:
-        pdf_url: Direct URL to a PDF file
-
-    Returns:
-        Dictionary with extracted text and metadata
-    """
-    result = await extract_pdf_text(pdf_url)
-    return result
-
-
-@mcp.tool
-async def extract_pdf_text_from_local_file_mcp(file_path: str) -> Dict[str, Any]:
+async def extract_pdf_text(file_path: str) -> Dict[str, Any]:
     """
     Extract text from a local PDF file.
+
+    Uses PyMuPDF for robust text extraction with unlimited character support.
+    Handles academic papers, preprints, and complex document layouts.
 
     Args:
         file_path: Path to local PDF file
 
     Returns:
-        Dictionary with extracted text and metadata
+        Dictionary with extracted text, character count, and extraction metadata
     """
     return extract_pdf_text_from_local_file(file_path)
 
 
-async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", authors: list = None) -> Dict[str, Any]:
+async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", authors: list = None, output_path: Optional[str] = None) -> Dict[str, Any]:
     """
     Internal function to convert a local PDF file to formatted markdown.
     Duplicates PDF extraction logic to avoid MCP tool calling MCP tool.
@@ -279,12 +213,16 @@ async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", aut
     result = convert_pdf_to_markdown_content(file_path, title, authors)
 
     if result.get("success"):
-        # Save to file
-        output_dir = os.path.dirname(file_path) + "/../articles_markdown"
-        os.makedirs(output_dir, exist_ok=True)
+        # Determine output path
+        if output_path:
+            markdown_path = output_path
+        else:
+            # Default to current directory with same name as PDF
+            filename = Path(file_path).stem + "_full.md"
+            markdown_path = os.path.join(os.getcwd(), filename)
 
-        filename = Path(file_path).stem + "_full.md"
-        markdown_path = os.path.join(output_dir, filename)
+        # Create output directory if it doesn't exist
+        os.makedirs(os.path.dirname(markdown_path), exist_ok=True)
 
         save_result = save_markdown_file(result["markdown"], markdown_path)
         if save_result.get("success"):
@@ -294,29 +232,32 @@ async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", aut
 
 
 @mcp.tool
-async def convert_pdf_to_markdown(file_path: str, title: str = "", authors: list = None) -> Dict[str, Any]:
-    """Convert a local PDF file to formatted markdown."""
-    return await _convert_pdf_to_markdown_internal(file_path, title, authors)
-
-
-@mcp.tool
-async def search_with_full_text(query: str, limit: int = 3, extract_text: bool = False) -> List[Dict[str, Any]]:
+async def convert_pdf_to_markdown(
+    file_path: str,
+    title: str = "",
+    authors: list = None,
+    output_path: Optional[str] = None
+) -> Dict[str, Any]:
     """
-    Search for papers and attempt to retrieve full text for each result.
+    Convert a local PDF file to formatted markdown.
+
+    Uses pymupdf4llm for zero-token conversion preserving document structure,
+    headings, and formatting. Ideal for academic papers and research documents.
 
     Args:
-        query: Search query for publications
-        limit: Maximum number of results to return (default: 3)
-        extract_text: Whether to extract full text from PDFs (default: False, can be slow)
+        file_path: Path to the PDF file to convert
+        title: Optional title for the document header
+        authors: Optional list of authors for the document header
+        output_path: Output path for markdown file (default: current directory)
 
     Returns:
-        List of papers with metadata and full text when available
+        Dictionary with conversion results and output file path
     """
-    result = await comprehensive_search_internal(query, limit, include_full_text=extract_text)
-    return result.get("results", [])
+    return await _convert_pdf_to_markdown_internal(file_path, title, authors, output_path)
 
 
-@mcp.tool
+
+
 async def download_and_convert_paper(
     pdf_url: str,
     convert_to_markdown: bool = True,
@@ -331,14 +272,14 @@ async def download_and_convert_paper(
     Args:
         pdf_url: URL of the PDF to download
         convert_to_markdown: If True (default), convert to markdown. If False, keep as PDF only.
-        output_dir: Optional output directory (default: downloaded_papers/)
+        output_dir: Optional output directory (defaults to current directory)
 
     Returns:
         Dictionary with download and conversion results
     """
     try:
         if output_dir is None:
-            output_dir = "downloaded_papers"
+            output_dir = os.getcwd()
 
         # Download PDF
         download_result = await download_pdf(pdf_url, output_dir)
@@ -398,23 +339,22 @@ async def download_and_convert_paper(
 
 
 @mcp.tool
-async def batch_convert_local_pdfs(
+async def batch_convert_pdfs(
     directory: str = "articles",
     output_dir: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Convert all PDFs in a directory to markdown using zero AI tokens.
+    Convert all PDFs in a directory to markdown format.
 
-    This function calls an external converter script that uses pymupdf4llm
-    to convert PDFs directly to markdown without any text passing through
-    the AI context.
+    Uses zero AI tokens - employs pymupdf4llm for direct PDF-to-markdown conversion
+    without text passing through AI context. Preserves document structure and formatting.
 
     Args:
-        directory: Directory containing PDFs (default: articles/)
-        output_dir: Optional output directory for markdown files
+        directory: Directory containing PDFs (default: current directory/articles/)
+        output_dir: Output directory for markdown files (default: current directory)
 
     Returns:
-        Dictionary with batch conversion results
+        Dictionary with batch conversion results and per-file status
     """
     try:
         if not os.path.isdir(directory):
@@ -432,7 +372,7 @@ async def batch_convert_local_pdfs(
             }
 
         if output_dir is None:
-            output_dir = directory + "_markdown"
+            output_dir = os.getcwd()
 
         os.makedirs(output_dir, exist_ok=True)
 
@@ -499,8 +439,16 @@ async def batch_convert_local_pdfs(
 
 
 @mcp.tool
-async def get_api_status() -> Dict[str, Any]:
-    """Get the current status of all APIs and cache statistics."""
+async def get_status() -> Dict[str, Any]:
+    """
+    Get system status including API health and cache statistics.
+
+    Reports the operational status of all academic databases (CrossRef, Semantic Scholar,
+    arXiv, PubMed, Google Scholar), cache usage, and configuration details.
+
+    Returns:
+        Dictionary with API status, cache stats, and configuration info
+    """
     return {
         "api_status": api_status.copy(),
         "cache_stats": {
