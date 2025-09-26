@@ -117,17 +117,25 @@ All file-saving tools default to current directory and accept custom output path
 async def search_papers(
     query: str,
     limit: int = 5,
-    include_full_text: bool = False,
-    download_and_convert: bool = False
+    include_full_text: bool = False,  # ⚠️ False = metadata only, True = full text in memory
+    download_and_convert: bool = False  # ⚠️ False = no files, True = downloads PDFs as markdown files (max 3)
 ) -> List[Dict[str, Any]]:
     """
-    ⚠️ IMPORTANT - Default Behavior:
-    By default, this tool returns only METADATA/ABSTRACTS, not full papers.
-    To get full papers, use download_and_convert=True (limited to 3 papers max).
-    For bulk downloads (>3 papers), use multiple calls or individual conversion.
+    🚨 CRITICAL: READ THIS FIRST 🚨
+
+    DEFAULT BEHAVIOR = METADATA/ABSTRACTS ONLY (no full papers, no files saved)
+
+    TO GET FULL PAPERS AS FILES:
+    ✅ search_papers("topic", download_and_convert=True) - Downloads up to 3 papers as markdown files
+    ✅ search_papers("topic", include_full_text=True) - Gets full text in memory (no files)
+    ❌ search_papers("topic") - Only gets metadata/abstracts (what you probably don't want)
+
+    🎯 FOR YOUR REQUEST "get 10 papers on topic":
+    Option 1: search_papers("topic", limit=3, download_and_convert=True) - Get 3 full papers as files
+    Option 2: Use the multi-step workflow below for 10 full papers
 
     🔄 COMMON WORKFLOWS:
-    "Find papers on topic X" → search_papers("topic", limit=10)
+    "Get paper info" → search_papers("topic", limit=10)
     "Save 3 full papers" → search_papers("topic", limit=3, download_and_convert=True)
     "Save 10 full papers" → Multi-step approach (see MULTI-STEP PROCESSES below)
 
@@ -168,13 +176,17 @@ async def search_papers(
                - Author search: "Geoffrey Hinton", "Yoshua Bengio"
                - Title search: "Attention Is All You Need"
         limit: Maximum number of results to return (default: 5, max recommended: 10)
-        include_full_text: Extract full text from PDFs when available (default: False)
+        include_full_text: 🚨 CRITICAL PARAMETER FOR FULL TEXT 🚨
+                          - False (default): Returns only metadata/abstracts ❌
+                          - True: Extracts full text content into memory ✅
                           ⚠️ WARNING: Slow for multiple papers, text stays in memory only
-                          Use download_and_convert=True for files instead
-        download_and_convert: Download PDFs and convert to markdown (default: False)
+                          📁 For files on disk, use download_and_convert=True instead
+        download_and_convert: 🚨 CRITICAL PARAMETER FOR SAVING FILES 🚨
+                             - False (default): No files saved, metadata only ❌
+                             - True: Downloads PDFs and saves as markdown files ✅
                              🚨 LIMITATION: Only processes top 3 papers to avoid overload
-                             Files saved to current directory by default
-                             For >3 papers, use multiple calls or individual conversion
+                             📁 Files saved to current directory by default
+                             🔄 For >3 papers, use multiple calls or individual conversion
 
     Returns:
         List containing single dict with:
@@ -215,20 +227,28 @@ async def search_papers(
     - For bulk operations: Requires multi-step workflow
 
     Example Usage:
-        # Metadata search (most common starting point)
-        search_papers("machine learning", limit=10)
+        # ❌ WRONG - This only gets metadata/abstracts (what user experienced)
+        search_papers("Balfour Declaration documents", limit=10)
 
-        # Download 3 full papers as files
-        search_papers("transformers", limit=3, download_and_convert=True)
+        # ✅ CORRECT - Get 3 full papers as markdown files
+        search_papers("Balfour Declaration documents", limit=3, download_and_convert=True)
 
-        # For 10+ papers: use multi-step workflow (see MULTI-STEP PROCESSES)
-        # Step 1: Get metadata
-        papers = search_papers("deep learning", limit=10)
-        # Step 2: Download individually
-        for paper in papers[0]["results"][:5]:  # First 5 papers
+        # ✅ CORRECT - Get full text in memory for analysis
+        search_papers("Balfour Declaration documents", limit=10, include_full_text=True)
+
+        # ✅ CORRECT - For 10+ papers as files: multi-step workflow
+        # Step 1: Get metadata to review
+        papers = search_papers("Balfour Declaration documents", limit=10)
+        # Step 2: Download selected papers individually
+        for paper in papers[0]["results"][:5]:  # Select first 5 papers
             if paper.get("pdf_url"):
                 convert_pdf_to_markdown(paper["pdf_url"],
                                       output_path=f"papers/{paper['title'][:50]}.md")
+
+        # 🎯 DIRECT SOLUTION for "get 10 papers on topic and save them":
+        # Option A: Multiple download calls (3 papers each)
+        search_papers("topic", limit=3, download_and_convert=True)  # Get first 3
+        # Option B: Use the multi-step workflow above
     """
     result = await comprehensive_search_internal(query, limit, include_full_text)
 
