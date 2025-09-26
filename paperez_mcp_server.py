@@ -16,32 +16,14 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-try:
-    import pymupdf4llm
-    PYMUPDF4LLM_AVAILABLE = True
-except ImportError:
-    PYMUPDF4LLM_AVAILABLE = False
-
 from fastmcp import FastMCP
 
-# Import modular components
+# Core imports only - heavy dependencies loaded lazily
 from paperez_mcp.config import config, api_status, cache
-from paperez_mcp.api_clients import (
-    search_crossref,
-    search_semantic_scholar,
-    search_arxiv,
-    search_pubmed,
-    search_google_scholar_fallback,
-    setup_scholarly_proxy
-)
-from paperez_mcp.utils import (
-    extract_pdf_text,
-    convert_pdf_to_markdown_content,
-    comprehensive_search_internal,
-    download_pdf,
-    save_markdown_file
-)
-from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
+
+# Lazy import flags
+_PYMUPDF4LLM_AVAILABLE = None
+_scholarly_setup_done = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -50,8 +32,66 @@ logger = logging.getLogger(__name__)
 # Initialize FastMCP server
 mcp = FastMCP("PaperezMCP - Academic Paper Research Made Easy")
 
-# Setup scholarly proxy on startup
-setup_scholarly_proxy()
+# Lazy import helpers
+def _ensure_scholarly_setup():
+    """Lazy initialization of scholarly proxy setup"""
+    global _scholarly_setup_done
+    if not _scholarly_setup_done:
+        from paperez_mcp.api_clients import setup_scholarly_proxy
+        setup_scholarly_proxy()
+        _scholarly_setup_done = True
+
+def _ensure_pymupdf4llm():
+    """Lazy import of pymupdf4llm"""
+    global _PYMUPDF4LLM_AVAILABLE
+    if _PYMUPDF4LLM_AVAILABLE is None:
+        try:
+            import pymupdf4llm
+            _PYMUPDF4LLM_AVAILABLE = True
+            return pymupdf4llm
+        except ImportError:
+            _PYMUPDF4LLM_AVAILABLE = False
+            return None
+    elif _PYMUPDF4LLM_AVAILABLE:
+        import pymupdf4llm
+        return pymupdf4llm
+    return None
+
+def _lazy_import_search_functions():
+    """Lazy import of search API functions"""
+    from paperez_mcp.api_clients import (
+        search_crossref,
+        search_semantic_scholar,
+        search_arxiv,
+        search_pubmed,
+        search_google_scholar_fallback
+    )
+    return {
+        'crossref': search_crossref,
+        'semantic_scholar': search_semantic_scholar,
+        'arxiv': search_arxiv,
+        'pubmed': search_pubmed,
+        'google_scholar': search_google_scholar_fallback
+    }
+
+def _lazy_import_utils():
+    """Lazy import of utility functions"""
+    from paperez_mcp.utils import (
+        extract_pdf_text,
+        convert_pdf_to_markdown_content,
+        comprehensive_search_internal,
+        download_pdf,
+        save_markdown_file
+    )
+    from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
+    return {
+        'extract_pdf_text': extract_pdf_text,
+        'convert_pdf_to_markdown_content': convert_pdf_to_markdown_content,
+        'comprehensive_search_internal': comprehensive_search_internal,
+        'download_pdf': download_pdf,
+        'save_markdown_file': save_markdown_file,
+        'extract_pdf_text_from_local_file': extract_pdf_text_from_local_file
+    }
 
 """
 OPTIMIZED MCP TOOLS - 6 Essential Functions
@@ -257,7 +297,10 @@ async def search_papers(
         search_papers("topic", limit=3, download_and_convert=True)  # Get first 3
         # Option B: Use the multi-step workflow above
     """
-    result = await comprehensive_search_internal(query, limit, include_full_text)
+    # Lazy import utilities
+    _ensure_scholarly_setup()
+    utils = _lazy_import_utils()
+    result = await utils['comprehensive_search_internal'](query, limit, include_full_text)
 
     # Optionally download and convert papers
     if download_and_convert and result.get("results"):
@@ -315,8 +358,12 @@ async def download_papers(
     # Ensure output directory exists
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+    # Lazy import utilities
+    _ensure_scholarly_setup()
+    utils = _lazy_import_utils()
+
     # Search for papers with download enabled
-    result = await comprehensive_search_internal(query, limit, include_full_text=False)
+    result = await utils['comprehensive_search_internal'](query, limit, include_full_text=False)
 
     downloaded_count = 0
 
@@ -332,13 +379,13 @@ async def download_papers(
                     output_path = Path(output_dir) / f"{safe_title}.md"
 
                     # Download PDF
-                    pdf_content = await download_pdf(pdf_url)
+                    pdf_content = await utils['download_pdf'](pdf_url)
                     if pdf_content:
                         # Convert to markdown
-                        markdown_content = await convert_pdf_to_markdown_content(pdf_content, paper.get("title", ""))
+                        markdown_content = await utils['convert_pdf_to_markdown_content'](pdf_content, paper.get("title", ""))
                         if markdown_content:
                             # Save markdown file
-                            success = await save_markdown_file(str(output_path), markdown_content)
+                            success = await utils['save_markdown_file'](str(output_path), markdown_content)
                             if success:
                                 paper["local_markdown"] = str(output_path)
                                 paper["markdown_characters"] = len(markdown_content)
@@ -542,7 +589,8 @@ async def extract_pdf_text(file_path: str) -> Dict[str, Any]:
             text = result["text"]
             pages = result["num_pages"]
     """
-    return extract_pdf_text_from_local_file(file_path)
+    utils = _lazy_import_utils()
+    return utils['extract_pdf_text_from_local_file'](file_path)
 
 
 async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", authors: list = None, output_path: Optional[str] = None) -> Dict[str, Any]:
@@ -550,7 +598,8 @@ async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", aut
     Internal function to convert a local PDF file to formatted markdown.
     Duplicates PDF extraction logic to avoid MCP tool calling MCP tool.
     """
-    result = convert_pdf_to_markdown_content(file_path, title, authors)
+    utils = _lazy_import_utils()
+    result = utils['convert_pdf_to_markdown_content'](file_path, title, authors)
 
     if result.get("success"):
         # Determine output path
