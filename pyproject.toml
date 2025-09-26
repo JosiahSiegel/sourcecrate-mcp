@@ -24,9 +24,9 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastmcp>=2.6.0",
+    "fastmcp>=2.12.0",
     "scholarly>=1.7.11",
-    "httpx>=0.25.0",
+    "httpx[http2]>=0.25.0",
     "aiohttp>=3.8.0",
     "requests>=2.28.0",
     "PyMuPDF>=1.23.0",
@@ -37,7 +37,10 @@ dependencies = [
     "arxiv>=2.0.0",
     "pymed>=0.8.9",
     "semanticscholar>=0.8.0",
-    "tenacity>=8.2.0"
+    "tenacity>=8.2.0",
+    "diskcache>=5.6.0",
+    "crossref-commons>=0.1.0",
+    "free-proxy>=1.1.1"
 ]
 
 [project.urls]
