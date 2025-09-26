@@ -20,7 +20,6 @@ from typing import Any, Dict, List, Optional
 import arxiv
 import fitz  # PyMuPDF
 import httpx
-from crossref.restful import Works
 from diskcache import Cache
 from fake_useragent import UserAgent
 from fastmcp import FastMCP
@@ -116,37 +115,48 @@ async def search_crossref(query: str, limit: int = 5) -> List[Dict[str, Any]]:
         return cached
 
     try:
-        works = Works()
-        results = []
+        # Use CrossRef REST API directly
+        url = "https://api.crossref.org/works"
+        params = {
+            "query": query,
+            "rows": limit,
+            "sort": "relevance",
+            "order": "desc",
+            "mailto": config.crossref_email  # Use polite pool
+        }
 
-        # Use polite pool with email
-        response = works.query(query).sort('relevance').order('desc')
+        async with create_http_client() as client:
+            response = await client.get(url, params=params)
 
-        for i, item in enumerate(response):
-            if i >= limit:
-                break
+            if response.status_code == 200:
+                data = response.json()
+                results = []
 
-            result = {
-                "title": item.get("title", [""])[0] if item.get("title") else "",
-                "authors": [
-                    f"{author.get('given', '')} {author.get('family', '')}"
-                    for author in item.get("author", [])
-                ],
-                "doi": item.get("DOI", ""),
-                "year": item.get("published-print", {}).get("date-parts", [[None]])[0][0],
-                "journal": item.get("container-title", [""])[0] if item.get("container-title") else "",
-                "abstract": item.get("abstract", ""),
-                "citation_count": item.get("is-referenced-by-count", 0),
-                "url": f"https://doi.org/{item.get('DOI', '')}" if item.get("DOI") else "",
-                "source": "CrossRef",
-                "publisher": item.get("publisher", "")
-            }
-            results.append(result)
+                for item in data.get("message", {}).get("items", []):
+                    result = {
+                        "title": item.get("title", [""])[0] if item.get("title") else "",
+                        "authors": [
+                            f"{author.get('given', '')} {author.get('family', '')}"
+                            for author in item.get("author", [])
+                        ],
+                        "doi": item.get("DOI", ""),
+                        "year": item.get("published-print", {}).get("date-parts", [[None]])[0][0] if item.get("published-print") else None,
+                        "journal": item.get("container-title", [""])[0] if item.get("container-title") else "",
+                        "abstract": item.get("abstract", ""),
+                        "citation_count": item.get("is-referenced-by-count", 0),
+                        "url": f"https://doi.org/{item.get('DOI', '')}" if item.get("DOI") else "",
+                        "source": "CrossRef",
+                        "publisher": item.get("publisher", "")
+                    }
+                    results.append(result)
 
-        # Cache for 1 hour
-        cache.set(cache_key, results, expire=3600)
-        logger.info(f"✅ CrossRef: Found {len(results)} results for '{query}'")
-        return results
+                # Cache for 1 hour
+                cache.set(cache_key, results, expire=3600)
+                logger.info(f"✅ CrossRef: Found {len(results)} results for '{query}'")
+                return results
+            else:
+                logger.warning(f"❌ CrossRef HTTP {response.status_code}")
+                return []
 
     except Exception as e:
         logger.warning(f"❌ CrossRef search failed: {e}")
