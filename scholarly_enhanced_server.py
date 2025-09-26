@@ -102,12 +102,61 @@ async def search_papers(
 
     Args:
         query: Search query (keywords, DOI with "doi:" prefix, title, or author)
-        limit: Maximum number of results to return (default: 5)
+               - Keywords: "machine learning transformers", "neural networks"
+               - DOI format: "doi:10.1000/xyz123" (must include "doi:" prefix)
+               - Author search: "Geoffrey Hinton", "Yoshua Bengio"
+               - Title search: "Attention Is All You Need"
+        limit: Maximum number of results to return (default: 5, max recommended: 10)
         include_full_text: Extract full text from PDFs when available (default: False)
+                          WARNING: Can be slow for multiple papers, increases response time significantly
         download_and_convert: Download PDFs and convert to markdown (default: False)
+                             Only processes top 3 papers to avoid excessive downloads
+                             Files saved to current directory by default
 
     Returns:
-        List of papers with metadata, optional full text, and optional local files
+        List containing single dict with:
+        - results: List of paper objects with metadata
+        - total_found: Number of papers found
+        - api_status: Status of all academic databases
+        - sources_used: List of databases that returned results
+        - query: Original search query
+
+        Each paper object contains:
+        - title: Paper title
+        - authors: List of author names
+        - doi: Digital Object Identifier (if available)
+        - year: Publication year
+        - journal: Journal/venue name
+        - abstract: Paper abstract (if available)
+        - citation_count: Number of citations
+        - url: Direct link to paper
+        - source: Database source (CrossRef, Semantic Scholar, etc.)
+        - pdf_url: Direct PDF link (if available)
+        - open_access_pdf: Open access PDF link (if available)
+
+        When include_full_text=True, adds:
+        - full_text: Extracted text content
+        - text_length: Character count of extracted text
+        - extraction_method: Method used for text extraction
+
+        When download_and_convert=True, adds:
+        - local_pdf: Path to downloaded PDF file
+        - local_markdown: Path to converted markdown file
+        - markdown_characters: Character count of markdown
+        - download_error: Error message if download failed
+
+    Example Usage:
+        # Basic search
+        search_papers("machine learning", limit=3)
+
+        # DOI lookup with full text
+        search_papers("doi:10.1038/nature14539", include_full_text=True)
+
+        # Download and convert papers
+        search_papers("attention mechanism", download_and_convert=True)
+
+        # Author search
+        search_papers("Geoffrey Hinton deep learning", limit=5)
     """
     result = await comprehensive_search_internal(query, limit, include_full_text)
 
@@ -140,10 +189,44 @@ async def search_authors(name: str, limit: int = 5) -> List[Dict[str, Any]]:
 
     Args:
         name: Author name to search for
-        limit: Maximum number of authors to return (default: 5)
+              - Full names work best: "Geoffrey Hinton", "Yoshua Bengio"
+              - Partial names: "Hinton", "LeCun"
+              - Names with special characters: "Jürgen Schmidhuber"
+              - Institution-qualified: "Andrew Ng Stanford"
+        limit: Maximum number of authors to return (default: 5, max recommended: 10)
+               Higher limits may increase response time significantly
 
     Returns:
-        List of author profiles with citation count, h-index, and i10-index
+        List of author profile dictionaries, each containing:
+        - name: Full author name as listed on Google Scholar
+        - affiliation: Current institutional affiliation
+        - email: Email address (if publicly available)
+        - interests: List of research interests/keywords
+        - citation_count: Total number of citations across all publications
+        - h_index: h-index metric (papers with h or more citations)
+        - i10_index: i10-index metric (papers with 10 or more citations)
+        - source: Always "Google Scholar" for this tool
+
+        Returns empty list if:
+        - No authors found matching the search query
+        - Google Scholar API is unavailable
+        - Network connectivity issues
+
+    Notes:
+        - Google Scholar is the primary source for comprehensive author metrics
+        - Results may vary based on author name variants and Google Scholar indexing
+        - Citation metrics are updated by Google Scholar periodically
+        - Some author profiles may be incomplete or restricted
+
+    Example Usage:
+        # Search for specific researcher
+        search_authors("Geoffrey Hinton")
+
+        # Search with broader terms
+        search_authors("Bengio deep learning", limit=3)
+
+        # Find authors by institution
+        search_authors("OpenAI research", limit=5)
     """
     # Use Google Scholar for author search as it's most comprehensive for this
     if api_status["google_scholar"]:
@@ -198,9 +281,57 @@ async def extract_pdf_text(file_path: str) -> Dict[str, Any]:
 
     Args:
         file_path: Path to local PDF file
+                   - Supports absolute paths: "/home/user/papers/paper.pdf"
+                   - Supports relative paths: "papers/paper.pdf", "./documents/research.pdf"
+                   - Must be a valid PDF file (will return error for non-PDF files)
+                   - File must exist and be readable
 
     Returns:
-        Dictionary with extracted text, character count, and extraction metadata
+        Dictionary containing:
+        - success: Boolean indicating if extraction succeeded
+        - text: Full extracted text content from all pages
+        - num_pages: Total number of pages in the PDF
+        - file_size: Size of the PDF file in bytes
+        - text_length: Character count of extracted text
+        - extraction_method: Method used ("PyMuPDF Local")
+        - file_path: Original file path provided
+
+        On success, text field contains:
+        - All text content with page separators
+        - Preserved formatting where possible
+        - Special characters and Unicode support
+        - Academic symbols and mathematical notation
+
+        On failure, includes:
+        - success: false
+        - error: Error message explaining the failure
+        - text: Empty string
+
+    Capabilities:
+        - Handles complex academic layouts (multi-column, figures, tables)
+        - Extracts text from scanned PDFs (if they contain text layers)
+        - Supports Unicode and special characters
+        - Unlimited character extraction (no truncation)
+        - Fast processing using optimized PyMuPDF engine
+
+    Limitations:
+        - Cannot extract text from image-only PDFs without OCR
+        - May have issues with heavily formatted or corrupted PDFs
+        - Does not extract images, only text content
+        - Password-protected PDFs are not supported
+
+    Example Usage:
+        # Extract from local file
+        extract_pdf_text("/path/to/research_paper.pdf")
+
+        # Extract from relative path
+        extract_pdf_text("./documents/paper.pdf")
+
+        # Check success before using text
+        result = extract_pdf_text("paper.pdf")
+        if result["success"]:
+            text = result["text"]
+            pages = result["num_pages"]
     """
     return extract_pdf_text_from_local_file(file_path)
 
@@ -246,12 +377,82 @@ async def convert_pdf_to_markdown(
 
     Args:
         file_path: Path to the PDF file to convert
-        title: Optional title for the document header
-        authors: Optional list of authors for the document header
+                   - Supports absolute paths: "/home/user/papers/paper.pdf"
+                   - Supports relative paths: "papers/paper.pdf", "./documents/research.pdf"
+                   - Must be a valid PDF file (will return error for non-PDF files)
+                   - File must exist and be readable
+        title: Optional title for the document header (default: "")
+               - Added as H1 header at top of markdown
+               - Example: "Attention Is All You Need"
+               - If empty, no title header is added
+        authors: Optional list of authors for the document header (default: None)
+                 - Added as author list after title
+                 - Example: ["Ashish Vaswani", "Noam Shazeer", "Niki Parmar"]
+                 - If None or empty, no author section is added
         output_path: Output path for markdown file (default: current directory)
+                     - If provided, uses exact path: "/path/to/output.md"
+                     - If None, creates file in current directory with format: "{filename}_full.md"
+                     - Automatically creates directories if they don't exist
+                     - Overwrites existing files
 
     Returns:
-        Dictionary with conversion results and output file path
+        Dictionary containing:
+        - success: Boolean indicating if conversion succeeded
+        - markdown: Full markdown content (only if success=True)
+        - markdown_length: Character count of markdown content
+        - original_file: Original PDF file path
+        - pages_extracted: Number of pages processed
+        - text_length: Character count of original text
+        - markdown_path: Path to saved markdown file (if save succeeded)
+
+        On success, markdown contains:
+        - Structured content with preserved headings
+        - Formatted tables and lists
+        - Mathematical notation and special characters
+        - Document metadata (title, authors, page count, etc.)
+        - Page-by-page content with clear separators
+
+        On failure, includes:
+        - success: false
+        - error: Error message explaining the failure
+        - markdown: Empty string
+
+    Features:
+        - Zero AI tokens used (direct PDF→markdown conversion)
+        - Preserves document structure and formatting
+        - Handles complex academic layouts
+        - Maintains headings, tables, and lists
+        - Supports Unicode and mathematical notation
+        - Fast processing with pymupdf4llm
+
+    Limitations:
+        - Cannot handle image-only PDFs without text layers
+        - Some complex formatting may be simplified
+        - Tables with complex layouts may need manual adjustment
+        - Figures and images are not included in output
+
+    Example Usage:
+        # Basic conversion
+        convert_pdf_to_markdown("research_paper.pdf")
+
+        # With custom title and authors
+        convert_pdf_to_markdown(
+            "paper.pdf",
+            title="My Research Paper",
+            authors=["John Doe", "Jane Smith"]
+        )
+
+        # Custom output location
+        convert_pdf_to_markdown(
+            "input.pdf",
+            output_path="/documents/converted/paper.md"
+        )
+
+        # Check success and get file path
+        result = convert_pdf_to_markdown("paper.pdf")
+        if result["success"]:
+            markdown_file = result["markdown_path"]
+            char_count = result["markdown_length"]
     """
     return await _convert_pdf_to_markdown_internal(file_path, title, authors, output_path)
 
@@ -350,11 +551,76 @@ async def batch_convert_pdfs(
     without text passing through AI context. Preserves document structure and formatting.
 
     Args:
-        directory: Directory containing PDFs (default: current directory/articles/)
+        directory: Directory containing PDFs (default: "articles")
+                   - Supports absolute paths: "/home/user/research_papers/"
+                   - Supports relative paths: "papers/", "./documents/pdfs/"
+                   - If directory doesn't exist, returns error
+                   - Recursively searches for PDF files (*.pdf, case-insensitive)
+                   - Skips non-PDF files automatically
         output_dir: Output directory for markdown files (default: current directory)
+                    - If None, saves to current working directory
+                    - If provided, uses exact path: "/path/to/output/"
+                    - Automatically creates directory if it doesn't exist
+                    - Preserves original filenames with "_full.md" suffix
 
     Returns:
-        Dictionary with batch conversion results and per-file status
+        Dictionary containing:
+        - success: Boolean indicating overall batch operation success
+        - directory: Input directory path that was processed
+        - output_directory: Output directory where files were saved
+        - total_files: Total number of PDF files found
+        - successful_conversions: Number of PDFs successfully converted
+        - failed_conversions: Number of PDFs that failed to convert
+        - files: List of conversion results for each file
+
+        Each file entry in 'files' list contains:
+        - input_file: Original PDF file path
+        - output_file: Generated markdown file path
+        - success: Boolean indicating if this file conversion succeeded
+        - characters: Character count of generated markdown (if successful)
+        - error: Error message (if conversion failed)
+
+        Overall operation fails if:
+        - Input directory doesn't exist
+        - No PDF files found in directory
+        - All individual conversions fail
+
+    Processing Details:
+        - Processes all PDF files found in the directory
+        - Skips files that are already being processed
+        - Creates markdown files with "{original_name}_full.md" format
+        - Overwrites existing markdown files without warning
+        - Continues processing remaining files if individual conversions fail
+        - Provides detailed progress information for each file
+
+    Performance:
+        - Zero AI tokens consumed during conversion
+        - Fast processing using optimized pymupdf4llm engine
+        - Parallel processing not implemented (sequential conversion)
+        - Memory efficient for large directories
+
+    Example Usage:
+        # Convert PDFs from default articles directory
+        batch_convert_pdfs()
+
+        # Convert from specific directory
+        batch_convert_pdfs("research_papers/")
+
+        # Convert with custom output location
+        batch_convert_pdfs(
+            directory="/home/user/papers/",
+            output_dir="/home/user/markdown_output/"
+        )
+
+        # Check results and handle errors
+        result = batch_convert_pdfs("pdfs/")
+        if result["success"]:
+            print(f"Converted {result['successful_conversions']} files")
+            for file in result["files"]:
+                if file["success"]:
+                    print(f"✓ {file['input_file']} → {file['output_file']}")
+                else:
+                    print(f"✗ {file['input_file']}: {file.get('error', 'Unknown error')}")
     """
     try:
         if not os.path.isdir(directory):
@@ -446,8 +712,63 @@ async def get_status() -> Dict[str, Any]:
     Reports the operational status of all academic databases (CrossRef, Semantic Scholar,
     arXiv, PubMed, Google Scholar), cache usage, and configuration details.
 
+    Args:
+        None - This tool takes no parameters
+
     Returns:
-        Dictionary with API status, cache stats, and configuration info
+        Dictionary containing:
+        - api_status: Status of all academic database APIs
+        - cache_stats: Cache usage and configuration information
+        - config: System configuration details
+
+        api_status contains:
+        - crossref: Boolean indicating CrossRef API availability
+        - semantic_scholar: Boolean indicating Semantic Scholar API availability
+        - arxiv: Boolean indicating arXiv API availability
+        - pubmed: Boolean indicating PubMed API availability
+        - google_scholar: Boolean indicating Google Scholar availability
+
+        cache_stats contains:
+        - size: Number of cached entries currently stored
+        - cache_dir: Directory path where cache files are stored
+        - size_limit: Maximum cache size in bytes (default: 1GB)
+
+        config contains:
+        - has_semantic_scholar_key: Boolean indicating if API key is configured
+        - has_scraperapi_key: Boolean indicating if scraper API key is configured
+        - crossref_email: Email address used for CrossRef API requests
+        - max_retries: Maximum number of retry attempts for failed requests
+
+    Status Interpretation:
+        - api_status true = API is operational and accessible
+        - api_status false = API is unavailable, rate-limited, or has connectivity issues
+        - cache size indicates how many search results are cached
+        - Missing API keys may limit access to certain features
+
+    Use Cases:
+        - Troubleshooting API connectivity issues
+        - Monitoring cache usage and performance
+        - Verifying system configuration
+        - Checking which databases are available for searches
+        - Debugging search failures
+
+    Example Usage:
+        # Check overall system health
+        status = get_status()
+
+        # Verify specific API availability
+        if status["api_status"]["crossref"]:
+            print("CrossRef API is operational")
+
+        # Monitor cache usage
+        cache_size = status["cache_stats"]["size"]
+        if cache_size > 1000:
+            print(f"Cache has {cache_size} entries")
+
+        # Check configuration
+        config = status["config"]
+        if not config["has_semantic_scholar_key"]:
+            print("Consider adding Semantic Scholar API key for better performance")
     """
     return {
         "api_status": api_status.copy(),
