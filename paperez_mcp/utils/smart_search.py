@@ -10,6 +10,9 @@ from typing import Dict, List, Any
 from ..config import config
 from .topic_classifier import get_recommended_sources, should_skip_source_for_topic, get_topic_explanation
 from .query_processor import generate_alternative_queries, optimize_query_for_source
+from .enhanced_classifier import EnhancedTopicClassifier
+from .query_intent import QueryIntentDetector
+from .bm25_ranker import BM25SourceRanker
 
 logger = logging.getLogger(__name__)
 
@@ -38,13 +41,23 @@ async def smart_downloadable_search(
     downloadable_papers = []
     all_candidates = []
 
-    # Topic analysis for intelligent source selection
+    # Enhanced analysis using new classification system
+    enhanced_classifier = EnhancedTopicClassifier()
+    intent_detector = QueryIntentDetector()
+    bm25_ranker = BM25SourceRanker()
+
+    # Perform comprehensive query analysis
+    topic_classification = enhanced_classifier.classify_query_enhanced(query)
+    intent_analysis = intent_detector.analyze_query(query)
+    routing_recommendations = intent_detector.get_routing_recommendations(query)
+    source_rankings = bm25_ranker.rank_sources(query)
+
+    # Legacy topic analysis for backward compatibility
     topic_analysis = None
     if config.enable_topic_detection:
         topic_analysis = get_topic_explanation(query)
-        logger.info(f"🧠 Topic Analysis: {json.dumps(topic_analysis, indent=2)}")
 
-    # Initialize comprehensive search logging
+    # Initialize comprehensive search logging with enhanced analytics
     search_log = {
         "query": query,
         "limit": limit,
@@ -52,55 +65,83 @@ async def smart_downloadable_search(
         "sources_searched": [],
         "results_per_source": {},
         "api_status": api_status.copy(),
-        "search_strategy": "smart_downloadable",
-        "topic_analysis": topic_analysis,
+        "search_strategy": "enhanced_smart_downloadable",
+        "topic_classification": topic_classification,
+        "intent_analysis": {
+            "intent": intent_analysis.intent.value,
+            "temporal_preference": intent_analysis.temporal_preference.value,
+            "confidence": intent_analysis.confidence,
+            "complexity": intent_analysis.complexity
+        },
+        "routing_recommendations": routing_recommendations,
+        "source_rankings": source_rankings[:5],  # Top 5 sources
+        "legacy_topic_analysis": topic_analysis,
         "total_candidates": 0,
         "unique_candidates": 0,
         "download_attempts": 0,
         "successful_downloads": 0
     }
 
-    # Strategy: Use topic-aware source prioritization
-    if config.enable_topic_detection and topic_analysis:
-        recommended_sources = get_recommended_sources(query)
-        source_priority = []
+    logger.info(f"🧠 Enhanced Topic Classification: {topic_classification}")
+    logger.info(f"🎯 Query Intent: {intent_analysis.intent.value} (confidence: {intent_analysis.confidence:.2f})")
+    logger.info(f"⏰ Temporal Preference: {intent_analysis.temporal_preference.value}")
+    logger.info(f"🏆 Top Sources: {[s[0] for s in source_rankings[:5]]}")
 
-        # Map recommended sources to descriptions
-        source_descriptions = {
-            'arxiv': 'arXiv has highest PDF availability',
-            'semantic_scholar': 'Semantic Scholar often has open access PDFs',
-            'crossref': 'CrossRef comprehensive but mostly paywalled',
-            'pubmed': 'PubMed for biomedical open access',
-            'google_scholar': 'Google Scholar fallback',
-            'core': 'CORE open access repository',
-            'doaj': 'DOAJ open access journals',
-            'socarxiv': 'SocArXiv social science preprints',
-            'osf_preprints': 'OSF preprints across disciplines'
-        }
+    # Enhanced strategy using new classification system
+    source_descriptions = {
+        'arxiv': 'arXiv has highest PDF availability',
+        'semantic_scholar': 'Semantic Scholar often has open access PDFs',
+        'crossref': 'CrossRef comprehensive but mostly paywalled',
+        'pubmed': 'PubMed for biomedical open access',
+        'google_scholar': 'Google Scholar fallback',
+        'core': 'CORE open access repository',
+        'doaj': 'DOAJ open access journals',
+        'socarxiv': 'SocArXiv social science preprints',
+        'osf_preprints': 'OSF preprints across disciplines'
+    }
 
-        for source in recommended_sources:
-            if source in source_descriptions:
-                source_priority.append((source, source_descriptions[source]))
+    # Use BM25 source rankings as primary strategy
+    source_priority = []
+    for source_name, score in source_rankings:
+        if source_name in source_descriptions:
+            source_priority.append((source_name, f"{source_descriptions[source_name]} (score: {score:.3f})"))
 
-        # Add any remaining sources not in recommendations
-        all_sources = ['arxiv', 'semantic_scholar', 'crossref', 'pubmed', 'google_scholar', 'core', 'doaj', 'socarxiv', 'osf_preprints']
-        for source in all_sources:
-            if source not in recommended_sources and source in source_descriptions:
-                source_priority.append((source, f"{source_descriptions[source]} (lower priority)"))
+    # Apply intent-based source preferences as secondary weighting
+    intent_preferences = intent_analysis.source_preferences
+    adjusted_priority = []
+    for source_name, description in source_priority:
+        preference_score = intent_preferences.get(source_name, 0.5)
+        adjusted_priority.append((source_name, description, preference_score))
 
-        logger.info(f"🎯 Topic-based source priority: {[s[0] for s in source_priority]}")
-    else:
-        # Fallback to default strategy
-        source_priority = [
-            ('arxiv', 'arXiv has highest PDF availability'),
-            ('semantic_scholar', 'Semantic Scholar often has open access PDFs'),
-            ('core', 'CORE open access repository'),
-            ('crossref', 'CrossRef comprehensive but mostly paywalled'),
-            ('doaj', 'DOAJ open access journals'),
-            ('socarxiv', 'SocArXiv social science preprints'),
-            ('pubmed', 'PubMed for biomedical open access'),
-            ('google_scholar', 'Google Scholar fallback')
-        ]
+    # Sort by combined BM25 + intent preference scores
+    adjusted_priority.sort(key=lambda x: x[2], reverse=True)
+    source_priority = [(name, desc) for name, desc, _ in adjusted_priority]
+
+    # Fallback to legacy system if no enhanced rankings available
+    if not source_priority:
+        if config.enable_topic_detection and topic_analysis:
+            recommended_sources = get_recommended_sources(query)
+            for source in recommended_sources:
+                if source in source_descriptions:
+                    source_priority.append((source, source_descriptions[source]))
+
+            all_sources = ['arxiv', 'semantic_scholar', 'crossref', 'pubmed', 'google_scholar', 'core', 'doaj', 'socarxiv', 'osf_preprints']
+            for source in all_sources:
+                if source not in recommended_sources and source in source_descriptions:
+                    source_priority.append((source, f"{source_descriptions[source]} (lower priority)"))
+        else:
+            source_priority = [
+                ('arxiv', 'arXiv has highest PDF availability'),
+                ('semantic_scholar', 'Semantic Scholar often has open access PDFs'),
+                ('core', 'CORE open access repository'),
+                ('crossref', 'CrossRef comprehensive but mostly paywalled'),
+                ('doaj', 'DOAJ open access journals'),
+                ('socarxiv', 'SocArXiv social science preprints'),
+                ('pubmed', 'PubMed for biomedical open access'),
+                ('google_scholar', 'Google Scholar fallback')
+            ]
+
+    logger.info(f"🚀 Enhanced source priority: {[s[0] for s in source_priority]}")
 
     # Search each source for more papers than we need
     search_limit_per_source = max(10, limit * 3)  # Search more to find downloadable ones
@@ -112,34 +153,83 @@ async def smart_downloadable_search(
     for source_name, description in source_priority:
         if api_status.get(source_name, False):
             try:
-                # Smart source skipping based on topic analysis
-                if config.enable_topic_detection and should_skip_source_for_topic(source_name, query):
-                    search_log["results_per_source"][source_name] = {
-                        "skipped": True,
-                        "reason": "Topic-based skip (not relevant for this query type)"
-                    }
-                    logger.info(f"⏭️ Skipping {source_name}: Not relevant for this topic")
-                    continue
+                # Enhanced source skipping using new classification system
+                skip_source = False
+                skip_reason = None
 
-                # Legacy PubMed biomedical check (now enhanced by topic detection)
+                # Check BM25 score threshold for skipping very low-relevance sources
+                source_score = next((score for name, score in source_rankings if name == source_name), 0.0)
+                if source_score < 0.1:  # Very low relevance threshold
+                    skip_source = True
+                    skip_reason = f"Very low BM25 relevance score ({source_score:.3f})"
+
+                # Check intent-based source preferences
+                intent_preference = intent_preferences.get(source_name, 0.5)
+                if intent_preference < 0.3:  # Low intent-based preference
+                    skip_source = True
+                    skip_reason = f"Low intent-based preference ({intent_preference:.3f})"
+
+                # Domain-specific skipping logic
+                if topic_classification['primary_topic'] == 'Computer Science':
+                    if source_name == 'pubmed' and topic_classification['confidence'] > 0.7:
+                        skip_source = True
+                        skip_reason = "Computer Science query, PubMed not relevant"
+                elif topic_classification['primary_topic'] in ['Medicine', 'Biology']:
+                    if source_name in ['socarxiv'] and topic_classification['confidence'] > 0.7:
+                        skip_source = True
+                        skip_reason = f"Biomedical query, {source_name} not relevant"
+
+                # Legacy topic-based skipping (fallback)
+                if config.enable_topic_detection and should_skip_source_for_topic(source_name, query):
+                    skip_source = True
+                    skip_reason = "Legacy topic-based skip"
+
+                # Legacy PubMed biomedical check (for backward compatibility)
                 if source_name == 'pubmed' and not config.enable_topic_detection:
                     biomedical_terms = ['gene', 'protein', 'disease', 'medical', 'clinical', 'drug', 'therapy', 'patient', 'cancer', 'treatment']
                     if not any(term in query.lower() for term in biomedical_terms):
-                        search_log["results_per_source"][source_name] = {
-                            "skipped": True,
-                            "reason": "Not a biomedical query (legacy check)"
-                        }
-                        logger.info(f"⏭️ Skipping {source_name}: Not a biomedical query")
-                        continue
+                        skip_source = True
+                        skip_reason = "Legacy biomedical check failed"
+
+                if skip_source:
+                    search_log["results_per_source"][source_name] = {
+                        "skipped": True,
+                        "reason": skip_reason,
+                        "bm25_score": source_score,
+                        "intent_preference": intent_preference
+                    }
+                    logger.info(f"⏭️ Skipping {source_name}: {skip_reason}")
+                    continue
 
                 search_func = search_funcs.get(source_name)
                 if search_func:
-                    # Optimize query for this specific source
+                    # Enhanced query optimization using routing recommendations
                     optimized_query = query
-                    if config.enable_query_reformulation:
+
+                    # Use query expansions from intent analysis
+                    if routing_recommendations.get('query_expansions'):
+                        # Select best expansion for this source based on intent and temporal preference
+                        expansions = routing_recommendations['query_expansions']
+                        if expansions and intent_analysis.temporal_preference.value == 'recent':
+                            # For recent queries, try temporal expansions first
+                            temporal_expansions = [exp for exp in expansions if any(term in exp.lower() for term in ['recent', 'latest', '2024', '2025'])]
+                            if temporal_expansions:
+                                optimized_query = temporal_expansions[0]
+                        elif expansions and intent_analysis.intent.value == 'survey_review':
+                            # For review queries, try review-focused expansions
+                            review_expansions = [exp for exp in expansions if any(term in exp.lower() for term in ['review', 'survey', 'state of the art'])]
+                            if review_expansions:
+                                optimized_query = review_expansions[0]
+                        elif expansions:
+                            # Use first expansion as fallback
+                            optimized_query = expansions[0]
+
+                    # Legacy query optimization (fallback)
+                    if config.enable_query_reformulation and optimized_query == query:
                         optimized_query = optimize_query_for_source(query, source_name)
-                        if optimized_query != query:
-                            logger.info(f"🔧 Optimized query for {source_name}: '{optimized_query}'")
+
+                    if optimized_query != query:
+                        logger.info(f"🔧 Enhanced query optimization for {source_name}: '{optimized_query}'")
 
                     logger.info(f"🔎 Searching {source_name}: {description}")
                     results = await search_func(optimized_query, search_limit_per_source)
