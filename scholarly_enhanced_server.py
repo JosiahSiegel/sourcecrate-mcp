@@ -866,6 +866,120 @@ async def extract_pdf_text_from_local_file(file_path: str) -> Dict[str, Any]:
     }
 
 @mcp.tool
+async def convert_pdf_to_markdown(file_path: str, title: str = "", authors: list = None) -> Dict[str, Any]:
+    """
+    Convert a local PDF file to formatted markdown.
+
+    Args:
+        file_path: Path to local PDF file
+        title: Optional title for the paper
+        authors: Optional list of authors
+
+    Returns:
+        Dictionary with markdown content and metadata
+    """
+    import os
+    import re
+
+    # First extract the PDF text
+    pdf_result = await extract_pdf_text_from_local_file(file_path)
+
+    if not pdf_result.get("success"):
+        return pdf_result
+
+    raw_text = pdf_result["text"]
+
+    # Clean and format text
+    def clean_text(text):
+        # Remove excessive whitespace
+        text = re.sub(r'\n\s*\n', '\n\n', text)
+        text = re.sub(r'[ \t]+', ' ', text)
+        return text.strip()
+
+    def format_as_markdown(text, title, authors):
+        markdown = []
+
+        # Add title
+        if title:
+            markdown.append(f"# {title}\n")
+        else:
+            # Try to extract title from first few lines
+            lines = text.split('\n')[:10]
+            for line in lines:
+                if len(line.strip()) > 10 and len(line.strip()) < 200:
+                    markdown.append(f"# {line.strip()}\n")
+                    break
+
+        # Add authors
+        if authors:
+            markdown.append("## Authors")
+            for author in authors:
+                markdown.append(f"- {author}")
+            markdown.append("")
+
+        # Add metadata
+        markdown.append("## Document Metadata")
+        markdown.append(f"- **File**: {os.path.basename(file_path)}")
+        markdown.append(f"- **Pages**: {pdf_result.get('num_pages', 'Unknown')}")
+        markdown.append(f"- **Text Length**: {len(raw_text):,} characters")
+        markdown.append(f"- **Extraction Method**: {pdf_result.get('extraction_method', 'Unknown')}")
+        markdown.append("")
+
+        # Process main content
+        markdown.append("## Full Text Content\n")
+
+        # Split by page markers and format
+        pages = text.split('--- Page ')
+        for i, page_content in enumerate(pages):
+            if i == 0:
+                # First section (before any page markers)
+                if page_content.strip():
+                    markdown.append(page_content.strip())
+                    markdown.append("")
+            else:
+                # Extract page number and content
+                lines = page_content.split('\n', 1)
+                if len(lines) > 1:
+                    page_num = lines[0].split(' ---')[0]
+                    content = lines[1].strip()
+
+                    if content:
+                        markdown.append(f"### Page {page_num}")
+                        markdown.append("")
+                        markdown.append(content)
+                        markdown.append("")
+
+        return '\n'.join(markdown)
+
+    # Format the markdown
+    formatted_markdown = format_as_markdown(clean_text(raw_text), title, authors or [])
+
+    # Save to markdown file
+    base_name = os.path.splitext(os.path.basename(file_path))[0]
+    markdown_path = os.path.join(os.path.dirname(file_path), f"../articles_markdown/{base_name}_full.md")
+
+    try:
+        os.makedirs(os.path.dirname(markdown_path), exist_ok=True)
+        with open(markdown_path, 'w', encoding='utf-8') as f:
+            f.write(formatted_markdown)
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Failed to save markdown file: {str(e)}",
+            "file_path": file_path
+        }
+
+    return {
+        "success": True,
+        "markdown": formatted_markdown,
+        "markdown_path": markdown_path,
+        "markdown_length": len(formatted_markdown),
+        "original_file": file_path,
+        "pages_extracted": pdf_result.get('num_pages', 0),
+        "text_length": len(raw_text)
+    }
+
+@mcp.tool
 async def search_with_full_text(query: str, limit: int = 3, extract_text: bool = False) -> List[Dict[str, Any]]:
     """
     Search for papers and attempt to retrieve full text for each result.

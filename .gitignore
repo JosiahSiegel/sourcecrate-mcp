@@ -95,4 +95,4 @@ logs/
 # FastMCP specific
 .fastmcp/
 
-OrchestrateAI/*
+articles*/
