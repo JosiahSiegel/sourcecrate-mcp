@@ -1,0 +1,20 @@
+repos:
+  - repo: local
+    hooks:
+      - id: mcp-server-validation
+        name: MCP Server Validation
+        entry: python3
+        args: ["scripts/simple_mcp_check.py"]
+        language: system
+        files: ^scholarly_enhanced_server\.py$
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: python-syntax-check
+        name: Python Syntax Check
+        entry: python3
+        args: ["-m", "py_compile"]
+        language: system
+        files: \.py$
+        exclude: ^(venv/|__pycache__/|scripts/)

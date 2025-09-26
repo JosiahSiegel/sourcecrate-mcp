@@ -56,11 +56,37 @@ setup_scholarly_proxy()
 """
 OPTIMIZED MCP TOOLS - 6 Essential Functions
 
-This modular server provides 6 optimized MCP tools for academic research:
+🚀 QUICK START GUIDE:
+
+## Common Research Workflows:
+
+### "Find and save 10 papers on topic X":
+1. search_papers("topic X", limit=10)                    # Get metadata/abstracts
+2. Review abstracts, identify papers with PDF URLs
+3. For each interesting paper:
+   convert_pdf_to_markdown(pdf_url, output_path="papers/paper_N.md")
+
+### "Bulk download from existing PDF directory":
+batch_convert_pdfs("pdf_directory/", "markdown_output/")
+
+### "Quick download of top 3 papers":
+search_papers("topic", limit=3, download_and_convert=True)
+
+### "Research analysis workflow":
+1. search_papers("broad topic", limit=20)               # Survey field
+2. search_papers("specific aspect", include_full_text=True)  # Deep analysis
+3. Download selected papers for detailed study
+
+⚠️ AVOID COMMON MISTAKES:
+- Don't expect full papers from search_papers() by default (metadata only!)
+- Don't try to download >3 papers in one call (use multi-step approach)
+- Don't confuse include_full_text (memory) vs download_and_convert (files)
+
+## 6 Essential Tools:
 
 1. search_papers - Comprehensive search across 5 academic databases
    - Multi-source search (CrossRef, Semantic Scholar, arXiv, PubMed, Google Scholar)
-   - Optional full-text extraction and PDF download/conversion
+   - Optional full-text extraction and PDF download/conversion (MAX 3 papers)
    - Supports DOI queries, author searches, and keyword searches
 
 2. search_authors - Author profile search with citation metrics
@@ -95,10 +121,45 @@ async def search_papers(
     download_and_convert: bool = False
 ) -> List[Dict[str, Any]]:
     """
-    Search academic papers across multiple databases with optional full-text extraction and download.
+    ⚠️ IMPORTANT - Default Behavior:
+    By default, this tool returns only METADATA/ABSTRACTS, not full papers.
+    To get full papers, use download_and_convert=True (limited to 3 papers max).
+    For bulk downloads (>3 papers), use multiple calls or individual conversion.
 
+    🔄 COMMON WORKFLOWS:
+    "Find papers on topic X" → search_papers("topic", limit=10)
+    "Save 3 full papers" → search_papers("topic", limit=3, download_and_convert=True)
+    "Save 10 full papers" → Multi-step approach (see MULTI-STEP PROCESSES below)
+
+    Search academic papers across multiple databases with optional full-text extraction and download.
     Searches CrossRef, Semantic Scholar, arXiv, PubMed, and Google Scholar with intelligent fallback.
-    Supports DOI queries (use "doi:10.1000/xyz"), author queries, and keyword searches.
+    Supports DOI queries, author queries, and keyword searches.
+
+    🔄 MULTI-STEP PROCESSES:
+
+    ## Research Workflow (Explore → Select → Download):
+    Step 1: search_papers("broad topic", limit=20)  # Get overview
+    Step 2: Review abstracts and select interesting papers
+    Step 3: For selected papers with PDF URLs:
+            convert_pdf_to_markdown(pdf_url, output_path="papers/paper_N.md")
+
+    ## Bulk Download Workflow (>3 papers):
+    Option A - Multiple Targeted Searches:
+      papers1 = search_papers("ML transformers", limit=3, download_and_convert=True)
+      papers2 = search_papers("ML attention", limit=3, download_and_convert=True)
+      papers3 = search_papers("ML BERT", limit=3, download_and_convert=True)
+
+    Option B - Search Then Individual Download:
+      metadata = search_papers("machine learning", limit=10)
+      for paper in metadata[0]["results"]:
+          if paper.get("pdf_url"):
+              convert_pdf_to_markdown(paper["pdf_url"],
+                                    output_path=f"papers/{paper['title']}.md")
+
+    ## Content Analysis Workflow:
+    Step 1: search_papers("topic", limit=5, include_full_text=True)  # Text in memory
+    Step 2: Analyze text content programmatically
+    Step 3: Optionally download promising papers as files
 
     Args:
         query: Search query (keywords, DOI with "doi:" prefix, title, or author)
@@ -108,10 +169,12 @@ async def search_papers(
                - Title search: "Attention Is All You Need"
         limit: Maximum number of results to return (default: 5, max recommended: 10)
         include_full_text: Extract full text from PDFs when available (default: False)
-                          WARNING: Can be slow for multiple papers, increases response time significantly
+                          ⚠️ WARNING: Slow for multiple papers, text stays in memory only
+                          Use download_and_convert=True for files instead
         download_and_convert: Download PDFs and convert to markdown (default: False)
-                             Only processes top 3 papers to avoid excessive downloads
+                             🚨 LIMITATION: Only processes top 3 papers to avoid overload
                              Files saved to current directory by default
+                             For >3 papers, use multiple calls or individual conversion
 
     Returns:
         List containing single dict with:
@@ -145,18 +208,27 @@ async def search_papers(
         - markdown_characters: Character count of markdown
         - download_error: Error message if download failed
 
+    🚨 KEY LIMITATIONS:
+    - Default: Metadata/abstracts only, no files created
+    - download_and_convert=True: MAX 3 papers per call
+    - include_full_text=True: Text in memory only, not saved to files
+    - For bulk operations: Requires multi-step workflow
+
     Example Usage:
-        # Basic search
-        search_papers("machine learning", limit=3)
+        # Metadata search (most common starting point)
+        search_papers("machine learning", limit=10)
 
-        # DOI lookup with full text
-        search_papers("doi:10.1038/nature14539", include_full_text=True)
+        # Download 3 full papers as files
+        search_papers("transformers", limit=3, download_and_convert=True)
 
-        # Download and convert papers
-        search_papers("attention mechanism", download_and_convert=True)
-
-        # Author search
-        search_papers("Geoffrey Hinton deep learning", limit=5)
+        # For 10+ papers: use multi-step workflow (see MULTI-STEP PROCESSES)
+        # Step 1: Get metadata
+        papers = search_papers("deep learning", limit=10)
+        # Step 2: Download individually
+        for paper in papers[0]["results"][:5]:  # First 5 papers
+            if paper.get("pdf_url"):
+                convert_pdf_to_markdown(paper["pdf_url"],
+                                      output_path=f"papers/{paper['title'][:50]}.md")
     """
     result = await comprehensive_search_internal(query, limit, include_full_text)
 
@@ -549,6 +621,30 @@ async def batch_convert_pdfs(
 
     Uses zero AI tokens - employs pymupdf4llm for direct PDF-to-markdown conversion
     without text passing through AI context. Preserves document structure and formatting.
+
+    🔗 RESEARCH INTEGRATION:
+    This tool complements search_papers() for bulk workflows:
+
+    1. Use search_papers() to find papers and note PDF URLs
+    2. Download PDFs manually or with individual calls to a directory
+    3. Use batch_convert_pdfs() to convert all PDFs to markdown
+    4. Organize results for analysis
+
+    Example Research Workflow:
+    # Step 1: Search and identify papers
+    papers = search_papers("machine learning", limit=10)
+
+    # Step 2: Download PDFs to directory (manual or scripted)
+    # Create "research_pdfs/" directory and save PDFs there
+
+    # Step 3: Convert all PDFs to markdown
+    batch_convert_pdfs("research_pdfs/", "analysis_markdown/")
+
+    # Alternative: Direct workflow with search_papers download limits
+    # Get 3 papers at a time with automatic download
+    batch1 = search_papers("ML topic A", limit=3, download_and_convert=True)
+    batch2 = search_papers("ML topic B", limit=3, download_and_convert=True)
+    # Then use batch_convert_pdfs if you have additional PDFs
 
     Args:
         directory: Directory containing PDFs (default: "articles")
