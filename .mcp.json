@@ -1,13 +1,13 @@
 {
-  "version": "1.0",
-  "description": "Enhanced Scholarly MCP Server with Full-Text Retrieval - Zero Installation via uvx",
+  "version": "2.0",
+  "description": "Enhanced Scholarly MCP Server - 6 Optimized Tools for Academic Research",
   "mcpServers": {
     "scholarly-enhanced": {
-      "command": "/home/node/.local/bin/uvx",
+      "command": "uvx",
       "args": [
         "--from",
         "git+https://github.com/JosiahSiegel/scholarly-mcp.git",
-        "scholarly-mcp"
+        "scholarly-enhanced"
       ],
       "env": {
         "UNPAYWALL_EMAIL": "research@example.com"
@@ -19,51 +19,51 @@
       "server": "scholarly-enhanced",
       "tools": [
         {
-          "name": "search_author",
-          "description": "Search for authors by name on Google Scholar"
+          "name": "search_papers",
+          "description": "🚨 CRITICAL: Use download_and_convert=True for full papers! Default returns only metadata/abstracts. Search academic papers across multiple databases with optional full-text extraction and download."
         },
         {
-          "name": "get_author_details",
-          "description": "Get detailed author information by Scholar ID"
+          "name": "search_authors",
+          "description": "Search for academic authors by name with citation metrics, h-index, and publication data from Google Scholar."
         },
         {
-          "name": "search_publications",
-          "description": "Search for publications by keywords or title"
+          "name": "extract_pdf_text",
+          "description": "Extract text from local PDF files using PyMuPDF with unlimited character support for academic papers."
         },
         {
-          "name": "find_open_access_versions",
-          "description": "Find open access versions using multiple sources"
+          "name": "convert_pdf_to_markdown",
+          "description": "Convert single PDF to formatted markdown using zero-token conversion, preserving document structure and formatting."
         },
         {
-          "name": "get_full_text_by_doi",
-          "description": "Retrieve full text of a paper using its DOI"
+          "name": "batch_convert_pdfs",
+          "description": "Convert all PDFs in a directory to markdown format with zero AI tokens, ideal for bulk processing research papers."
         },
         {
-          "name": "get_full_text_by_title",
-          "description": "Retrieve full text of a paper using its title"
-        },
-        {
-          "name": "search_with_full_text",
-          "description": "Search papers and include full text when available"
-        },
-        {
-          "name": "extract_pdf_text_from_url",
-          "description": "Extract text from any PDF URL"
-        },
-        {
-          "name": "search_organizations",
-          "description": "Search for academic organizations"
-        },
-        {
-          "name": "get_bibtex_citation",
-          "description": "Generate BibTeX citation for a publication"
+          "name": "get_status",
+          "description": "Get system status including API health for all academic databases and cache statistics for troubleshooting."
         }
       ]
     }
   ],
+  "installation": {
+    "command": "claude mcp add -s project scholarly-enhanced -- uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-enhanced",
+    "requirements": [
+      "Python 3.8+",
+      "uvx (for zero-installation)",
+      "Internet connection for academic database access"
+    ]
+  },
+  "usage": {
+    "critical_warning": "⚠️ search_papers() returns only metadata by default! Use download_and_convert=True for full papers as files.",
+    "common_workflows": {
+      "get_3_full_papers": "search_papers('topic', limit=3, download_and_convert=True)",
+      "get_10_metadata": "search_papers('topic', limit=10)",
+      "get_full_text_memory": "search_papers('topic', limit=5, include_full_text=True)"
+    }
+  },
   "preferences": {
     "default_server": "scholarly-enhanced",
-    "timeout": 120,
+    "timeout": 180,
     "retry_attempts": 3,
     "log_level": "INFO"
   }

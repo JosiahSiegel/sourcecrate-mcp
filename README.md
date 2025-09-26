@@ -58,35 +58,71 @@ Add to your `claude_desktop_config.json`:
 Run this command in Claude Code:
 
 ```bash
-claude mcp add -s project scholarly-enhanced -- uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-mcp
+claude mcp add -s project scholarly-enhanced -- uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-enhanced
 ```
 
 or
 
 ```bash
-/mcp add scholarly-enhanced uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-mcp
+/mcp add scholarly-enhanced uvx --from git+https://github.com/JosiahSiegel/scholarly-mcp.git scholarly-enhanced
 ```
 
-## 📋 Available Tools
+## 📋 Available Tools (6 Optimized Functions)
 
-### Multi-Source Search Tools
+🚨 **CRITICAL**: Default behavior returns only metadata/abstracts! Use `download_and_convert=True` for full papers.
 
-| Tool                    | Description                                                    |
-| ----------------------- | -------------------------------------------------------------- |
-| `comprehensive_search`  | **Search across all academic databases with fallback support** |
-| `search_publications`   | Search papers by keywords across multiple sources              |
-| `search_author`         | Find researchers by name with citation metrics                 |
-| `search_with_full_text` | **Combined search + full-text extraction**                     |
+### 🔍 Search & Discovery
 
-### Full-Text Extraction & Processing ⭐
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| **`search_papers`** | 🚨 **MAIN TOOL** - Search academic papers across 5 databases | `download_and_convert=True` for files<br/>`include_full_text=True` for memory |
+| **`search_authors`** | Find author profiles with citation metrics from Google Scholar | `limit` (max 10 recommended) |
 
-| Tool                               | Description                                        |
-| ---------------------------------- | -------------------------------------------------- |
-| `get_full_text_by_doi`             | **Extract unlimited text from papers using DOI**   |
-| `get_full_text_by_title`           | **Extract unlimited text from papers using title** |
-| `extract_pdf_text_from_url`        | **Extract text from any PDF URL (no limits)**      |
-| `extract_pdf_text_from_local_file` | **Process local PDF files completely**             |
-| `convert_pdf_to_markdown`          | **Convert PDFs to structured markdown**            |
+### 📄 PDF Processing
+
+| Tool | Description | Use Case |
+|------|-------------|----------|
+| **`extract_pdf_text`** | Extract text from local PDF files (unlimited characters) | Text analysis, content extraction |
+| **`convert_pdf_to_markdown`** | Convert single PDF to markdown (zero tokens) | Document conversion, structure preservation |
+| **`batch_convert_pdfs`** | Convert entire directories of PDFs to markdown | Bulk processing, research archives |
+
+### 🔧 System
+
+| Tool | Description | Purpose |
+|------|-------------|---------|
+| **`get_status`** | Check API health and system configuration | Troubleshooting, monitoring |
+
+## 🚨 CRITICAL USAGE GUIDE
+
+### ❌ Common Mistake (Returns Only Summaries)
+```python
+# This only gets metadata/abstracts - NOT full papers!
+search_papers("Balfour Declaration documents", limit=10)
+```
+
+### ✅ Correct Usage (Gets Full Papers)
+```python
+# Option 1: Get 3 full papers as markdown files
+search_papers("Balfour Declaration documents", limit=3, download_and_convert=True)
+
+# Option 2: Get full text in memory for analysis
+search_papers("Balfour Declaration documents", limit=10, include_full_text=True)
+
+# Option 3: Multi-step for 10+ papers
+papers = search_papers("Balfour Declaration documents", limit=10)  # Get metadata
+for paper in papers[0]["results"]:
+    if paper.get("pdf_url"):
+        convert_pdf_to_markdown(paper["pdf_url"], output_path=f"papers/{paper['title'][:50]}.md")
+```
+
+### 🎯 Quick Solutions by Use Case
+
+| Request | Solution |
+|---------|----------|
+| "Get 10 papers on topic" | `search_papers("topic", limit=10)` → **metadata only** |
+| "Save 3 papers as files" | `search_papers("topic", limit=3, download_and_convert=True)` |
+| "Save 10 papers as files" | Multiple calls or multi-step workflow |
+| "Analyze paper content" | `search_papers("topic", include_full_text=True)` |
 
 ### Advanced Processing & Storage
 

@@ -904,6 +904,19 @@ async def get_status() -> Dict[str, Any]:
 
 def main():
     """Main entry point for the server"""
+    print("🚀 Starting Enhanced Scholarly MCP Server...")
+    print("📚 Available tools:")
+    print("  - search_papers: Search academic papers across multiple databases")
+    print("  - search_authors: Find author profiles with citation metrics")
+    print("  - extract_pdf_text: Extract text from local PDF files")
+    print("  - convert_pdf_to_markdown: Convert PDF to markdown format")
+    print("  - batch_convert_pdfs: Convert multiple PDFs in a directory")
+    print("  - get_status: Check system health and API status")
+    print("")
+    print("⚠️  IMPORTANT: For full papers, use download_and_convert=True")
+    print("   Default behavior returns only metadata/abstracts!")
+    print("")
+    print("🔗 Server running at: stdio")
     mcp.run()
 
 
