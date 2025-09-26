@@ -170,7 +170,12 @@ class BM25SourceRanker:
 
                     # Citation and impact
                     "citation", "cited", "reference", "bibliography", "impact",
-                    "influence", "significance", "contribution", "innovation"
+                    "influence", "significance", "contribution", "innovation",
+
+                    # Historical documents (comprehensive coverage)
+                    "declaration", "treaty", "historical", "history", "document",
+                    "archive", "primary source", "manuscript", "diplomatic",
+                    "government", "official", "colonial", "political"
                 ],
                 domain_focus=["all"],
                 content_type="aggregator",
@@ -195,6 +200,18 @@ class BM25SourceRanker:
                     "humanities", "social science", "history", "literature",
                     "philosophy", "art", "culture", "society", "politics",
                     "economics", "anthropology", "sociology", "psychology",
+
+                    # Historical document types
+                    "declaration", "treaty", "proclamation", "manifesto", "charter",
+                    "constitution", "agreement", "protocol", "memorandum", "correspondence",
+                    "letter", "diplomatic", "government document", "official document",
+                    "policy document", "legal document", "historic document",
+
+                    # Historical periods and events
+                    "colonial", "empire", "independence", "revolution", "war",
+                    "conflict", "peace", "settlement", "mandate", "territory",
+                    "nationalism", "sovereignty", "diplomacy", "international relations",
+                    "british", "ottoman", "palestine", "zionism", "middle east",
 
                     # Historical/Cultural
                     "historical", "cultural", "heritage", "tradition", "civilization",
