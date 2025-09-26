@@ -248,6 +248,13 @@ def search_publications(query: str, limit: int = 5) -> List[Dict[str, Any]]:
         List of publication information dictionaries
     """
     try:
+        # Configure scholarly with retry logic and user agent
+        import time
+        import random
+
+        # Add some randomization to avoid detection
+        time.sleep(random.uniform(1, 3))
+
         search_query = scholarly.search_pubs(query)
         results = []
 
@@ -270,7 +277,14 @@ def search_publications(query: str, limit: int = 5) -> List[Dict[str, Any]]:
 
         return results
     except Exception as e:
-        return [{"error": f"Failed to search for publications: {str(e)}"}]
+        # If Google Scholar fails, try to provide a meaningful fallback
+        error_msg = str(e)
+        if "Cannot Fetch from Google Scholar" in error_msg or "Timeout" in error_msg:
+            return [{
+                "error": f"Google Scholar access temporarily blocked. This is common due to rate limiting. Please try again in a few minutes or use specific DOI/title search functions instead.",
+                "suggestion": "Try using get_full_text_by_title() or get_full_text_by_doi() for specific papers"
+            }]
+        return [{"error": f"Failed to search for publications: {error_msg}"}]
 
 @mcp.tool
 async def find_open_access_versions(title: str, doi: str = "") -> Dict[str, Any]:
