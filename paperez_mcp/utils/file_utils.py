@@ -48,8 +48,8 @@ async def download_pdf(pdf_url: str, output_dir: str = "downloaded_papers") -> D
         paper_id = re.sub(r'[^\w\-_\.]', '_', paper_id)
         pdf_path = os.path.join(output_dir, f"{paper_id}.pdf")
 
-        # Download PDF
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        # Download PDF with redirect handling
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
             response = await client.get(pdf_url)
 
             if response.status_code == 200:
