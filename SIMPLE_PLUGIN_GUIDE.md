@@ -40,7 +40,7 @@ Edit the generated file and replace the TODO section in `_perform_search()` with
 # - Result standardization
 # - Error handling
 
-# Just add your API key to ~/.paperez/config.yaml:
+# Just add your API key to ~/.paperez/config/config.yaml:
 # sources:
 #   ieee_xplore:
 #     config:
@@ -78,7 +78,7 @@ Edit the generated file and replace the TODO section in `_perform_search()` with
 # - Fedora
 # - OAI-PMH
 
-# Configure for your institution in ~/.paperez/config.yaml:
+# Configure for your institution in ~/.paperez/config/config.yaml:
 # sources:
 #   institutional:
 #     config:

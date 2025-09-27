@@ -57,7 +57,7 @@ class ConfigManager:
     Configuration priority (highest to lowest):
     1. Environment variables (PAPEREZ_*)
     2. Local project config (./paperez.config.yaml)
-    3. User home config (~/.paperez/config.yaml)
+    3. User home config (~/.paperez/config/config.yaml)
     4. Built-in defaults
     """
 
@@ -77,10 +77,10 @@ class ConfigManager:
         # Get the root directory of the paperez-mcp package
         package_root = Path(__file__).parent.parent.parent
         self.config_paths = {
-            'mcp_default': package_root / '.paperez' / 'config.yaml',
-            'mcp_minimal': package_root / '.paperez' / 'minimal_config.yaml',
-            'user_home': Path.home() / '.paperez' / 'config.yaml',
-            'project_local': Path.cwd() / 'paperez.config.yaml',
+            'mcp_default': package_root / '.paperez' / 'config' / 'config.yaml',
+            'mcp_minimal': package_root / '.paperez' / 'config' / 'minimal_config.yaml',
+            'user_home': Path.home() / '.paperez' / 'config' / 'config.yaml',
+            'project_local': Path.cwd() / '.paperez' / 'config' / 'config.yaml',
             'environment': self._get_env_config_path()
         }
 

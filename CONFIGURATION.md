@@ -7,8 +7,8 @@ PaperezMCP uses a YAML-based configuration system that allows you to customize s
 Configuration is loaded in this order (highest priority first):
 
 1. **Environment variables** (`PAPEREZ_*`)
-2. **Local project config** (`./paperez.config.yaml`)
-3. **User home config** (`~/.paperez/config.yaml`)
+2. **Local project config** (`./.paperez/config/config.yaml`)
+3. **User home config** (`~/.paperez/config/config.yaml`)
 4. **Built-in defaults** (`default_config.yaml`)
 
 ## Quick Start

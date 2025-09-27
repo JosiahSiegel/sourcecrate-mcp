@@ -13,7 +13,7 @@
 
 ### 1. Copy the config template
 ```bash
-cp examples/simple_config_sources.yaml ~/.paperez/config.yaml
+mkdir -p ~/.paperez/config && cp examples/simple_config_sources.yaml ~/.paperez/config/config.yaml
 ```
 
 ### 2. Restart PaperezMCP

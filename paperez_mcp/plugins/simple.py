@@ -275,7 +275,10 @@ def register_plugin(plugin_file: str) -> bool:
         shutil.copy2(plugin_path, plugin_dest)
 
         # Update user configuration
-        config_file = Path.home() / ".paperez" / "config.yaml"
+        config_file = Path.home() / ".paperez" / "config" / "config.yaml"
+
+        # Ensure config directory exists
+        config_file.parent.mkdir(parents=True, exist_ok=True)
 
         if config_file.exists():
             import yaml
