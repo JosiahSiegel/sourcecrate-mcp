@@ -1,5 +1,9 @@
-# Simple Config-Only Source Examples
-# Users can add new academic sources with just configuration - no Python code needed!
+# User-Only Sources Example - Disable Built-in Sources
+# Demonstrates use_default_sources: false to use only custom sources
+# No built-in sources will be loaded; only user-defined sources available
+
+# Disable all built-in sources
+use_default_sources: false
 
 sources:
   # Example 1: Europe PMC (39M+ life sciences abstracts, no API key needed)
@@ -114,38 +118,37 @@ sources:
       rate_limit_delay: 1.0
 
 categories:
-  # Updated categories to include new sources
-  comprehensive:
-    name: comprehensive
-    display_name: 'Comprehensive Search'
-    description: 'Search across all available sources for maximum coverage'
-    type: standard
-    sources: ['crossref', 'semantic_scholar', 'arxiv', 'pubmed', 'pubmed_central', 'clinicaltrials', 'europe_pmc', 'doaj']
-    max_results_per_source: 4
-    parallel_search: true
-
-  open_access:
-    name: open_access
-    display_name: 'Open Access Publications'
-    description: 'Focus on freely available full-text articles'
-    type: standard
-    sources: ['arxiv', 'pubmed_central', 'semantic_scholar', 'doaj', 'europe_pmc']
-    max_results_per_source: 6
-    parallel_search: true
-
-  life_sciences:
-    name: life_sciences
-    display_name: 'Life Sciences Research'
-    description: 'Specialized life sciences and biomedical research'
-    type: standard
-    sources: ['pubmed', 'pubmed_central', 'europe_pmc', 'doaj']
+  # Categories using only user-defined sources (no built-in sources available)
+  user_comprehensive:
+    name: "user_comprehensive"
+    display_name: "User Sources Only"
+    description: "Search across all user-defined sources"
+    type: "standard"
+    sources:
+      - "europe_pmc"
+      - "doaj"
+      # - "core_ac_uk"  # Uncomment if you have API key
     max_results_per_source: 8
     parallel_search: true
 
-# How to use this config:
-# 1. Save as ~/.paperez/config.yaml (overwrites defaults)
-# 2. Or merge sections into your existing config
-# 3. Restart PaperezMCP to load new sources
-# 4. New sources will be available immediately in searches!
+  life_sciences_only:
+    name: "life_sciences_only"
+    display_name: "Life Sciences (User Sources)"
+    description: "Life sciences from user-configured sources only"
+    type: "standard"
+    sources:
+      - "europe_pmc"
+    max_results_per_source: 15
+    parallel_search: true
 
-# That's it! No Python code needed.
+# Set default category to use user sources
+default_category: "user_comprehensive"
+
+# How to use this config:
+# 1. Copy to ~/.paperez/config.yaml
+# 2. Restart PaperezMCP
+# 3. Only the sources defined above will be available (no built-in sources)
+# 4. Use "user_comprehensive" category for searching
+
+# This demonstrates complete control over sources - perfect for organizations
+# that want to use only specific, approved academic databases.

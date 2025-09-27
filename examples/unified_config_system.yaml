@@ -1,176 +1,158 @@
-# Unified Config System - All Sources Use Same Config Pattern
-# This shows how ALL sources (built-in + custom) could use the same system
+# Complete Configuration Example - All Options Demonstrated
+# Shows all configuration capabilities and options available in PaperezMCP
+# Use this as a reference for understanding the full system
 
+# Version and basic settings
+version: "1.0"
+default_category: "comprehensive"
+max_concurrent_searches: 10
+global_cache_enabled: true
+global_cache_expire: 3600
+default_output_dir: ".paperez"
+cleanup_temp_files: true
+
+# User control options
+use_default_sources: true  # Set to false to disable all built-in sources
+
+# Query routing configuration
+routing:
+  enabled: true
+  fallback_enabled: true
+  domain_keywords:
+    medical:
+      - "medical"
+      - "clinical"
+      - "patient"
+      - "treatment"
+    computer_science:
+      - "algorithm"
+      - "machine learning"
+      - "artificial intelligence"
+    physics:
+      - "quantum"
+      - "physics"
+      - "engineering"
+  domain_categories:
+    medical: "medical"
+    computer_science: "preprints"
+    physics: "preprints"
+
+# Source configurations (override built-in sources or add new ones)
 sources:
-  # Built-in sources converted to config (much cleaner!)
+  # Override built-in CrossRef with custom settings
   crossref:
-    name: crossref
-    type: http_api
+    name: "crossref"
+    type: "http_api"
     enabled: true
-    timeout: 30
+    timeout: 45  # Increased timeout
+    max_retries: 5  # More retries
+    cache_expire: 7200  # Longer cache
     config:
-      description: Primary academic publisher database
-      base_url: https://api.crossref.org
-      search_path: /works
-      query_param: query
-      limit_param: rows
-      response_format: json
-      results_path: message.items
+      description: "Primary academic publisher database (customized)"
+      base_url: "https://api.crossref.org"
+      search_path: "/works"
+      query_param: "query"
+      limit_param: "rows"
+      response_format: "json"
+      results_path: "message.items"
       extra_params:
-        sort: relevance
-        order: desc
-        mailto: research@example.com  # User provides
+        sort: "relevance"
+        order: "desc"
+        mailto: "your_email@example.com"  # User email for polite pool
       field_mappings:
-        title: title.0
-        authors: author
-        doi: DOI
-        abstract: abstract.0
-        journal: container-title.0
-        year: published-print.date-parts.0.0
-        url: URL
-        citation_count: is-referenced-by-count
-      rate_limit_delay: 0.1
+        title: "title.0"
+        authors: "author"
+        doi: "DOI"
+        abstract: "abstract"
+        journal: "container-title.0"
+        year: "published-print.date-parts.0.0"
+        url: "URL"
+        citation_count: "is-referenced-by-count"
+      rate_limit_delay: 0.05  # Faster rate (with polite pool)
 
-  semantic_scholar:
-    name: semantic_scholar
-    type: http_api
-    enabled: true
+  # Add a custom source example
+  custom_api_example:
+    name: "custom_api_example"
+    type: "http_api"
+    enabled: false  # Disabled by default (template)
     timeout: 30
+    max_retries: 3
+    cache_expire: 3600
     config:
-      description: AI-powered academic search engine
-      base_url: https://api.semanticscholar.org/graph/v1
-      search_path: /paper/search
-      query_param: query
-      limit_param: limit
-      response_format: json
-      results_path: data
+      description: "Example custom REST API source"
+      base_url: "https://api.example.com/v1"
+      search_path: "/papers/search"
+      query_param: "q"
+      limit_param: "limit"
+      response_format: "json"
+      results_path: "data.papers"
       extra_params:
-        fields: title,authors,abstract,year,citationCount,url,openAccessPdf
+        format: "json"
+        sort: "relevance"
       field_mappings:
-        title: title
-        authors: authors
-        abstract: abstract
-        year: year
-        doi: externalIds.DOI
-        url: url
-        pdf_url: openAccessPdf.url
-        citation_count: citationCount
-      rate_limit_delay: 0.1
-
-  arxiv:
-    name: arxiv
-    type: http_api
-    enabled: true
-    timeout: 30
-    config:
-      description: Preprint repository for STEM fields
-      base_url: http://export.arxiv.org/api
-      search_path: /query
-      query_param: search_query
-      limit_param: max_results
-      response_format: xml  # GenericHTTPClient could support XML too
-      results_path: entry
-      extra_params:
-        sortBy: relevance
-        sortOrder: descending
-      field_mappings:
-        title: title
-        authors: author.name
-        abstract: summary
-        year: published  # Extract year automatically
-        url: id
-        pdf_url: link[@title='pdf']/@href
+        title: "title"
+        authors: "authors"
+        abstract: "abstract"
+        journal: "journal.name"
+        year: "publication_year"
+        doi: "doi"
+        url: "url"
+        pdf_url: "pdf_link"
+        citation_count: "citations"
+      # Optional authentication
+      # api_key: "your-api-key-here"
+      # auth_header: "Authorization"
+      # auth_type: "Bearer"
       rate_limit_delay: 0.5
 
-  pubmed:
-    name: pubmed
-    type: http_api
-    enabled: true
-    timeout: 30
-    config:
-      description: Biomedical literature database
-      base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils
-      search_path: /esearch.fcgi
-      query_param: term
-      limit_param: retmax
-      response_format: json
-      results_path: esearchresult.idlist
-      extra_params:
-        db: pubmed
-        retmode: json
-        usehistory: 'y'
-      # Note: PubMed requires 2-step process, but could be handled
-      field_mappings:
-        # Would need post-processing for full metadata
-        id: ''  # Returns just IDs, needs efetch step
-      rate_limit_delay: 0.34  # NCBI rate limit
-
-  # Custom sources work exactly the same way
-  europe_pmc:
-    name: europe_pmc
-    type: http_api
-    enabled: true
-    timeout: 30
-    config:
-      description: Europe PMC - Life sciences database
-      base_url: https://www.ebi.ac.uk/europepmc/webservices/rest
-      search_path: /search
-      query_param: query
-      limit_param: pageSize
-      response_format: json
-      results_path: resultList.result
-      extra_params:
-        format: json
-        resultType: core
-      field_mappings:
-        title: title
-        authors: authorString
-        abstract: abstractText
-        journal: journalTitle
-        year: pubYear
-        doi: doi
-        url: fullTextUrlList.fullTextUrl.0.url
-        citation_count: citedByCount
-      rate_limit_delay: 0.2
-
-  doaj:
-    name: doaj
-    type: http_api
-    enabled: true
-    timeout: 30
-    config:
-      description: Directory of Open Access Journals
-      base_url: https://doaj.org/api/search
-      search_path: /articles/_search
-      query_param: q
-      limit_param: pageSize
-      response_format: json
-      results_path: results
-      field_mappings:
-        title: bibjson.title
-        authors: bibjson.author
-        abstract: bibjson.abstract
-        journal: bibjson.journal.title
-        year: bibjson.year
-        doi: bibjson.identifier.0.id
-        url: bibjson.link.0.url
-      rate_limit_delay: 0.5
-
+# Categories (override built-in or create new ones)
 categories:
+  # Override comprehensive category
   comprehensive:
-    name: comprehensive
-    display_name: Comprehensive Search
-    description: Search across all sources using unified system
-    type: standard
-    sources: [crossref, semantic_scholar, arxiv, pubmed, europe_pmc, doaj]
-    max_results_per_source: 4
+    name: "comprehensive"
+    display_name: "Comprehensive Search (Customized)"
+    description: "Search across all sources with custom settings"
+    type: "standard"
+    sources:
+      - "crossref"
+      - "semantic_scholar"
+      - "arxiv"
+      - "pubmed"
+      - "custom_api_example"  # Include custom source
+    max_results_per_source: 6  # More results per source
     parallel_search: true
 
-# Benefits of unified system:
-# ✅ All sources work the same way
-# ✅ Users can customize ANY source (even built-ins)
-# ✅ No more Python API client code needed
-# ✅ Consistent error handling, retry, caching
-# ✅ Much simpler codebase
-# ✅ Easy to add new sources
-# ✅ Easy to debug and maintain
+  # Create custom category
+  premium_sources:
+    name: "premium_sources"
+    display_name: "Premium Academic Sources"
+    description: "High-quality, curated academic sources only"
+    type: "standard"
+    sources:
+      - "crossref"
+      - "pubmed"
+      - "semantic_scholar"
+    max_results_per_source: 10
+    parallel_search: true
+
+  # Meta-category example
+  ai_research_comprehensive:
+    name: "ai_research_comprehensive"
+    display_name: "AI Research (Comprehensive)"
+    description: "Combines preprints and journals for AI research"
+    type: "meta"
+    includes:
+      - "preprints"
+      - "premium_sources"
+    merge_strategy: "weighted_union"
+    weights:
+      preprints: 0.7  # Emphasize latest research
+      premium_sources: 0.3
+
+# This configuration demonstrates:
+# 1. Overriding built-in sources with custom settings
+# 2. Adding new custom REST API sources
+# 3. Creating custom categories and meta-categories
+# 4. Query routing configuration
+# 5. All available global settings
+# 6. Authentication and rate limiting options
