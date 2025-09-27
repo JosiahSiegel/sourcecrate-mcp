@@ -54,36 +54,12 @@ def _ensure_pymupdf4llm() -> Any:
     return None
 
 def _lazy_import_search_functions() -> Dict[str, Any]:
-    """Lazy import of search API functions"""
-    from paperez_mcp.api_clients import (
-        search_arxiv,
-        search_crossref,
-        search_google_scholar_fallback,
-        search_pubmed,
-        search_pubmed_central,
-        search_clinicaltrials,
-        search_semantic_scholar,
-    )
-    from paperez_mcp.api_clients.core_client import search_core
-    from paperez_mcp.api_clients.doaj_client import search_doaj
-    from paperez_mcp.api_clients.socarxiv_client import (
-        search_osf_preprints_general,
-        search_socarxiv,
-    )
+    """Get search functions from unified config system"""
+    from paperez_mcp.config import get_search_service
 
-    return {
-        'crossref': search_crossref,
-        'semantic_scholar': search_semantic_scholar,
-        'arxiv': search_arxiv,
-        'pubmed': search_pubmed,
-        'pubmed_central': search_pubmed_central,
-        'clinicaltrials': search_clinicaltrials,
-        'google_scholar': search_google_scholar_fallback,
-        'core': search_core,
-        'doaj': search_doaj,
-        'socarxiv': search_socarxiv,
-        'osf_preprints': search_osf_preprints_general
-    }
+    # Use the new unified config system
+    search_service = get_search_service()
+    return search_service.get_search_functions()
 
 def _lazy_import_utils() -> Dict[str, Any]:
     """Lazy import of utility functions"""
