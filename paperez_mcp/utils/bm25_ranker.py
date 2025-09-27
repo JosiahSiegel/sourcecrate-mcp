@@ -156,6 +156,72 @@ class BM25SourceRanker:
                 }
             ),
 
+            "pubmed_central": SourceProfile(
+                name="PubMed Central",
+                specialty_terms=[
+                    # Medical/Biomedical with full-text focus
+                    "medicine", "medical", "clinical", "patient", "disease", "treatment",
+                    "therapy", "drug", "pharmaceutical", "healthcare", "hospital",
+                    "diagnosis", "symptom", "syndrome", "pathology", "epidemiology",
+                    "public health", "preventive medicine", "emergency medicine",
+                    # Biological
+                    "biology", "biomedical", "biochemistry", "molecular biology",
+                    "cell biology", "genetics", "genomics", "proteomics", "bioinformatics",
+                    "neuroscience", "immunology", "microbiology", "virology",
+                    "anatomy", "physiology", "pharmacology", "toxicology",
+                    # Full-text specific terms
+                    "full text", "open access", "pmc", "full paper", "complete text",
+                    "detailed analysis", "comprehensive study", "in-depth research",
+                    # Research types
+                    "clinical trial", "randomized controlled", "case study",
+                    "cohort study", "meta-analysis", "systematic review"
+                ],
+                domain_focus=["medical", "biological"],
+                content_type="repository",
+                temporal_coverage="comprehensive",
+                access_type="open",
+                quality_indicators={
+                    "peer_review": 0.9,
+                    "recency": 0.7,
+                    "technical_depth": 0.9,
+                    "accessibility": 0.9  # Higher than PubMed due to open access
+                }
+            ),
+
+            "clinicaltrials": SourceProfile(
+                name="ClinicalTrials.gov",
+                specialty_terms=[
+                    # Clinical trial specific
+                    "clinical trial", "trial", "study", "protocol", "intervention",
+                    "randomized", "controlled", "blinded", "placebo", "treatment arm",
+                    "primary endpoint", "secondary endpoint", "efficacy", "safety",
+                    "adverse event", "side effect", "dosage", "dose", "administration",
+                    # Medical conditions
+                    "disease", "disorder", "condition", "syndrome", "cancer", "diabetes",
+                    "hypertension", "depression", "alzheimer", "parkinson", "stroke",
+                    "heart disease", "kidney disease", "liver disease", "lung disease",
+                    # Treatment types
+                    "drug", "medication", "therapy", "treatment", "pharmaceutical",
+                    "vaccine", "immunotherapy", "chemotherapy", "surgery", "device",
+                    "behavioral intervention", "dietary intervention", "exercise",
+                    # Trial phases and status
+                    "phase 1", "phase 2", "phase 3", "phase 4", "recruiting",
+                    "active", "completed", "terminated", "withdrawn", "enrolling",
+                    # Regulatory
+                    "fda", "approval", "regulatory", "investigational", "experimental"
+                ],
+                domain_focus=["medical", "clinical"],
+                content_type="repository",
+                temporal_coverage="comprehensive",
+                access_type="open",
+                quality_indicators={
+                    "peer_review": 0.7,  # Protocols, not peer-reviewed papers
+                    "recency": 0.8,      # Often current trials
+                    "technical_depth": 0.8,
+                    "accessibility": 0.9  # Public access
+                }
+            ),
+
             "google_scholar": SourceProfile(
                 name="Google Scholar",
                 specialty_terms=[
