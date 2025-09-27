@@ -52,6 +52,8 @@ api_status = {
     "semantic_scholar": True,
     "arxiv": True,
     "pubmed": True,
+    "pubmed_central": True,
+    "clinicaltrials": True,
     "google_scholar": True,
     "core": True,
     "doaj": True,

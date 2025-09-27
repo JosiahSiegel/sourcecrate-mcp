@@ -60,6 +60,8 @@ def _lazy_import_search_functions() -> Dict[str, Any]:
         search_crossref,
         search_google_scholar_fallback,
         search_pubmed,
+        search_pubmed_central,
+        search_clinicaltrials,
         search_semantic_scholar,
     )
     from paperez_mcp.api_clients.core_client import search_core
@@ -74,6 +76,8 @@ def _lazy_import_search_functions() -> Dict[str, Any]:
         'semantic_scholar': search_semantic_scholar,
         'arxiv': search_arxiv,
         'pubmed': search_pubmed,
+        'pubmed_central': search_pubmed_central,
+        'clinicaltrials': search_clinicaltrials,
         'google_scholar': search_google_scholar_fallback,
         'core': search_core,
         'doaj': search_doaj,
@@ -310,7 +314,7 @@ async def browse_papers(
     search_funcs = _lazy_import_search_functions()
 
     # Use enhanced routing for metadata search (no downloads)
-    papers = await utils['smart_downloadable_search'](
+    papers, search_log = await utils['smart_downloadable_search'](
         query, limit, search_funcs, utils, api_status, force_category
     )
 
@@ -343,6 +347,18 @@ async def browse_papers(
             "message": f"Results found using comprehensive sources (original {'smart routing' if not original_category else original_category} found no results)",
             "original_category": original_category or "smart_routing",
             "fallback_category": "comprehensive"
+        }
+
+    # Add intelligent error suggestions if no results found
+    if len(browse_results) == 0 and search_log.get("intelligent_error_suggestions"):
+        error_info = search_log["intelligent_error_suggestions"]
+        result["error_suggestions"] = {
+            "message": error_info["message"],
+            "domain_detected": error_info.get("domain_detected"),
+            "suggestions": error_info["suggestions"][:3],  # Top 3 suggestions
+            "suggested_categories": error_info.get("suggested_categories", []),
+            "help_text": error_info.get("help_text"),
+            "query_refinements": error_info.get("query_refinements", [])[:2]  # Top 2 refinements
         }
 
     return [result]
@@ -404,7 +420,7 @@ async def download_papers(
     search_funcs = _lazy_import_search_functions()
 
     # Use enhanced routing for intelligent source selection and download
-    downloadable_papers = await utils['smart_downloadable_search'](
+    downloadable_papers, search_log = await utils['smart_downloadable_search'](
         query, limit, search_funcs, utils, api_status, force_category
     )
 
@@ -474,6 +490,18 @@ async def download_papers(
             "fallback_category": "comprehensive"
         }
 
+    # Add intelligent error suggestions if no results found
+    if len(downloadable_papers) == 0 and search_log.get("intelligent_error_suggestions"):
+        error_info = search_log["intelligent_error_suggestions"]
+        result["error_suggestions"] = {
+            "message": error_info["message"],
+            "domain_detected": error_info.get("domain_detected"),
+            "suggestions": error_info["suggestions"][:3],  # Top 3 suggestions
+            "suggested_categories": error_info.get("suggested_categories", []),
+            "help_text": error_info.get("help_text"),
+            "query_refinements": error_info.get("query_refinements", [])[:2]  # Top 2 refinements
+        }
+
     return [result]
 
 
@@ -529,7 +557,7 @@ async def get_papers(
     search_funcs = _lazy_import_search_functions()
 
     # Use smart search to find ONLY downloadable papers
-    downloadable_papers = await utils['smart_downloadable_search'](
+    downloadable_papers, search_log = await utils['smart_downloadable_search'](
         query, limit, search_funcs, utils, api_status, force_category
     )
 
@@ -604,6 +632,18 @@ async def get_papers(
             "message": f"Papers found using comprehensive sources (original {'smart routing' if not original_category else original_category} found no results)",
             "original_category": original_category or "smart_routing",
             "fallback_category": "comprehensive"
+        }
+
+    # Add intelligent error suggestions if no results found
+    if len(downloadable_papers) == 0 and search_log.get("intelligent_error_suggestions"):
+        error_info = search_log["intelligent_error_suggestions"]
+        result["error_suggestions"] = {
+            "message": error_info["message"],
+            "domain_detected": error_info.get("domain_detected"),
+            "suggestions": error_info["suggestions"][:3],  # Top 3 suggestions
+            "suggested_categories": error_info.get("suggested_categories", []),
+            "help_text": error_info.get("help_text"),
+            "query_refinements": error_info.get("query_refinements", [])[:2]  # Top 2 refinements
         }
 
     return [result]
@@ -1163,6 +1203,77 @@ async def batch_convert_pdfs(
             "success": False,
             "error": f"Batch conversion failed: {str(e)}"
         }
+
+
+@mcp.tool
+async def get_source_health() -> Dict[str, Any]:
+    """
+    Get comprehensive source health monitoring report.
+
+    Provides detailed health metrics, performance data, and recommendations
+    for all academic database sources. Includes active health checks.
+
+    Args:
+        None - This tool takes no parameters
+
+    Returns:
+        Dictionary containing:
+        - health_report: Overall health status and source metrics
+        - recommendations: Specific recommendations for improving source health
+        - health_check_results: Results from active health checks
+        - monitoring_enabled: Whether health monitoring is active
+
+    Health Report contains:
+        - overall_status: "healthy", "degraded", or "critical"
+        - sources: Detailed metrics for each source including:
+          - health_score: 0.0 to 1.0 health rating
+          - success_rate: Percentage of successful requests
+          - average_response_time: Average response time in seconds
+          - consecutive_failures: Number of consecutive failures
+          - last_success/failure: Timestamps of last success/failure
+        - summary: Count of healthy/unhealthy/disabled sources
+
+    Recommendations include:
+        - severity: "high", "medium", or "low"
+        - issue: Description of the problem
+        - recommendation: Suggested action
+        - action: Specific next steps
+
+    Use Cases:
+        - Monitor system health proactively
+        - Identify sources with performance issues
+        - Get recommendations for system improvements
+        - Troubleshoot search performance problems
+        - Plan maintenance and optimization
+
+    Example Usage:
+        # Get comprehensive health report
+        health = get_source_health()
+
+        # Check overall system status
+        if health["health_report"]["overall_status"] == "critical":
+            print("System needs immediate attention")
+
+        # Review recommendations
+        for rec in health["recommendations"]:
+            if rec["severity"] == "high":
+                print(f"URGENT: {rec['recommendation']}")
+    """
+    from paperez_mcp.utils.source_health_monitor import health_monitor
+
+    # Perform active health check
+    health_check = await health_monitor.perform_health_check()
+
+    # Save metrics to cache for persistence
+    health_monitor.save_metrics_to_cache()
+
+    return {
+        "health_report": health_monitor.get_health_report(),
+        "recommendations": health_monitor.get_source_recommendations(),
+        "health_check_results": health_check["health_check_results"],
+        "monitoring_enabled": health_monitor.monitoring_enabled,
+        "timestamp": health_check["overall_report"]["timestamp"]
+    }
 
 
 @mcp.tool

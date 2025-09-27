@@ -12,6 +12,7 @@ from .query_processor import generate_alternative_queries, optimize_query_for_so
 from .enhanced_classifier import EnhancedTopicClassifier
 from .query_intent import QueryIntentDetector
 from .bm25_ranker import BM25SourceRanker
+from .intelligent_error_handler import error_handler
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,9 @@ async def smart_downloadable_search(
         'arxiv': 'arXiv has highest PDF availability',
         'semantic_scholar': 'Semantic Scholar often has open access PDFs',
         'crossref': 'CrossRef comprehensive but mostly paywalled',
-        'pubmed': 'PubMed for biomedical open access',
+        'pubmed': 'PubMed for biomedical literature',
+        'pubmed_central': 'PMC for full-text medical papers',
+        'clinicaltrials': 'ClinicalTrials.gov for trial data',
         'google_scholar': 'Google Scholar fallback',
         'core': 'CORE open access repository',
         'doaj': 'DOAJ open access journals',
@@ -131,11 +134,13 @@ async def smart_downloadable_search(
         source_priority = [
             ('arxiv', 'arXiv default priority'),
             ('semantic_scholar', 'Semantic Scholar default priority'),
+            ('pubmed_central', 'PMC default priority'),
+            ('pubmed', 'PubMed default priority'),
+            ('clinicaltrials', 'ClinicalTrials.gov default priority'),
             ('core', 'CORE default priority'),
             ('crossref', 'CrossRef default priority'),
             ('doaj', 'DOAJ default priority'),
             ('socarxiv', 'SocArXiv default priority'),
-            ('pubmed', 'PubMed default priority'),
             ('google_scholar', 'Google Scholar default priority'),
             ('osf_preprints', 'OSF Preprints default priority')
         ]
@@ -145,10 +150,11 @@ async def smart_downloadable_search(
         category_sources = {
             "preprints": ["arxiv", "socarxiv", "osf_preprints"],
             "journals": ["crossref", "pubmed", "doaj"],
-            "open_access": ["core", "doaj", "arxiv", "socarxiv", "osf_preprints"],
+            "open_access": ["core", "doaj", "arxiv", "pubmed_central", "socarxiv", "osf_preprints"],
             "historical": ["core", "crossref"],
-            "recent": ["arxiv", "semantic_scholar", "osf_preprints"],
-            "comprehensive": ["semantic_scholar", "crossref", "core"]
+            "recent": ["arxiv", "semantic_scholar", "pubmed_central", "clinicaltrials", "osf_preprints"],
+            "comprehensive": ["semantic_scholar", "crossref", "core", "pubmed", "pubmed_central"],
+            "medical": ["pubmed", "pubmed_central", "clinicaltrials"]
         }
 
         if force_category in category_sources:
@@ -384,11 +390,31 @@ async def smart_downloadable_search(
             else:
                 search_log["fallback_success"] = False
                 logger.info("❌ FALLBACK FAILED: No papers found even with comprehensive sources")
+
+                # Generate intelligent error suggestions when even fallback fails
+                error_info = error_handler.generate_error_message(
+                    query=query,
+                    sources_searched=search_log["sources_searched"],
+                    fallback_used=True
+                )
+                search_log["intelligent_error_suggestions"] = error_info
+                logger.info(f"💡 Generated {len(error_info['suggestions'])} intelligent suggestions for failed search")
+
         except Exception as e:
             search_log["fallback_error"] = str(e)
             logger.warning(f"❌ FALLBACK ERROR: {e}")
+    elif len(downloadable_papers) == 0:
+        # No fallback used but still no results - generate suggestions
+        error_info = error_handler.generate_error_message(
+            query=query,
+            sources_searched=search_log["sources_searched"],
+            fallback_used=False
+        )
+        search_log["intelligent_error_suggestions"] = error_info
+        logger.info(f"💡 Generated {len(error_info['suggestions'])} intelligent suggestions for failed search")
 
     logger.info(f"🎯 SEARCH COMPLETE: Found {len(downloadable_papers)} downloadable papers out of {attempted_downloads} attempts")
     logger.info(f"📈 Search Summary: {json.dumps(search_log, indent=2)}")
 
-    return downloadable_papers
+    # Return both papers and search metadata (including error suggestions)
+    return downloadable_papers, search_log

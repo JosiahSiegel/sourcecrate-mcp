@@ -10,6 +10,8 @@ from ..api_clients import (
     search_semantic_scholar,
     search_arxiv,
     search_pubmed,
+    search_pubmed_central,
+    search_clinicaltrials,
     search_google_scholar_fallback
 )
 from ..api_clients.core_client import search_core
@@ -17,6 +19,7 @@ from ..api_clients.doaj_client import search_doaj
 from ..api_clients.socarxiv_client import search_socarxiv, search_osf_preprints_general
 from ..config import api_status
 from .pdf_processor import extract_pdf_text
+from .source_health_monitor import health_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +42,7 @@ async def comprehensive_search_internal(query: str, limit: int = 5, include_full
     # Phase 1: CrossRef (most reliable, no blocking)
     if remaining_limit > 0 and api_status["crossref"]:
         try:
-            crossref_results = await search_crossref(query, remaining_limit)
+            crossref_results = await health_monitor.monitor_request("crossref", search_crossref, query, remaining_limit)
             all_results.extend(crossref_results)
             remaining_limit = max(0, limit - len(all_results))
         except Exception as e:
@@ -48,7 +51,7 @@ async def comprehensive_search_internal(query: str, limit: int = 5, include_full
     # Phase 2: Semantic Scholar
     if remaining_limit > 0 and api_status["semantic_scholar"]:
         try:
-            semantic_results = await search_semantic_scholar(query, remaining_limit)
+            semantic_results = await health_monitor.monitor_request("semantic_scholar", search_semantic_scholar, query, remaining_limit)
             all_results.extend(semantic_results)
             remaining_limit = max(0, limit - len(all_results))
         except Exception as e:
@@ -57,26 +60,59 @@ async def comprehensive_search_internal(query: str, limit: int = 5, include_full
     # Phase 3: arXiv (for technical papers)
     if remaining_limit > 0 and api_status["arxiv"]:
         try:
-            arxiv_results = await search_arxiv(query, remaining_limit)
+            arxiv_results = await health_monitor.monitor_request("arxiv", search_arxiv, query, remaining_limit)
             all_results.extend(arxiv_results)
             remaining_limit = max(0, limit - len(all_results))
         except Exception as e:
             logger.warning(f"arXiv failed: {e}")
 
-    # Phase 4: PubMed (for biomedical queries)
-    biomedical_terms = ['gene', 'protein', 'disease', 'medical', 'clinical', 'drug', 'therapy', 'patient', 'cancer', 'treatment']
-    if remaining_limit > 0 and api_status["pubmed"] and any(term in query.lower() for term in biomedical_terms):
+    # Phase 4: Enhanced Medical Research - PubMed, PMC, and ClinicalTrials
+    biomedical_terms = ['gene', 'protein', 'disease', 'medical', 'clinical', 'drug', 'therapy', 'patient', 'cancer', 'treatment', 'diabetes', 'immunotherapy', 'vaccine', 'trial', 'study', 'health', 'medicine', 'surgery', 'diagnosis']
+    is_medical_query = any(term in query.lower() for term in biomedical_terms)
+
+    if remaining_limit > 0 and is_medical_query:
+        # Phase 4a: PubMed Central (full-text medical papers)
+        if api_status["pubmed_central"]:
+            try:
+                pmc_results = await health_monitor.monitor_request("pubmed_central", search_pubmed_central, query, min(remaining_limit, 3))
+                all_results.extend(pmc_results)
+                remaining_limit = max(0, limit - len(all_results))
+                logger.info(f"PMC search: {len(pmc_results)} results")
+            except Exception as e:
+                logger.warning(f"PubMed Central failed: {e}")
+
+        # Phase 4b: PubMed (enhanced with PMC links)
+        if remaining_limit > 0 and api_status["pubmed"]:
+            try:
+                pubmed_results = await health_monitor.monitor_request("pubmed", search_pubmed, query, remaining_limit)
+                all_results.extend(pubmed_results)
+                remaining_limit = max(0, limit - len(all_results))
+                logger.info(f"PubMed search: {len(pubmed_results)} results")
+            except Exception as e:
+                logger.warning(f"PubMed failed: {e}")
+
+        # Phase 4c: ClinicalTrials.gov (for clinical research)
+        if remaining_limit > 0 and api_status["clinicaltrials"]:
+            try:
+                trial_results = await health_monitor.monitor_request("clinicaltrials", search_clinicaltrials, query, min(remaining_limit, 2))
+                all_results.extend(trial_results)
+                remaining_limit = max(0, limit - len(all_results))
+                logger.info(f"ClinicalTrials search: {len(trial_results)} results")
+            except Exception as e:
+                logger.warning(f"ClinicalTrials.gov failed: {e}")
+    elif remaining_limit > 0 and api_status["pubmed"]:
+        # Fallback: Still search PubMed for non-medical queries that might have biomedical relevance
         try:
-            pubmed_results = await search_pubmed(query, remaining_limit)
+            pubmed_results = await health_monitor.monitor_request("pubmed", search_pubmed, query, min(remaining_limit, 2))
             all_results.extend(pubmed_results)
             remaining_limit = max(0, limit - len(all_results))
         except Exception as e:
-            logger.warning(f"PubMed failed: {e}")
+            logger.warning(f"PubMed fallback failed: {e}")
 
     # Phase 5: Google Scholar (final fallback)
     if remaining_limit > 0 and api_status["google_scholar"]:
         try:
-            scholar_results = await search_google_scholar_fallback(query, remaining_limit)
+            scholar_results = await health_monitor.monitor_request("google_scholar", search_google_scholar_fallback, query, remaining_limit)
             all_results.extend(scholar_results)
         except Exception as e:
             logger.warning(f"Google Scholar failed: {e}")
