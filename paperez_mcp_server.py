@@ -191,31 +191,17 @@ async def browse_papers(
     Searches CrossRef, Semantic Scholar, arXiv, PubMed, and Google Scholar with intelligent fallback.
     Supports DOI queries, author queries, and keyword searches.
 
-    🔄 MULTI-STEP PROCESSES:
+    💡 WORKFLOW EXAMPLES:
 
     ## Research Workflow (Explore → Select → Download):
-    Step 1: search_papers("broad topic", limit=20)  # Get overview
+    Step 1: browse_papers("broad topic", limit=20)  # Get overview
     Step 2: Review abstracts and select interesting papers
-    Step 3: For selected papers with PDF URLs:
-            convert_pdf_to_markdown(pdf_url, output_path="papers/paper_N.md")
+    Step 3: For selected papers:
+            get_papers("specific topic", limit=3)  # Download chosen papers
 
-    ## Bulk Download Workflow (>3 papers):
-    Option A - Multiple Targeted Searches:
-      papers1 = search_papers("ML transformers", limit=3, download_and_convert=True)
-      papers2 = search_papers("ML attention", limit=3, download_and_convert=True)
-      papers3 = search_papers("ML BERT", limit=3, download_and_convert=True)
-
-    Option B - Search Then Individual Download:
-      metadata = search_papers("machine learning", limit=10)
-      for paper in metadata[0]["results"]:
-          if paper.get("pdf_url"):
-              convert_pdf_to_markdown(paper["pdf_url"],
-                                    output_path=f"papers/{paper['title']}.md")
-
-    ## Content Analysis Workflow:
-    Step 1: search_papers("topic", limit=5, include_full_text=True)  # Text in memory
-    Step 2: Analyze text content programmatically
-    Step 3: Optionally download promising papers as files
+    ## Quick Discovery:
+    browse_papers("machine learning", limit=10)  # Fast metadata overview
+    get_papers("transformer architecture", limit=5)  # Download specific papers
 
     Args:
         query: Search query (keywords, DOI with "doi:" prefix, title, or author)
@@ -234,17 +220,6 @@ async def browse_papers(
 
                        💡 USE WHEN: Smart routing fails to find papers or you need specific types
                        💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
-        include_full_text: 🚨 CRITICAL PARAMETER FOR FULL TEXT 🚨
-                          - False (default): Returns only metadata/abstracts ❌
-                          - True: Extracts full text content into memory ✅
-                          ⚠️ WARNING: Slow for multiple papers, text stays in memory only
-                          📁 For files on disk, use download_and_convert=True instead
-        download_and_convert: 🚨 CRITICAL PARAMETER FOR SAVING FILES 🚨
-                             - False (default): No files saved, metadata only ❌
-                             - True: Downloads PDFs and saves as markdown files ✅
-                             🚨 LIMITATION: Only processes top 3 papers to avoid overload
-                             📁 Files saved to current directory by default
-                             🔄 For >3 papers, use multiple calls or individual conversion
 
     Returns:
         List containing single dict with:
