@@ -163,7 +163,8 @@ All file-saving tools default to current directory and accept custom output path
 @mcp.tool
 async def browse_papers(
     query: str,
-    limit: int = 10
+    limit: int = 10,
+    force_category: str = None
 ) -> List[Dict[str, Any]]:
     """
     🔍 BROWSE: Find and explore papers (metadata/abstracts only)
@@ -219,6 +220,16 @@ async def browse_papers(
                - Author search: "Geoffrey Hinton", "Yoshua Bengio"
                - Title search: "Attention Is All You Need"
         limit: Maximum number of results to return (default: 5, max recommended: 10)
+        force_category: 🎯 FORCE SPECIFIC SOURCE TYPES (optional, overrides smart routing)
+                       - "preprints" → arXiv, SocArXiv, OSF (latest research, not peer-reviewed)
+                       - "journals" → CrossRef, PubMed, DOAJ (peer-reviewed publications)
+                       - "open_access" → CORE, DOAJ, arXiv (free full-text available)
+                       - "historical" → CORE, CrossRef (older documents, archives)
+                       - "recent" → arXiv, Semantic Scholar (newest papers, last few years)
+                       - "comprehensive" → Semantic Scholar, CrossRef (broad coverage)
+
+                       💡 USE WHEN: Smart routing fails to find papers or you need specific types
+                       💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
         include_full_text: 🚨 CRITICAL PARAMETER FOR FULL TEXT 🚨
                           - False (default): Returns only metadata/abstracts ❌
                           - True: Extracts full text content into memory ✅
@@ -300,7 +311,7 @@ async def browse_papers(
 
     # Use enhanced routing for metadata search (no downloads)
     papers = await utils['smart_downloadable_search'](
-        query, limit, search_funcs, utils, api_status
+        query, limit, search_funcs, utils, api_status, force_category
     )
 
     # Convert to browse format (metadata only, remove download info)
@@ -323,7 +334,8 @@ async def browse_papers(
 async def download_papers(
     query: str,
     limit: int = 5,
-    output_dir: str = ".paperez"
+    output_dir: str = ".paperez",
+    force_category: str = None
 ) -> List[Dict[str, Any]]:
     """
     📄 GET FULL PAPERS: Download academic papers as markdown files
@@ -340,6 +352,16 @@ async def download_papers(
         query: Search query (keywords, DOI, title, or author)
         limit: Maximum papers to download (default: 5, recommended: 5-10)
         output_dir: Directory to save markdown files (default: ".paperez")
+        force_category: 🎯 FORCE SPECIFIC SOURCE TYPES (optional, overrides smart routing)
+                       - "preprints" → arXiv, SocArXiv, OSF (latest research, not peer-reviewed)
+                       - "journals" → CrossRef, PubMed, DOAJ (peer-reviewed publications)
+                       - "open_access" → CORE, DOAJ, arXiv (free full-text available)
+                       - "historical" → CORE, CrossRef (older documents, archives)
+                       - "recent" → arXiv, Semantic Scholar (newest papers, last few years)
+                       - "comprehensive" → Semantic Scholar, CrossRef (broad coverage)
+
+                       💡 USE WHEN: Smart routing fails to find papers or you need specific types
+                       💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
 
     Returns:
         List containing single dict with:
@@ -365,7 +387,7 @@ async def download_papers(
 
     # Use enhanced routing for intelligent source selection and download
     downloadable_papers = await utils['smart_downloadable_search'](
-        query, limit, search_funcs, utils, api_status
+        query, limit, search_funcs, utils, api_status, force_category
     )
 
     downloaded_count = 0
@@ -425,7 +447,8 @@ async def download_papers(
 async def get_papers(
     query: str,
     limit: int = 5,
-    output_dir: str = ".paperez"
+    output_dir: str = ".paperez",
+    force_category: str = None
 ) -> List[Dict[str, Any]]:
     """
     📄 GET FULL PAPERS: Alias for download_papers()
@@ -442,6 +465,16 @@ async def get_papers(
         query: Search query (keywords, DOI, title, or author)
         limit: Maximum papers to get (default: 5, recommended: 5-10)
         output_dir: Directory to save papers (default: "papers")
+        force_category: 🎯 FORCE SPECIFIC SOURCE TYPES (optional, overrides smart routing)
+                       - "preprints" → arXiv, SocArXiv, OSF (latest research, not peer-reviewed)
+                       - "journals" → CrossRef, PubMed, DOAJ (peer-reviewed publications)
+                       - "open_access" → CORE, DOAJ, arXiv (free full-text available)
+                       - "historical" → CORE, CrossRef (older documents, archives)
+                       - "recent" → arXiv, Semantic Scholar (newest papers, last few years)
+                       - "comprehensive" → Semantic Scholar, CrossRef (broad coverage)
+
+                       💡 USE WHEN: Smart routing fails to find papers or you need specific types
+                       💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
 
     Returns:
         Same as download_papers() - papers saved as markdown files
@@ -463,7 +496,7 @@ async def get_papers(
 
     # Use smart search to find ONLY downloadable papers
     downloadable_papers = await utils['smart_downloadable_search'](
-        query, limit, search_funcs, utils, api_status
+        query, limit, search_funcs, utils, api_status, force_category
     )
 
     downloaded_count = 0

@@ -21,7 +21,8 @@ async def smart_downloadable_search(
     limit: int,
     search_funcs: Dict[str, Any],
     utils: Dict[str, Any],
-    api_status: Dict[str, bool]
+    api_status: Dict[str, bool],
+    force_category: str = None
 ) -> List[Dict[str, Any]]:
     """
     Smart search that prioritizes sources with downloadable PDFs and only counts
@@ -33,6 +34,7 @@ async def smart_downloadable_search(
         search_funcs: Dictionary of search functions by source
         utils: Dictionary of utility functions
         api_status: API availability status
+        force_category: Optional category to force routing (preprints, journals, open_access, historical)
 
     Returns:
         List of papers that were successfully downloaded
@@ -138,7 +140,31 @@ async def smart_downloadable_search(
             ('osf_preprints', 'OSF Preprints default priority')
         ]
 
-    logger.info(f"🚀 Enhanced source priority: {[s[0] for s in source_priority]}")
+    # Force category routing if specified
+    if force_category:
+        category_sources = {
+            "preprints": ["arxiv", "socarxiv", "osf_preprints"],
+            "journals": ["crossref", "pubmed", "doaj"],
+            "open_access": ["core", "doaj", "arxiv", "socarxiv", "osf_preprints"],
+            "historical": ["core", "crossref"],
+            "recent": ["arxiv", "semantic_scholar", "osf_preprints"],
+            "comprehensive": ["semantic_scholar", "crossref", "core"]
+        }
+
+        if force_category in category_sources:
+            # Filter to available sources in this category
+            forced_sources = [s for s in category_sources[force_category] if api_status.get(s, False)]
+            if forced_sources:
+                source_priority = [(s, f"{source_descriptions[s]} (FORCED: {force_category})") for s in forced_sources]
+                logger.info(f"🎯 FORCED CATEGORY '{force_category}': Using sources {forced_sources}")
+            else:
+                logger.warning(f"❌ No available sources for category '{force_category}'")
+        else:
+            available_categories = list(category_sources.keys())
+            logger.warning(f"❌ Unknown category '{force_category}'. Available: {available_categories}")
+            # Continue with normal routing
+
+    logger.info(f"🚀 Source priority: {[s[0] for s in source_priority]}")
 
     # Search each source for more papers than we need
     search_limit_per_source = max(10, limit * 3)  # Search more to find downloadable ones
