@@ -5,9 +5,10 @@ Enhanced with PMC full-text access and improved medical research capabilities.
 
 import asyncio
 import logging
-import aiohttp
+import xml.etree.ElementTree as ET
 from typing import Any, Dict, List
-from urllib.parse import quote_plus
+
+import aiohttp
 
 from pymed import PubMed
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -15,6 +16,118 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from ..config import cache, config, api_status
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_pmc_xml(xml_content: str) -> List[Dict[str, Any]]:
+    """Parse PMC XML response to extract article metadata"""
+    results = []
+
+    try:
+        root = ET.fromstring(xml_content)
+
+        # PMC XML structure: pmc-articleset > article
+        for article in root.findall('.//article'):
+            try:
+                # Extract article metadata
+                front = article.find('.//front')
+                if front is None:
+                    continue
+
+                article_meta = front.find('.//article-meta')
+                if article_meta is None:
+                    continue
+
+                # Extract title
+                title_group = article_meta.find('.//title-group')
+                title = ""
+                if title_group is not None:
+                    article_title = title_group.find('article-title')
+                    if article_title is not None:
+                        title = ''.join(article_title.itertext()).strip()
+
+                # Extract authors
+                authors = []
+                contrib_group = article_meta.find('.//contrib-group')
+                if contrib_group is not None:
+                    for contrib in contrib_group.findall('.//contrib[@contrib-type="author"]'):
+                        name = contrib.find('.//name')
+                        if name is not None:
+                            surname = name.find('surname')
+                            given_names = name.find('given-names')
+                            if surname is not None:
+                                author_name = surname.text or ""
+                                if given_names is not None and given_names.text:
+                                    author_name = f"{given_names.text} {author_name}"
+                                authors.append(author_name.strip())
+
+                # Extract abstract
+                abstract = ""
+                abstract_elem = article_meta.find('.//abstract')
+                if abstract_elem is not None:
+                    abstract = ''.join(abstract_elem.itertext()).strip()
+
+                # Extract journal
+                journal = ""
+                journal_meta = front.find('.//journal-meta')
+                if journal_meta is not None:
+                    journal_title = journal_meta.find('.//journal-title')
+                    if journal_title is not None:
+                        journal = journal_title.text or ""
+
+                # Extract publication date/year
+                year = None
+                pub_date = article_meta.find('.//pub-date[@pub-type="epub"]') or \
+                          article_meta.find('.//pub-date[@pub-type="ppub"]') or \
+                          article_meta.find('.//pub-date')
+                if pub_date is not None:
+                    year_elem = pub_date.find('year')
+                    if year_elem is not None and year_elem.text:
+                        try:
+                            year = int(year_elem.text)
+                        except ValueError:
+                            pass
+
+                # Extract DOI
+                doi = None
+                article_ids = article_meta.findall('.//article-id')
+                for article_id in article_ids:
+                    if article_id.get('pub-id-type') == 'doi':
+                        doi = article_id.text
+                        break
+
+                # Extract PMC ID
+                pmc_id = None
+                for article_id in article_ids:
+                    if article_id.get('pub-id-type') == 'pmc':
+                        pmc_id = f"PMC{article_id.text}"
+                        break
+
+                if title:  # Only include if we have a real title
+                    result = {
+                        "title": title,
+                        "authors": authors,
+                        "abstract": abstract,
+                        "journal": journal,
+                        "year": year,
+                        "pmc_id": pmc_id,
+                        "doi": doi,
+                        "source": "PubMed Central",
+                        "url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/" if pmc_id else "",
+                        "pdf_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/pdf/" if pmc_id else None,
+                        "open_access_pdf": f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/pdf/" if pmc_id else None,
+                        "full_text_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/" if pmc_id else "",
+                        "citation_count": 0  # PMC doesn't provide citation counts directly
+                    }
+                    results.append(result)
+
+            except Exception as e:
+                logger.warning(f"Error parsing individual PMC article: {e}")
+                continue
+
+    except Exception as e:
+        logger.warning(f"Error parsing PMC XML: {e}")
+
+    return results
 
 
 async def _check_pmc_availability(pmid: str) -> Dict[str, str]:
@@ -156,29 +269,13 @@ async def search_pubmed_central(query: str, limit: int = 5) -> List[Dict[str, An
                         logger.warning(f"PMC fetch failed with status {fetch_response.status}")
                         return []
 
-                    # For now, return basic structure - full XML parsing would require lxml
-                    results = []
-                    for pmc_id in pmc_ids:
-                        result = {
-                            "title": f"PMC Article {pmc_id}",  # Would be parsed from XML
-                            "authors": [],
-                            "abstract": "Available in PMC full-text",
-                            "journal": "PMC Collection",
-                            "year": None,
-                            "pmc_id": f"PMC{pmc_id}",
-                            "doi": None,
-                            "source": "PubMed Central",
-                            "url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/",
-                            "pdf_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/pdf/",
-                            "open_access_pdf": f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/pdf/",
-                            "full_text_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/",
-                            "citation_count": 0
-                        }
-                        results.append(result)
+                    # Parse XML response to extract real article metadata
+                    xml_content = await fetch_response.text()
+                    results = _parse_pmc_xml(xml_content)
 
                     # Cache for 1 hour
                     cache.set(cache_key, results, expire=3600)
-                    logger.info(f"✅ PMC: Found {len(results)} full-text articles for '{query}'")
+                    logger.info(f"✅ PMC: Found {len(results)} full-text articles for {query}")
                     return results
 
     except Exception as e:
