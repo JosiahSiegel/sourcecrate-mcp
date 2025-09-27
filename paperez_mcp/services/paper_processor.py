@@ -3,9 +3,12 @@ Paper processing service - handles downloading and converting papers.
 Eliminates duplication between download_papers and get_papers functions.
 """
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
 
 
 async def process_papers(
@@ -55,8 +58,11 @@ async def process_papers(
                 output_path = Path(output_dir) / f"{safe_title}.md"
 
                 # Download PDF to file with paper title for readable filename
-                download_result = await utils['download_pdf'](pdf_url, output_dir, paper.get("title"))
+                paper_title = paper.get("title")
+                logger.info(f"Downloading PDF with title: '{paper_title}'")
+                download_result = await utils['download_pdf'](pdf_url, output_dir, paper_title)
                 if download_result.get("success"):
+                    logger.info(f"PDF downloaded to: {download_result.get('pdf_path')}")
                     pdf_file_path = download_result["pdf_path"]
 
                     if convert_to_markdown:
@@ -79,9 +85,12 @@ async def process_papers(
 
                                 # Clean up PDF file since we only need the markdown
                                 try:
-                                    os.remove(pdf_file_path)
-                                except Exception:
-                                    pass  # If cleanup fails, continue silently
+                                    import os
+                                    if os.path.exists(pdf_file_path):
+                                        os.remove(pdf_file_path)
+                                        logger.info(f"Cleaned up PDF file: {pdf_file_path}")
+                                except Exception as e:
+                                    logger.warning(f"Failed to clean up PDF file {pdf_file_path}: {e}")
                             else:
                                 paper["download_error"] = f"Failed to save markdown: {save_result.get('error')}"
                         else:
