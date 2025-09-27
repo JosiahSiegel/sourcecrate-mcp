@@ -5,18 +5,7 @@ Comprehensive search engine that queries multiple academic databases.
 import logging
 from typing import Any, Dict, List
 
-from ..api_clients import (
-    search_crossref,
-    search_semantic_scholar,
-    search_arxiv,
-    search_pubmed,
-    search_pubmed_central,
-    search_clinicaltrials,
-    search_google_scholar_fallback
-)
-from ..api_clients.core_client import search_core
-from ..api_clients.doaj_client import search_doaj
-from ..api_clients.socarxiv_client import search_socarxiv, search_osf_preprints_general
+from ..config import get_search_service
 from ..config import api_status
 from .pdf_processor import extract_pdf_text
 from .source_health_monitor import health_monitor
@@ -39,10 +28,14 @@ async def comprehensive_search_internal(query: str, limit: int = 5, include_full
     all_results = []
     remaining_limit = limit
 
+    # Get search functions from unified config system
+    search_service = get_search_service()
+    search_functions = search_service.get_search_functions()
+
     # Phase 1: CrossRef (most reliable, no blocking)
-    if remaining_limit > 0 and api_status["crossref"]:
+    if remaining_limit > 0 and api_status["crossref"] and "search_crossref" in search_functions:
         try:
-            crossref_results = await health_monitor.monitor_request("crossref", search_crossref, query, remaining_limit)
+            crossref_results = await health_monitor.monitor_request("crossref", search_functions["search_crossref"], query, remaining_limit)
             all_results.extend(crossref_results)
             remaining_limit = max(0, limit - len(all_results))
         except Exception as e:

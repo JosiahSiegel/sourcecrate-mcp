@@ -249,29 +249,11 @@ class SourceHealthMonitor:
             'osf_preprints': 'psychology'
         }
 
-        # Import search functions
-        from ..api_clients import (
-            search_crossref, search_semantic_scholar, search_arxiv,
-            search_pubmed, search_pubmed_central, search_clinicaltrials,
-            search_google_scholar_fallback
-        )
-        from ..api_clients.core_client import search_core
-        from ..api_clients.doaj_client import search_doaj
-        from ..api_clients.socarxiv_client import search_socarxiv, search_osf_preprints_general
+        # Use unified config system
+        from ..config import get_search_service
 
-        search_functions = {
-            'crossref': search_crossref,
-            'semantic_scholar': search_semantic_scholar,
-            'arxiv': search_arxiv,
-            'pubmed': search_pubmed,
-            'pubmed_central': search_pubmed_central,
-            'clinicaltrials': search_clinicaltrials,
-            'google_scholar': search_google_scholar_fallback,
-            'core': search_core,
-            'doaj': search_doaj,
-            'socarxiv': search_socarxiv,
-            'osf_preprints': search_osf_preprints_general
-        }
+        search_service = get_search_service()
+        search_functions = search_service.get_search_functions()
 
         health_results = {}
 
