@@ -661,7 +661,7 @@ async def extract_pdf_text(file_path: str, output_path: Optional[str] = None, ti
         # Generate output path if not provided
         if output_path is None:
             base_name = Path(file_path).stem
-            output_path = f"{base_name}_full.txt"
+            output_path = f".paperez/{base_name}_full.txt"
 
         # Ensure output directory exists
         output_dir = os.path.dirname(output_path)
@@ -726,9 +726,9 @@ async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", aut
         if output_path:
             markdown_path = output_path
         else:
-            # Default to current directory with same name as PDF
+            # Default to .paperez directory with same name as PDF
             filename = Path(file_path).stem + "_full.md"
-            markdown_path = os.path.join(os.getcwd(), filename)
+            markdown_path = os.path.join(".paperez", filename)
 
         # Create output directory if it doesn't exist
         os.makedirs(os.path.dirname(markdown_path), exist_ok=True)
