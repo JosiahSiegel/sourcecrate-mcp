@@ -54,10 +54,41 @@ routing:
       - "mechanical"
       - "thermal"
       - "optical"
+    historical:
+      - "history"
+      - "historical"
+      - "assassination"
+      - "war"
+      - "revolution"
+      - "ancient"
+      - "medieval"
+      - "colonial"
+      - "government"
+      - "archive"
+      - "document"
+      - "primary source"
+    business:
+      - "business"
+      - "economics"
+      - "finance"
+      - "management"
+      - "marketing"
+      - "corporate"
+      - "company"
+      - "partnership"
+      - "investment"
+      - "market"
+      - "commercial"
+      - "industry"
+      - "startup"
+      - "acquisition"
+      - "merger"
   domain_categories:
     medical: "medical"
     computer_science: "preprints"
     physics: "preprints"
+    historical: "historical"
+    business: "business"
     general: "comprehensive"
 
 # Source providers
@@ -290,6 +321,96 @@ sources:
         pdf_url: "fullTextPdfUrl"
       rate_limit_delay: 0.1
 
+  # Historical and archival sources
+  hathitrust:
+    name: "hathitrust"
+    type: "http_api"
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: "HathiTrust Digital Library - Historical books and documents"
+      coverage: "historical books, government documents, archives"
+      base_url: "https://catalog.hathitrust.org"
+      search_path: "/api/volumes/brief/json"
+      query_param: "q"
+      limit_param: "limit"
+      response_format: "json"
+      results_path: "records"
+      field_mappings:
+        title: "title"
+        authors: "author"
+        year: "publishDate"
+        journal: "publisher"
+        url: "url"
+        abstract: "description"
+      rate_limit_delay: 1.0
+
+  internet_archive:
+    name: "internet_archive"
+    type: "http_api"
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: "Internet Archive - Historical documents and books"
+      coverage: "historical documents, government archives, books"
+      base_url: "https://archive.org"
+      search_path: "/advancedsearch.php"
+      query_param: "q"
+      limit_param: "rows"
+      response_format: "json"
+      results_path: "response.docs"
+      extra_params:
+        output: "json"
+        mediatype: "texts"
+        sort: "relevance desc"
+      field_mappings:
+        title: "title"
+        authors: "creator"
+        year: "year"
+        journal: "publisher"
+        url: "identifier"  # Will be formatted as archive.org URL
+        abstract: "description"
+      rate_limit_delay: 0.5
+
+  # Business and economic research sources
+  ssrn:
+    name: "ssrn"
+    type: "http_api"
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: "SSRN - Business, economics, and finance research"
+      coverage: "business research, economics, finance, management, policy"
+      base_url: "https://api.ssrn.com"
+      search_path: "/v1/papers"
+      query_param: "q"
+      limit_param: "limit"
+      response_format: "json"
+      results_path: "papers"
+      extra_params:
+        format: "json"
+        sortBy: "relevance"
+      field_mappings:
+        title: "title"
+        authors: "authors"
+        abstract: "abstract"
+        journal: "journal"
+        year: "year"
+        url: "ssrnUrl"
+        pdf_url: "pdfUrl"
+        citation_count: "downloads"
+      rate_limit_delay: 0.3
+
+  # Business and technology news (for recent commercial developments)
+  # Note: This would require web scraping or news API access
+  # Users can add their preferred news/industry database APIs here
+
 # Categories
 categories:
   comprehensive:
@@ -306,7 +427,20 @@ categories:
       - "clinicaltrials"
       - "europe_pmc"
       - "doaj"
+      - "ssrn"
     max_results_per_source: 4
+    parallel_search: true
+
+  business:
+    name: "business"
+    display_name: "Business & Economics Research"
+    description: "Business, economics, finance, and management research"
+    type: "standard"
+    sources:
+      - "ssrn"
+      - "crossref"
+      - "semantic_scholar"
+    max_results_per_source: 8
     parallel_search: true
 
   preprints:
@@ -372,12 +506,14 @@ categories:
   historical:
     name: "historical"
     display_name: "Historical & Archive Sources"
-    description: "Focus on historical and archival academic content"
+    description: "Focus on historical and archival content including government documents"
     type: "standard"
     sources:
+      - "hathitrust"
+      - "internet_archive"
       - "crossref"
       - "google_scholar"
-    max_results_per_source: 10
+    max_results_per_source: 8
     parallel_search: true
 
   # Meta-categories that combine multiple categories
