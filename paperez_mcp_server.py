@@ -315,7 +315,7 @@ async def browse_papers(
 
     # Use enhanced routing for metadata search (no downloads)
     papers, search_log = await utils['smart_downloadable_search'](
-        query, limit, search_funcs, utils, api_status, force_category
+        query, limit, search_funcs, utils, api_status, force_category, metadata_only=True
     )
 
     # Convert to browse format (metadata only, remove download info)

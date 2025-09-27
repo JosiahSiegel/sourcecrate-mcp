@@ -23,7 +23,8 @@ async def smart_downloadable_search(
     search_funcs: Dict[str, Any],
     utils: Dict[str, Any],
     api_status: Dict[str, bool],
-    force_category: str = None
+    force_category: str = None,
+    metadata_only: bool = False
 ) -> List[Dict[str, Any]]:
     """
     Smart search that prioritizes sources with downloadable PDFs and only counts
@@ -36,9 +37,10 @@ async def smart_downloadable_search(
         utils: Dictionary of utility functions
         api_status: API availability status
         force_category: Optional category to force routing (preprints, journals, open_access, historical)
+        metadata_only: If True, skip PDF download testing and return metadata regardless of download success
 
     Returns:
-        List of papers that were successfully downloaded
+        List of papers that were successfully downloaded (or metadata if metadata_only=True)
     """
     downloadable_papers = []
     all_candidates = []
@@ -325,34 +327,45 @@ async def smart_downloadable_search(
             has_pdf = bool(paper.get("pdf_url") or paper.get("open_access_pdf"))
             logger.info(f"  {i+1}. [{paper.get('source', 'Unknown')}] {paper.get('title', 'No title')[:50]}... (PDF: {'✓' if has_pdf else '✗'})")
 
-    # Now try to download papers until we reach the limit
-    attempted_downloads = 0
-    max_attempts = min(50, len(unique_candidates))  # Cap attempts to avoid infinite loops
+    # Handle metadata-only mode vs download testing
+    if metadata_only:
+        # For metadata-only mode (browse_papers), return papers without download testing
+        logger.info(f"📄 Metadata-only mode: Returning top {limit} papers without download testing")
+        downloadable_papers = unique_candidates[:limit]
+        attempted_downloads = 0
 
-    logger.info(f"📥 Starting download attempts (max: {max_attempts})")
+        # Mark metadata-only papers for distinction
+        for paper in downloadable_papers:
+            paper["metadata_only"] = True
+    else:
+        # Original download testing logic for get_papers/download_papers
+        attempted_downloads = 0
+        max_attempts = min(50, len(unique_candidates))  # Cap attempts to avoid infinite loops
 
-    for paper in unique_candidates[:max_attempts]:
-        if len(downloadable_papers) >= limit:
-            break
+        logger.info(f"📥 Starting download attempts (max: {max_attempts})")
 
-        pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
-        if pdf_url:
-            attempted_downloads += 1
-            try:
-                # Test if PDF is actually downloadable
-                download_result = await utils['download_pdf'](pdf_url)
-                if download_result.get("success"):
-                    paper["download_success"] = True
-                    downloadable_papers.append(paper)
-                    logger.info(f"✅ Downloaded paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}")
-                else:
-                    paper["download_error"] = download_result.get("error", "PDF content unavailable")
-                    logger.debug(f"❌ Failed to download: {paper.get('title', '')[:50]} - {download_result.get('error', 'Unknown error')}")
-            except Exception as e:
-                paper["download_error"] = str(e)
-                logger.debug(f"❌ Download exception: {e}")
-        else:
-            paper["download_error"] = "No PDF URL available"
+        for paper in unique_candidates[:max_attempts]:
+            if len(downloadable_papers) >= limit:
+                break
+
+            pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
+            if pdf_url:
+                attempted_downloads += 1
+                try:
+                    # Test if PDF is actually downloadable
+                    download_result = await utils['download_pdf'](pdf_url)
+                    if download_result.get("success"):
+                        paper["download_success"] = True
+                        downloadable_papers.append(paper)
+                        logger.info(f"✅ Downloaded paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}")
+                    else:
+                        paper["download_error"] = download_result.get("error", "PDF content unavailable")
+                        logger.debug(f"❌ Failed to download: {paper.get('title', '')[:50]} - {download_result.get('error', 'Unknown error')}")
+                except Exception as e:
+                    paper["download_error"] = str(e)
+                    logger.debug(f"❌ Download exception: {e}")
+            else:
+                paper["download_error"] = "No PDF URL available"
 
     # Final search summary
     search_log["download_attempts"] = attempted_downloads
