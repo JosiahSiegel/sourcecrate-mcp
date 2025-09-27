@@ -352,15 +352,17 @@ async def smart_downloadable_search(
             if pdf_url:
                 attempted_downloads += 1
                 try:
-                    # Test if PDF is actually downloadable
-                    download_result = await utils['download_pdf'](pdf_url)
-                    if download_result.get("success"):
-                        paper["download_success"] = True
-                        downloadable_papers.append(paper)
-                        logger.info(f"✅ Downloaded paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}")
-                    else:
-                        paper["download_error"] = download_result.get("error", "PDF content unavailable")
-                        logger.debug(f"❌ Failed to download: {paper.get('title', '')[:50]} - {download_result.get('error', 'Unknown error')}")
+                    # Test if PDF is actually downloadable using HEAD request (no download)
+                    import httpx
+                    async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+                        response = await client.head(pdf_url)
+                        if response.status_code == 200:
+                            paper["download_success"] = True
+                            downloadable_papers.append(paper)
+                            logger.info(f"✅ Verified downloadable paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}")
+                        else:
+                            paper["download_error"] = f"PDF not accessible: HTTP {response.status_code}"
+                            logger.debug(f"❌ PDF not accessible: {paper.get('title', '')[:50]} - HTTP {response.status_code}")
                 except Exception as e:
                     paper["download_error"] = str(e)
                     logger.debug(f"❌ Download exception: {e}")
