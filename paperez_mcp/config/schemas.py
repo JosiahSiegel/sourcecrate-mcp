@@ -156,7 +156,6 @@ class PaperezConfig(BaseModel):
 
     # User control options
     use_default_sources: bool = Field(True, description="Enable built-in default sources")
-    merge_user_sources: bool = Field(True, description="Merge user sources with defaults (vs replace)")
 
     # TODO: Fix validators for Pydantic V2
     # @validator('default_category')

@@ -94,21 +94,44 @@ class ConfigManager:
         """Load and merge configuration from all sources."""
         with self._config_lock:
             try:
-                # Start with default configuration from YAML
+                # Check if user wants to disable default sources
+                use_defaults = True
+                for layer_name, config_path in self.config_paths.items():
+                    if layer_name != 'builtin' and config_path and config_path.exists():
+                        try:
+                            temp_config = self._load_yaml_file(config_path)
+                            if temp_config.get('use_default_sources') is False:
+                                use_defaults = False
+                                break
+                        except:
+                            pass  # Continue checking other files
+
+                # Start with default configuration from YAML (if user wants defaults)
                 config_dict = {}
-                builtin_path = self.config_paths['builtin']
-                if builtin_path.exists():
-                    config_dict = self._load_yaml_file(builtin_path)
-                    logger.info(f"Loaded builtin config: {builtin_path}")
+                if use_defaults:
+                    builtin_path = self.config_paths['builtin']
+                    if builtin_path.exists():
+                        config_dict = self._load_yaml_file(builtin_path)
+                        logger.info(f"Loaded builtin config: {builtin_path}")
+                    else:
+                        logger.error(f"Builtin config not found: {builtin_path}")
+                        # Fallback to minimal config
+                        config_dict = {
+                            'version': '1.0',
+                            'default_category': 'comprehensive',
+                            'sources': {},
+                            'categories': {}
+                        }
                 else:
-                    logger.error(f"Builtin config not found: {builtin_path}")
-                    # Fallback to minimal config
+                    # User disabled defaults - start with minimal config
                     config_dict = {
                         'version': '1.0',
                         'default_category': 'comprehensive',
                         'sources': {},
-                        'categories': {}
+                        'categories': {},
+                        'use_default_sources': False
                     }
+                    logger.info("Default sources disabled by user configuration")
 
                 # Load and merge each configuration layer
                 for layer_name, config_path in self.config_paths.items():
@@ -168,34 +191,8 @@ class ConfigManager:
         return result
 
     def _smart_merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
-        """Smart merge that respects user control options for sources."""
-        result = base.copy()
-
-        # Check user control options in override
-        use_default_sources = override.get('use_default_sources', True)
-        merge_user_sources = override.get('merge_user_sources', True)
-
-        for key, value in override.items():
-            if key == 'sources':
-                # Handle source merging based on user preferences
-                if not use_default_sources:
-                    # User wants to disable all default sources, use only user sources
-                    result[key] = value
-                elif not merge_user_sources:
-                    # User wants to replace (not merge) sources
-                    result[key] = value
-                else:
-                    # Default behavior: merge user sources with defaults
-                    if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-                        result[key] = self._deep_merge(result[key], value)
-                    else:
-                        result[key] = value
-            elif key in result and isinstance(result[key], dict) and isinstance(value, dict):
-                result[key] = self._deep_merge(result[key], value)
-            else:
-                result[key] = value
-
-        return result
+        """Smart merge that applies normal deep merge (same names override, new names merge)."""
+        return self._deep_merge(base, override)
 
     def _get_env_overrides(self) -> Dict[str, Any]:
         """Get configuration overrides from environment variables."""
@@ -209,7 +206,6 @@ class ConfigManager:
             'PAPEREZ_OUTPUT_DIR': ['default_output_dir'],
             'PAPEREZ_MAX_CONCURRENT': ['max_concurrent_searches'],
             'PAPEREZ_USE_DEFAULT_SOURCES': ['use_default_sources'],
-            'PAPEREZ_MERGE_USER_SOURCES': ['merge_user_sources'],
         }
 
         for env_var, config_path in env_mappings.items():

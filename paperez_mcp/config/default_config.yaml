@@ -12,7 +12,6 @@ cleanup_temp_files: true
 
 # User control options
 use_default_sources: true  # Set to false to disable all default sources
-merge_user_sources: true   # Set to false to replace (not merge) with user sources
 
 # Query routing configuration
 routing:
