@@ -538,26 +538,38 @@ async def search_authors(name: str, limit: int = 5) -> List[Dict[str, Any]]:
             search_query = scholarly.search_author(name)
             results = []
 
-            for i, author in enumerate(search_query):
-                if i >= limit:
-                    break
+            try:
+                for i, author in enumerate(search_query):
+                    if i >= limit:
+                        break
 
-                filled = scholarly.fill(author, sections=['basics', 'indices'])
-                result = {
-                    "name": filled.get('name', ''),
-                    "affiliation": filled.get('affiliation', ''),
-                    "email": filled.get('email', ''),
-                    "interests": filled.get('interests', []),
-                    "citation_count": filled.get('citedby', 0),
-                    "h_index": filled.get('hindex', 0),
-                    "i10_index": filled.get('i10index', 0),
-                    "source": "Google Scholar"
-                }
-                results.append(result)
+                    filled = scholarly.fill(author, sections=['basics', 'indices'])
+                    result = {
+                        "name": filled.get('name', ''),
+                        "affiliation": filled.get('affiliation', ''),
+                        "email": filled.get('email', ''),
+                        "interests": filled.get('interests', []),
+                        "citation_count": filled.get('citedby', 0),
+                        "h_index": filled.get('hindex', 0),
+                        "i10_index": filled.get('i10index', 0),
+                        "source": "Google Scholar"
+                    }
+                    results.append(result)
+            except StopIteration:
+                # No results found - this is normal, not an error
+                pass
 
             # If we got results, update api_status
             if results:
                 api_status["google_scholar"] = True
+            else:
+                # Return helpful message when no results found
+                return [{
+                    "name": name,
+                    "message": "No author results found. Google Scholar access may be limited in this environment.",
+                    "suggestion": "Try searching for papers by this author using browse_papers or get_papers instead.",
+                    "source": "Google Scholar (no results)"
+                }]
 
             return results
 
