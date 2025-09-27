@@ -303,13 +303,27 @@ async def browse_papers(
     # Add intelligent error suggestions if no results found
     if len(browse_results) == 0 and search_log.get("intelligent_error_suggestions"):
         error_info = search_log["intelligent_error_suggestions"]
+
+        # Safely extract suggestions and refinements with type checking
+        suggestions = error_info.get("suggestions", [])
+        if isinstance(suggestions, list):
+            safe_suggestions = suggestions[:3]  # Top 3 suggestions
+        else:
+            safe_suggestions = []
+
+        refinements = error_info.get("query_refinements", [])
+        if isinstance(refinements, list):
+            safe_refinements = refinements[:2]  # Top 2 refinements
+        else:
+            safe_refinements = []
+
         result["error_suggestions"] = {
-            "message": error_info["message"],
+            "message": error_info.get("message", "No results found"),
             "domain_detected": error_info.get("domain_detected"),
-            "suggestions": error_info["suggestions"][:3],  # Top 3 suggestions
+            "suggestions": safe_suggestions,
             "suggested_categories": error_info.get("suggested_categories", []),
             "help_text": error_info.get("help_text"),
-            "query_refinements": error_info.get("query_refinements", [])[:2]  # Top 2 refinements
+            "query_refinements": safe_refinements
         }
 
     return [result]

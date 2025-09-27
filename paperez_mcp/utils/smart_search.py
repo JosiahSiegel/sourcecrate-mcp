@@ -293,7 +293,13 @@ async def smart_downloadable_search(
     def pdf_priority_score(paper):
         has_pdf = bool(paper.get("pdf_url") or paper.get("open_access_pdf"))
         is_arxiv = paper.get("source") == "arXiv"
+
+        # Safely convert citation_count to integer
         citation_count = paper.get("citation_count", 0)
+        try:
+            citation_count = int(citation_count) if citation_count is not None else 0
+        except (ValueError, TypeError):
+            citation_count = 0
 
         # High priority: arXiv papers (almost always downloadable)
         if is_arxiv:
