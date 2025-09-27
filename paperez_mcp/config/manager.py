@@ -22,7 +22,6 @@ except ImportError:
     FileSystemEventHandler = None
 
 from .schemas import PaperezConfig
-from .defaults import get_default_config
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +75,7 @@ class ConfigManager:
 
         # Configuration file paths
         self.config_paths = {
-            'builtin': None,  # Loaded from defaults module
+            'builtin': Path(__file__).parent / 'default_config.yaml',
             'user_home': Path.home() / '.paperez' / 'config.yaml',
             'project_local': Path.cwd() / 'paperez.config.yaml',
             'environment': self._get_env_config_path()
@@ -95,13 +94,26 @@ class ConfigManager:
         """Load and merge configuration from all sources."""
         with self._config_lock:
             try:
-                # Start with default configuration
-                config_dict = get_default_config()
+                # Start with default configuration from YAML
+                config_dict = {}
+                builtin_path = self.config_paths['builtin']
+                if builtin_path.exists():
+                    config_dict = self._load_yaml_file(builtin_path)
+                    logger.info(f"Loaded builtin config: {builtin_path}")
+                else:
+                    logger.error(f"Builtin config not found: {builtin_path}")
+                    # Fallback to minimal config
+                    config_dict = {
+                        'version': '1.0',
+                        'default_category': 'comprehensive',
+                        'sources': {},
+                        'categories': {}
+                    }
 
                 # Load and merge each configuration layer
                 for layer_name, config_path in self.config_paths.items():
                     if layer_name == 'builtin':
-                        continue  # Already loaded defaults
+                        continue  # Already loaded
 
                     if config_path and config_path.exists():
                         try:
@@ -129,8 +141,14 @@ class ConfigManager:
 
             except Exception as e:
                 logger.error(f"Failed to load configuration: {e}")
-                # Fall back to default configuration
-                self._config = PaperezConfig(**get_default_config())
+                # Fall back to minimal configuration
+                fallback_config = {
+                    'version': '1.0',
+                    'default_category': 'comprehensive',
+                    'sources': {},
+                    'categories': {}
+                }
+                self._config = PaperezConfig(**fallback_config)
 
     def _load_yaml_file(self, file_path: Path) -> Dict[str, Any]:
         """Load YAML configuration file."""

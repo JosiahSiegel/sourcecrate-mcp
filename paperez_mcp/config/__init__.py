@@ -40,12 +40,7 @@ from .manager import (
     get_current_config
 )
 
-from .defaults import (
-    get_default_config,
-    get_builtin_source_names,
-    get_builtin_category_names,
-    get_source_function_mapping
-)
+# Default config now loaded from YAML - no utility functions needed
 
 from .registry import (
     SourceRegistry,
@@ -72,11 +67,7 @@ __all__ = [
     'get_config_manager',
     'get_current_config',
 
-    # Default configuration
-    'get_default_config',
-    'get_builtin_source_names',
-    'get_builtin_category_names',
-    'get_source_function_mapping',
+    # Default configuration now in YAML
 
     # Service registry
     'SourceRegistry',
