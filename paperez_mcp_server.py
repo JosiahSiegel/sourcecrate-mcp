@@ -373,14 +373,14 @@ async def download_papers(
     convert_to_markdown: bool = True
 ) -> List[Dict[str, Any]]:
     """
-    📄 GET FULL PAPERS: Download academic papers as files
+    📄 GET FULL PAPERS: Download academic papers as files (PDF or Markdown)
 
     This function is designed for when you want to actually GET papers, not just search for them.
-    It automatically downloads PDFs and optionally converts them to markdown files.
+    It downloads PDFs with readable filenames and optionally converts them to markdown files.
 
     Use this when:
     - User says "get papers", "download papers", "save papers"
-    - You want actual paper content as files
+    - You want actual paper content as files (PDF or Markdown)
     - Need papers for analysis, reading, or citation
 
     Args:
@@ -408,8 +408,11 @@ async def download_papers(
         - output_directory: Where files were saved
 
     Example Usage:
-        # Get 3 papers on machine learning
+        # Get 3 papers as markdown (default)
         download_papers("machine learning transformers", limit=3)
+
+        # Get papers as PDFs with readable filenames
+        download_papers("neural networks", limit=2, convert_to_markdown=False)
 
         # Save to specific directory
         download_papers("climate change", limit=5, output_dir="climate_papers")
@@ -527,15 +530,16 @@ async def get_papers(
     convert_to_markdown: bool = True
 ) -> List[Dict[str, Any]]:
     """
-    📄 GET FULL PAPERS: Alias for download_papers()
+    📄 GET FULL PAPERS: Download academic papers as files (PDF or Markdown)
 
     This is an alias for download_papers() that matches natural language.
     When users say "get papers", they typically want the actual papers, not metadata.
+    Downloads PDFs with readable filenames and optionally converts to markdown.
 
     Use this when:
     - User says "get papers on [topic]"
-    - User wants actual content, not just summaries
-    - Need papers for research or analysis
+    - User wants actual content as files (PDF or Markdown), not just summaries
+    - Need papers for analysis, reading, or citation
 
     Args:
         query: Search query (keywords, DOI, title, or author)
@@ -555,14 +559,17 @@ async def get_papers(
                        💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
 
     Returns:
-        Same as download_papers() - papers saved as markdown files
+        Same as download_papers() - papers saved as files (PDF or Markdown)
 
     Example Usage:
-        # Get papers on a topic
+        # Get papers as markdown (default)
         get_papers("neural networks", limit=5)
 
+        # Get papers as PDFs with readable filenames
+        get_papers("quantum computing", convert_to_markdown=False)
+
         # Get papers to specific folder
-        get_papers("quantum computing", output_dir="quantum_research")
+        get_papers("climate research", output_dir="climate_papers")
     """
     # Ensure output directory exists
     Path(output_dir).mkdir(parents=True, exist_ok=True)
