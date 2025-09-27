@@ -316,18 +316,36 @@ async def browse_papers(
 
     # Convert to browse format (metadata only, remove download info)
     browse_results = []
+    fallback_used = False
+    original_category = None
+
     for paper in papers:
         browse_paper = {k: v for k, v in paper.items()
-                       if k not in ['download_success', 'local_markdown', 'markdown_characters']}
+                       if k not in ['download_success', 'local_markdown', 'markdown_characters', '_fallback_used', '_original_category']}
         browse_results.append(browse_paper)
 
-    return [{
+        # Check if any paper used fallback
+        if paper.get('_fallback_used'):
+            fallback_used = True
+            original_category = paper.get('_original_category')
+
+    result = {
         "results": browse_results,
         "total_found": len(browse_results),
         "api_status": api_status,
         "sources_used": list(set(paper.get("source", "Unknown") for paper in browse_results)),
         "query": query
-    }]
+    }
+
+    # Add fallback notification if used
+    if fallback_used:
+        result["fallback_notification"] = {
+            "message": f"Results found using comprehensive sources (original {'smart routing' if not original_category else original_category} found no results)",
+            "original_category": original_category or "smart_routing",
+            "fallback_category": "comprehensive"
+        }
+
+    return [result]
 
 
 @mcp.tool
@@ -434,13 +452,29 @@ async def download_papers(
                 except Exception as e:
                     paper["download_error"] = str(e)
 
-    return [{
+    # Check for fallback usage
+    fallback_used = any(paper.get('_fallback_used', False) for paper in downloadable_papers)
+    original_category = None
+    if fallback_used and downloadable_papers:
+        original_category = downloadable_papers[0].get('_original_category')
+
+    result = {
         "results": downloadable_papers,
         "total_found": len(downloadable_papers),
         "downloaded_count": downloaded_count,
         "output_directory": output_dir,
         "query": query
-    }]
+    }
+
+    # Add fallback notification if used
+    if fallback_used:
+        result["fallback_notification"] = {
+            "message": f"Papers found using comprehensive sources (original {'smart routing' if not original_category else original_category} found no results)",
+            "original_category": original_category or "smart_routing",
+            "fallback_category": "comprehensive"
+        }
+
+    return [result]
 
 
 @mcp.tool
@@ -549,6 +583,12 @@ async def get_papers(
             except Exception as e:
                 paper["download_error"] = str(e)
 
+    # Check for fallback usage
+    fallback_used = any(paper.get('_fallback_used', False) for paper in downloadable_papers)
+    original_category = None
+    if fallback_used and downloadable_papers:
+        original_category = downloadable_papers[0].get('_original_category')
+
     # Create result summary
     result = {
         "results": downloadable_papers,
@@ -557,6 +597,14 @@ async def get_papers(
         "output_directory": output_dir,
         "query": query
     }
+
+    # Add fallback notification if used
+    if fallback_used:
+        result["fallback_notification"] = {
+            "message": f"Papers found using comprehensive sources (original {'smart routing' if not original_category else original_category} found no results)",
+            "original_category": original_category or "smart_routing",
+            "fallback_category": "comprehensive"
+        }
 
     return [result]
 

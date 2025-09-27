@@ -353,6 +353,41 @@ async def smart_downloadable_search(
     search_log["successful_downloads"] = len(downloadable_papers)
     search_log["success_rate"] = f"{len(downloadable_papers)}/{attempted_downloads}" if attempted_downloads > 0 else "0/0"
 
+    # Intelligent Fallback Strategy: If no results found, try comprehensive sources
+    if len(downloadable_papers) == 0 and force_category != "comprehensive":
+        logger.info("🔄 INTELLIGENT FALLBACK: No papers found, retrying with comprehensive sources...")
+        search_log["fallback_triggered"] = True
+        search_log["fallback_reason"] = "Primary search returned 0 results"
+
+        try:
+            # Recursive call with comprehensive fallback
+            fallback_results = await smart_downloadable_search(
+                query=query,
+                limit=limit,
+                search_funcs=search_funcs,
+                utils=utils,
+                api_status=api_status,
+                force_category="comprehensive"
+            )
+
+            if len(fallback_results) > 0:
+                search_log["fallback_success"] = True
+                search_log["fallback_results_count"] = len(fallback_results)
+                logger.info(f"✅ FALLBACK SUCCESS: Found {len(fallback_results)} papers using comprehensive sources")
+
+                # Add fallback metadata to each result
+                for paper in fallback_results:
+                    paper["_fallback_used"] = True
+                    paper["_original_category"] = force_category or "smart_routing"
+
+                downloadable_papers = fallback_results
+            else:
+                search_log["fallback_success"] = False
+                logger.info("❌ FALLBACK FAILED: No papers found even with comprehensive sources")
+        except Exception as e:
+            search_log["fallback_error"] = str(e)
+            logger.warning(f"❌ FALLBACK ERROR: {e}")
+
     logger.info(f"🎯 SEARCH COMPLETE: Found {len(downloadable_papers)} downloadable papers out of {attempted_downloads} attempts")
     logger.info(f"📈 Search Summary: {json.dumps(search_log, indent=2)}")
 
