@@ -62,9 +62,9 @@ class SourceRegistry:
             plugin_instance = plugin_class(**source_config.config)
             self._plugin_instances[source_name] = plugin_instance
 
-            # Create wrapper function for compatibility
-            async def plugin_wrapper(query: str, limit: int = 5, **kwargs):
-                return await plugin_instance.search(query, limit, **kwargs)
+            # Create wrapper function for compatibility (fix closure bug)
+            async def plugin_wrapper(query: str, limit: int = 5, instance=plugin_instance, **kwargs):
+                return await instance.search(query, limit, **kwargs)
 
             self._sources[source_name] = plugin_wrapper
             self._source_configs[source_name] = source_config
@@ -82,9 +82,9 @@ class SourceRegistry:
             api_instance = GenericHTTPClient(source_name, **source_config.config)
             self._plugin_instances[source_name] = api_instance
 
-            # Create wrapper function for compatibility
-            async def api_wrapper(query: str, limit: int = 5, **kwargs):
-                return await api_instance.search(query, limit, **kwargs)
+            # Create wrapper function for compatibility (fix closure bug)
+            async def api_wrapper(query: str, limit: int = 5, instance=api_instance, **kwargs):
+                return await instance.search(query, limit, **kwargs)
 
             self._sources[source_name] = api_wrapper
             self._source_configs[source_name] = source_config
