@@ -571,12 +571,13 @@ async def search_authors(name: str, limit: int = 5) -> List[Dict[str, Any]]:
 
 
 @mcp.tool
-async def extract_pdf_text(file_path: str) -> Dict[str, Any]:
+async def extract_pdf_text(file_path: str, output_path: Optional[str] = None, title: str = "", authors: Optional[List[str]] = None) -> Dict[str, Any]:
     """
-    Extract text from a local PDF file.
+    Extract text from a local PDF file and save to a text file.
 
-    Uses PyMuPDF for robust text extraction with unlimited character support.
-    Handles academic papers, preprints, and complex document layouts.
+    Uses PyMuPDF for robust text extraction, creating a text file output
+    to avoid consuming context window space. Similar to convert_pdf_to_markdown
+    but outputs plain text instead.
 
     Args:
         file_path: Path to local PDF file
@@ -584,33 +585,40 @@ async def extract_pdf_text(file_path: str) -> Dict[str, Any]:
                    - Supports relative paths: "papers/paper.pdf", "./documents/research.pdf"
                    - Must be a valid PDF file (will return error for non-PDF files)
                    - File must exist and be readable
+        output_path: Output path for text file (default: current directory)
+                     - If provided, uses exact path: "/path/to/output.txt"
+                     - If None, creates file in current directory with format: "{filename}_full.txt"
+                     - Automatically creates directories if they don't exist
+                     - Overwrites existing files
+        title: Optional title for the document header (default: "")
+               - Added as header at top of text file
+               - Example: "Attention Is All You Need"
+               - If empty, no title header is added
+        authors: Optional list of authors for the document header (default: None)
+                 - Added as author list after title
+                 - Example: ["Ashish Vaswani", "Noam Shazeer", "Niki Parmar"]
+                 - If None or empty, no author section is added
 
     Returns:
         Dictionary containing:
         - success: Boolean indicating if extraction succeeded
-        - text: Full extracted text content from all pages
-        - num_pages: Total number of pages in the PDF
-        - file_size: Size of the PDF file in bytes
+        - text_path: Path to saved text file (if save succeeded)
         - text_length: Character count of extracted text
+        - original_file: Original PDF file path
+        - pages_extracted: Number of pages processed
+        - file_size: Size of the PDF file in bytes
         - extraction_method: Method used ("PyMuPDF Local")
-        - file_path: Original file path provided
-
-        On success, text field contains:
-        - All text content with page separators
-        - Preserved formatting where possible
-        - Special characters and Unicode support
-        - Academic symbols and mathematical notation
 
         On failure, includes:
         - success: false
         - error: Error message explaining the failure
-        - text: Empty string
+        - text_path: None
 
-    Capabilities:
+    Features:
+        - Creates text files instead of returning content in response
+        - Preserves all text content with page separators
         - Handles complex academic layouts (multi-column, figures, tables)
-        - Extracts text from scanned PDFs (if they contain text layers)
         - Supports Unicode and special characters
-        - Unlimited character extraction (no truncation)
         - Fast processing using optimized PyMuPDF engine
 
     Limitations:
@@ -620,20 +628,89 @@ async def extract_pdf_text(file_path: str) -> Dict[str, Any]:
         - Password-protected PDFs are not supported
 
     Example Usage:
-        # Extract from local file
-        extract_pdf_text("/path/to/research_paper.pdf")
+        # Basic extraction
+        extract_pdf_text("research_paper.pdf")
 
-        # Extract from relative path
-        extract_pdf_text("./documents/paper.pdf")
+        # With custom title and authors
+        extract_pdf_text(
+            "paper.pdf",
+            title="My Research Paper",
+            authors=["John Doe", "Jane Smith"]
+        )
 
-        # Check success before using text
+        # Custom output location
+        extract_pdf_text(
+            "input.pdf",
+            output_path="/documents/extracted/paper.txt"
+        )
+
+        # Check success and get file path
         result = extract_pdf_text("paper.pdf")
         if result["success"]:
-            text = result["text"]
-            pages = result["num_pages"]
+            text_file = result["text_path"]
+            char_count = result["text_length"]
     """
-    utils = _lazy_import_utils()
-    return utils['extract_pdf_text_from_local_file'](file_path)
+    try:
+        # First extract the text using existing method
+        utils = _lazy_import_utils()
+        extraction_result = utils['extract_pdf_text_from_local_file'](file_path)
+
+        if not extraction_result.get("success", False):
+            return extraction_result
+
+        # Generate output path if not provided
+        if output_path is None:
+            base_name = Path(file_path).stem
+            output_path = f"{base_name}_full.txt"
+
+        # Ensure output directory exists
+        output_dir = os.path.dirname(output_path)
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir, exist_ok=True)
+
+        # Prepare text content with optional header
+        content_parts = []
+
+        if title:
+            content_parts.append(f"# {title}\n")
+
+        if authors:
+            if isinstance(authors, list) and authors:
+                authors_str = ", ".join(authors)
+                content_parts.append(f"Authors: {authors_str}\n")
+
+        if title or authors:
+            content_parts.append(f"Pages: {extraction_result.get('num_pages', 'Unknown')}")
+            content_parts.append(f"File: {file_path}")
+            content_parts.append(f"Extraction Method: {extraction_result.get('extraction_method', 'Unknown')}")
+            content_parts.append("\n" + "="*80 + "\n")
+
+        # Add the extracted text
+        content_parts.append(extraction_result.get("text", ""))
+
+        # Combine all parts
+        full_content = "\n".join(content_parts)
+
+        # Write to file
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(full_content)
+
+        # Return metadata only (no text content to save context)
+        result = {
+            "success": True,
+            "text_path": output_path,
+            "text_length": len(full_content),
+            "original_file": file_path,
+            "pages_extracted": extraction_result.get("num_pages", 0),
+            "file_size": extraction_result.get("file_size", 0),
+            "extraction_method": extraction_result.get("extraction_method", "PyMuPDF Local")
+        }
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in extract_pdf_text: {e}")
+        return {"success": False, "error": str(e), "text_path": None, "original_file": file_path}
 
 
 async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", authors: Optional[List[str]] = None, output_path: Optional[str] = None) -> Dict[str, Any]:
