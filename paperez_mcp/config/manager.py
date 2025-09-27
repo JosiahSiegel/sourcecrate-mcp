@@ -113,11 +113,11 @@ class ConfigManager:
                 # Start with MCP default configuration (if user wants defaults)
                 config_dict = {}
                 if use_defaults:
-                    # Load MCP default config as primary base
+                    # Load complete MCP default config (includes all sources)
                     mcp_default_path = self.config_paths['mcp_default']
                     if mcp_default_path.exists():
                         config_dict = self._load_yaml_file(mcp_default_path)
-                        logger.info(f"Loaded MCP default config: {mcp_default_path}")
+                        logger.info(f"Loaded complete MCP default config: {mcp_default_path}")
                     else:
                         logger.error(f"MCP default config not found: {mcp_default_path}")
                         # Ultimate fallback
