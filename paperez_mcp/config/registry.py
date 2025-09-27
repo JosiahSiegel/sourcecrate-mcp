@@ -24,7 +24,7 @@ class SourceRegistry:
         """Register all built-in search sources."""
         from ..api_clients import (
             search_arxiv, search_pubmed, search_pubmed_central,
-            search_clinicaltrials, search_google_scholar_fallback
+            search_google_scholar_fallback
         )
 
         # Built-in source function mapping (only for sources not yet converted to config)
@@ -32,7 +32,6 @@ class SourceRegistry:
             'search_arxiv': search_arxiv,
             'search_pubmed': search_pubmed,
             'search_pubmed_central': search_pubmed_central,
-            'search_clinicaltrials': search_clinicaltrials,
             'search_google_scholar_fallback': search_google_scholar_fallback,
         }
 

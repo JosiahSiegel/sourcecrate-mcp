@@ -158,15 +158,34 @@ def get_default_config() -> Dict[str, Any]:
             },
             'clinicaltrials': {
                 'name': 'clinicaltrials',
-                'type': 'builtin',
+                'type': 'http_api',
                 'enabled': True,
-                'function_name': 'search_clinicaltrials',
                 'timeout': 30,
                 'max_retries': 3,
                 'cache_expire': 3600,
                 'config': {
                     'description': 'Clinical trials database',
-                    'coverage': 'clinical studies, medical trials'
+                    'coverage': 'clinical studies, medical trials',
+                    'base_url': 'https://clinicaltrials.gov/api/v2',
+                    'search_path': '/studies',
+                    'query_param': 'query.term',
+                    'limit_param': 'pageSize',
+                    'response_format': 'json',
+                    'results_path': 'studies',
+                    'extra_params': {
+                        'format': 'json',
+                        'fields': 'NCTId,BriefTitle,OfficialTitle,Condition,Intervention,Phase,StudyType,PrimaryCompletionDate,LastUpdateSubmitDate,LeadSponsorName,OverallStatus,EnrollmentCount,EligibilityCriteria,StudyFirstSubmitDate,BriefSummary'
+                    },
+                    'field_mappings': {
+                        'title': 'protocolSection.identificationModule.briefTitle',
+                        'authors': 'protocolSection.sponsorCollaboratorsModule.leadSponsor.name',
+                        'abstract': 'protocolSection.descriptionModule.briefSummary',
+                        'journal': 'source',  # Will be set to 'ClinicalTrials.gov'
+                        'year': 'protocolSection.statusModule.primaryCompletionDateStruct.date',
+                        'url': 'nctId',  # Will be formatted as clinicaltrials.gov URL
+                        'citation_count': '0'  # Clinical trials don't have citations
+                    },
+                    'rate_limit_delay': 0.2
                 }
             },
             'google_scholar': {
