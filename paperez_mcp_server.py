@@ -527,37 +527,49 @@ async def search_authors(name: str, limit: int = 5) -> List[Dict[str, Any]]:
         # Find authors by institution
         search_authors("OpenAI research", limit=5)
     """
-    # Use Google Scholar for author search as it's most comprehensive for this
-    if api_status["google_scholar"]:
-        try:
-            def _search_author() -> List[Dict[str, Any]]:
-                from scholarly import scholarly
-                search_query = scholarly.search_author(name)
-                results = []
+    # Try Google Scholar for author search (attempt connection even if api_status is false)
+    try:
+        def _search_author() -> List[Dict[str, Any]]:
+            from scholarly import scholarly
 
-                for i, author in enumerate(search_query):
-                    if i >= limit:
-                        break
+            # Ensure scholarly proxy is set up
+            _ensure_scholarly_setup()
 
-                    filled = scholarly.fill(author, sections=['basics', 'indices'])
-                    result = {
-                        "name": filled.get('name', ''),
-                        "affiliation": filled.get('affiliation', ''),
-                        "email": filled.get('email', ''),
-                        "interests": filled.get('interests', []),
-                        "citation_count": filled.get('citedby', 0),
-                        "h_index": filled.get('hindex', 0),
-                        "i10_index": filled.get('i10index', 0),
-                        "source": "Google Scholar"
-                    }
-                    results.append(result)
-                return results
+            search_query = scholarly.search_author(name)
+            results = []
 
-            results = await asyncio.to_thread(_search_author)
+            for i, author in enumerate(search_query):
+                if i >= limit:
+                    break
+
+                filled = scholarly.fill(author, sections=['basics', 'indices'])
+                result = {
+                    "name": filled.get('name', ''),
+                    "affiliation": filled.get('affiliation', ''),
+                    "email": filled.get('email', ''),
+                    "interests": filled.get('interests', []),
+                    "citation_count": filled.get('citedby', 0),
+                    "h_index": filled.get('hindex', 0),
+                    "i10_index": filled.get('i10index', 0),
+                    "source": "Google Scholar"
+                }
+                results.append(result)
+
+            # If we got results, update api_status
+            if results:
+                api_status["google_scholar"] = True
+
             return results
 
-        except Exception as e:
-            logger.warning(f"Author search failed: {e}")
+        results = await asyncio.to_thread(_search_author)
+        return results
+
+    except Exception as e:
+        logger.error(f"Author search failed: {e}")
+        # Mark Google Scholar as unavailable if it consistently fails
+        api_status["google_scholar"] = False
+        # Return error info for debugging
+        return [{"error": f"Author search failed: {str(e)}", "name": name, "source": "error"}]
 
     return []
 
