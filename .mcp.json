@@ -35,8 +35,8 @@
           "description": "Search for academic authors by name with citation metrics, h-index, and publication data from Google Scholar."
         },
         {
-          "name": "extract_pdf_text",
-          "description": "Extract text from local PDF files using PyMuPDF with unlimited character support for academic papers."
+          "name": "convert_pdf_to_text",
+          "description": "Convert PDF to plain text files using PyMuPDF with unlimited character support for academic papers."
         },
         {
           "name": "convert_pdf_to_markdown",

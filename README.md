@@ -82,7 +82,7 @@ or
 
 | Tool | Description | Use Case |
 |------|-------------|----------|
-| **`extract_pdf_text`** | Extract text from local PDF files (unlimited characters) | Text analysis, content extraction |
+| **`convert_pdf_to_text`** | Convert PDF to plain text files (unlimited characters) | Text analysis, content extraction |
 | **`convert_pdf_to_markdown`** | Convert single PDF to markdown (zero tokens) | Document conversion, structure preservation |
 | **`batch_convert_pdfs`** | Convert entire directories of PDFs to markdown | Bulk processing, research archives |
 

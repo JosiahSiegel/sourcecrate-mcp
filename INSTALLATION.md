@@ -30,7 +30,7 @@ After installation, verify the tools are available:
 # In your MCP client, these tools should be available:
 - mcp__paperez-mcp__search_papers
 - mcp__paperez-mcp__search_authors
-- mcp__paperez-mcp__extract_pdf_text
+- mcp__paperez-mcp__convert_pdf_to_text
 - mcp__paperez-mcp__convert_pdf_to_markdown
 - mcp__paperez-mcp__batch_convert_pdfs
 - mcp__paperez-mcp__get_status

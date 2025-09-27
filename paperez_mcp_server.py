@@ -120,7 +120,7 @@ search_papers("topic", limit=3, download_and_convert=True)
    - Google Scholar integration for author profiles
    - Returns citation count, h-index, i10-index, and affiliations
 
-3. extract_pdf_text - Local PDF text extraction
+3. convert_pdf_to_text - Local PDF text extraction
    - PyMuPDF-based extraction with unlimited character support
    - Handles complex academic document layouts
 
@@ -571,9 +571,9 @@ async def search_authors(name: str, limit: int = 5) -> List[Dict[str, Any]]:
 
 
 @mcp.tool
-async def extract_pdf_text(file_path: str, output_path: Optional[str] = None, title: str = "", authors: Optional[List[str]] = None) -> Dict[str, Any]:
+async def convert_pdf_to_text(file_path: str, output_path: Optional[str] = None, title: str = "", authors: Optional[List[str]] = None) -> Dict[str, Any]:
     """
-    Extract text from a local PDF file and save to a text file.
+    Convert a local PDF file to plain text and save to a text file.
 
     Uses PyMuPDF for robust text extraction, creating a text file output
     to avoid consuming context window space. Similar to convert_pdf_to_markdown
@@ -616,6 +616,7 @@ async def extract_pdf_text(file_path: str, output_path: Optional[str] = None, ti
 
     Features:
         - Creates text files instead of returning content in response
+        - Zero context window consumption (content saved to files, not returned)
         - Preserves all text content with page separators
         - Handles complex academic layouts (multi-column, figures, tables)
         - Supports Unicode and special characters
@@ -628,24 +629,24 @@ async def extract_pdf_text(file_path: str, output_path: Optional[str] = None, ti
         - Password-protected PDFs are not supported
 
     Example Usage:
-        # Basic extraction
-        extract_pdf_text("research_paper.pdf")
+        # Basic conversion
+        convert_pdf_to_text("research_paper.pdf")
 
         # With custom title and authors
-        extract_pdf_text(
+        convert_pdf_to_text(
             "paper.pdf",
             title="My Research Paper",
             authors=["John Doe", "Jane Smith"]
         )
 
         # Custom output location
-        extract_pdf_text(
+        convert_pdf_to_text(
             "input.pdf",
             output_path="/documents/extracted/paper.txt"
         )
 
         # Check success and get file path
-        result = extract_pdf_text("paper.pdf")
+        result = convert_pdf_to_text("paper.pdf")
         if result["success"]:
             text_file = result["text_path"]
             char_count = result["text_length"]
@@ -709,7 +710,7 @@ async def extract_pdf_text(file_path: str, output_path: Optional[str] = None, ti
         return result
 
     except Exception as e:
-        logger.error(f"Error in extract_pdf_text: {e}")
+        logger.error(f"Error in convert_pdf_to_text: {e}")
         return {"success": False, "error": str(e), "text_path": None, "original_file": file_path}
 
 
@@ -736,6 +737,12 @@ async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", aut
         save_result = utils['save_markdown_file'](result["markdown"], markdown_path)
         if save_result.get("success"):
             result["markdown_path"] = markdown_path
+
+        # Store markdown length and remove content to avoid context window usage
+        if "markdown" in result:
+            result["markdown_length"] = len(result["markdown"])
+            # Don't delete markdown here yet - batch_convert_pdfs needs it
+            # Will be cleaned up by the calling function
 
     return result
 
@@ -776,14 +783,16 @@ async def convert_pdf_to_markdown(
     Returns:
         Dictionary containing:
         - success: Boolean indicating if conversion succeeded
-        - markdown: Full markdown content (only if success=True)
         - markdown_length: Character count of markdown content
         - original_file: Original PDF file path
         - pages_extracted: Number of pages processed
         - text_length: Character count of original text
         - markdown_path: Path to saved markdown file (if save succeeded)
 
-        On success, markdown contains:
+        Note: The full markdown content is NOT returned to avoid consuming context window space.
+        The markdown content is saved to the file specified in markdown_path.
+
+        The generated markdown file contains:
         - Structured content with preserved headings
         - Formatted tables and lists
         - Mathematical notation and special characters
@@ -793,10 +802,10 @@ async def convert_pdf_to_markdown(
         On failure, includes:
         - success: false
         - error: Error message explaining the failure
-        - markdown: Empty string
 
     Features:
         - Zero AI tokens used (direct PDF→markdown conversion)
+        - Zero context window consumption (content saved to files, not returned)
         - Preserves document structure and formatting
         - Handles complex academic layouts
         - Maintains headings, tables, and lists
@@ -832,7 +841,13 @@ async def convert_pdf_to_markdown(
             markdown_file = result["markdown_path"]
             char_count = result["markdown_length"]
     """
-    return await _convert_pdf_to_markdown_internal(file_path, title, authors, output_path)
+    result = await _convert_pdf_to_markdown_internal(file_path, title, authors, output_path)
+
+    # Remove markdown content to avoid context window usage
+    if "markdown" in result:
+        del result["markdown"]
+
+    return result
 
 
 
@@ -1000,6 +1015,7 @@ async def batch_convert_pdfs(
 
     Performance:
         - Zero AI tokens consumed during conversion
+        - Zero context window consumption (content saved to files, not returned)
         - Fast processing using optimized pymupdf4llm engine
         - Parallel processing not implemented (sequential conversion)
         - Memory efficient for large directories
@@ -1063,6 +1079,11 @@ async def batch_convert_pdfs(
                     output_path = os.path.join(output_dir, filename)
 
                     save_result = utils['save_markdown_file'](result["markdown"], output_path)
+
+                    # Clean up markdown content to avoid context window usage
+                    if "markdown" in result:
+                        del result["markdown"]
+
                     if save_result.get("success"):
                         successful += 1
                         results.append({
@@ -1079,6 +1100,10 @@ async def batch_convert_pdfs(
                             "error": save_result.get("error")
                         })
                 else:
+                    # Clean up markdown content even on failure
+                    if "markdown" in result:
+                        del result["markdown"]
+
                     failed += 1
                     results.append({
                         "input_file": str(pdf_file),
@@ -1272,7 +1297,7 @@ def main() -> None:
     print("  📄 download_papers: Same as get_papers but more explicit")
     print("  🔍 browse_papers: Quick metadata overview (titles/abstracts only)")
     print("  👤 search_authors: Find author profiles with citation metrics")
-    print("  📝 extract_pdf_text: Extract text from local PDF files")
+    print("  📝 convert_pdf_to_text: Convert PDF to plain text files")
     print("  🔄 convert_pdf_to_markdown: Convert PDF to markdown format")
     print("  📁 batch_convert_pdfs: Convert multiple PDFs in a directory")
     print("  🔧 get_status: Check system health and API status")
