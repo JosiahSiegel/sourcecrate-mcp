@@ -10,6 +10,10 @@ global_cache_expire: 3600
 default_output_dir: ".paperez"
 cleanup_temp_files: true
 
+# User control options
+use_default_sources: true  # Set to false to disable all default sources
+merge_user_sources: true   # Set to false to replace (not merge) with user sources
+
 # Query routing configuration
 routing:
   enabled: true
@@ -132,7 +136,7 @@ sources:
     max_retries: 3
     cache_expire: 3600
     config:
-      description: "AI-powered academic search engine"
+      description: "AI-powered academic search engine (works without API key)"
       coverage: "computer science, neuroscience, biomedical"
       base_url: "https://api.semanticscholar.org/graph/v1"
       search_path: "/paper/search"
@@ -152,10 +156,8 @@ sources:
         url: "url"
         pdf_url: "openAccessPdf.url"
         citation_count: "citationCount"
-      api_key: ""  # Users can provide their API key
-      auth_header: "x-api-key"
-      auth_type: "ApiKey"
-      rate_limit_delay: 0.1
+      # No API key required for basic usage - users can add api_key in their config for higher rate limits
+      rate_limit_delay: 1.0  # Conservative rate limit for anonymous usage
 
   arxiv:
     name: "arxiv"
@@ -225,13 +227,13 @@ sources:
   google_scholar:
     name: "google_scholar"
     type: "builtin"
-    enabled: true
+    enabled: false  # Disabled by default - may require proxy setup for reliable access
     function_name: "search_google_scholar_fallback"
     timeout: 45
     max_retries: 2
     cache_expire: 7200
     config:
-      description: "Google Scholar fallback search"
+      description: "Google Scholar fallback search (may require proxy configuration)"
       coverage: "broad academic content across all disciplines"
 
   # Config-based HTTP API sources (no Python code needed!)
@@ -427,6 +429,8 @@ categories:
       - "clinicaltrials"
       - "europe_pmc"
       - "doaj"
+      - "hathitrust"
+      - "internet_archive"
       - "ssrn"
     max_results_per_source: 4
     parallel_search: true
@@ -512,7 +516,6 @@ categories:
       - "hathitrust"
       - "internet_archive"
       - "crossref"
-      - "google_scholar"
     max_results_per_source: 8
     parallel_search: true
 

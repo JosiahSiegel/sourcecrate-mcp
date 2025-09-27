@@ -118,7 +118,7 @@ class ConfigManager:
                     if config_path and config_path.exists():
                         try:
                             layer_config = self._load_yaml_file(config_path)
-                            config_dict = self._deep_merge(config_dict, layer_config)
+                            config_dict = self._smart_merge(config_dict, layer_config)
                             logger.info(f"Loaded config layer: {layer_name} ({config_path})")
                         except Exception as e:
                             logger.warning(f"Failed to load config layer {layer_name}: {e}")
@@ -167,6 +167,36 @@ class ConfigManager:
 
         return result
 
+    def _smart_merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+        """Smart merge that respects user control options for sources."""
+        result = base.copy()
+
+        # Check user control options in override
+        use_default_sources = override.get('use_default_sources', True)
+        merge_user_sources = override.get('merge_user_sources', True)
+
+        for key, value in override.items():
+            if key == 'sources':
+                # Handle source merging based on user preferences
+                if not use_default_sources:
+                    # User wants to disable all default sources, use only user sources
+                    result[key] = value
+                elif not merge_user_sources:
+                    # User wants to replace (not merge) sources
+                    result[key] = value
+                else:
+                    # Default behavior: merge user sources with defaults
+                    if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                        result[key] = self._deep_merge(result[key], value)
+                    else:
+                        result[key] = value
+            elif key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                result[key] = self._deep_merge(result[key], value)
+            else:
+                result[key] = value
+
+        return result
+
     def _get_env_overrides(self) -> Dict[str, Any]:
         """Get configuration overrides from environment variables."""
         overrides = {}
@@ -178,6 +208,8 @@ class ConfigManager:
             'PAPEREZ_CACHE_EXPIRE': ['global_cache_expire'],
             'PAPEREZ_OUTPUT_DIR': ['default_output_dir'],
             'PAPEREZ_MAX_CONCURRENT': ['max_concurrent_searches'],
+            'PAPEREZ_USE_DEFAULT_SOURCES': ['use_default_sources'],
+            'PAPEREZ_MERGE_USER_SOURCES': ['merge_user_sources'],
         }
 
         for env_var, config_path in env_mappings.items():

@@ -154,6 +154,10 @@ class PaperezConfig(BaseModel):
     default_output_dir: str = Field(".paperez", description="Default output directory")
     cleanup_temp_files: bool = Field(True, description="Clean up temporary files")
 
+    # User control options
+    use_default_sources: bool = Field(True, description="Enable built-in default sources")
+    merge_user_sources: bool = Field(True, description="Merge user sources with defaults (vs replace)")
+
     # TODO: Fix validators for Pydantic V2
     # @validator('default_category')
     # def validate_default_category(cls, v, values):
