@@ -2,27 +2,21 @@
 CrossRef API client for academic paper search.
 """
 
-import logging
 from typing import Any, Dict, List
 
-import httpx
-from tenacity import retry, stop_after_attempt, wait_exponential
-
-from ..config import cache, config, api_status
+from ..config import config
+from .base_client import BaseAPIClient
 from .http_client import create_http_client
 
-logger = logging.getLogger(__name__)
 
+class CrossRefClient(BaseAPIClient):
+    """CrossRef API client with standardized patterns."""
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-async def search_crossref(query: str, limit: int = 5) -> List[Dict[str, Any]]:
-    """Search CrossRef API (primary source - most reliable)"""
-    cache_key = f"crossref:{query}:{limit}"
-    cached = cache.get(cache_key)
-    if cached:
-        return cached
+    def __init__(self):
+        super().__init__("CrossRef", cache_expire=3600)
 
-    try:
+    async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[str, Any]]:
+        """Perform CrossRef API search."""
         # Use CrossRef REST API directly
         url = "https://api.crossref.org/works"
 
@@ -47,7 +41,7 @@ async def search_crossref(query: str, limit: int = 5) -> List[Dict[str, Any]]:
                 results = []
 
                 for item in data.get("message", {}).get("items", []):
-                    result = {
+                    paper_data = {
                         "title": item.get("title", [""])[0] if item.get("title") else "",
                         "authors": [
                             f"{author.get('given', '')} {author.get('family', '')}"
@@ -59,20 +53,21 @@ async def search_crossref(query: str, limit: int = 5) -> List[Dict[str, Any]]:
                         "abstract": item.get("abstract", ""),
                         "citation_count": item.get("is-referenced-by-count", 0),
                         "url": f"https://doi.org/{item.get('DOI', '')}" if item.get("DOI") else "",
-                        "source": "CrossRef",
                         "publisher": item.get("publisher", "")
                     }
-                    results.append(result)
+                    results.append(self._standardize_paper(paper_data))
 
-                # Cache for 1 hour
-                cache.set(cache_key, results, expire=3600)
-                logger.info(f"✅ CrossRef: Found {len(results)} results for '{query}'")
                 return results
             else:
-                logger.warning(f"❌ CrossRef HTTP {response.status_code}")
+                self.logger.warning(f"❌ CrossRef HTTP {response.status_code}")
                 return []
 
-    except Exception as e:
-        logger.warning(f"❌ CrossRef search failed: {e}")
-        api_status["crossref"] = False
-        return []
+
+# Create client instance
+_crossref_client = CrossRefClient()
+
+
+# Maintain backwards compatibility with existing function-based API
+async def search_crossref(query: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """Search CrossRef API (primary source - most reliable)"""
+    return await _crossref_client.search(query, limit)
