@@ -74,8 +74,11 @@ class ConfigManager:
         self._reload_callbacks: List[Callable[[PaperezConfig], None]] = []
 
         # Configuration file paths
+        # Get the root directory of the paperez-mcp package
+        package_root = Path(__file__).parent.parent.parent
         self.config_paths = {
-            'builtin': Path(__file__).parent / 'default_config.yaml',
+            'mcp_default': package_root / '.paperez' / 'config.yaml',
+            'mcp_minimal': package_root / '.paperez' / 'minimal_config.yaml',
             'user_home': Path.home() / '.paperez' / 'config.yaml',
             'project_local': Path.cwd() / 'paperez.config.yaml',
             'environment': self._get_env_config_path()
@@ -97,25 +100,27 @@ class ConfigManager:
                 # Check if user wants to disable default sources
                 use_defaults = True
                 for layer_name, config_path in self.config_paths.items():
-                    if layer_name != 'builtin' and config_path and config_path.exists():
+                    if layer_name not in ['mcp_default', 'mcp_minimal'] and config_path and config_path.exists():
                         try:
                             temp_config = self._load_yaml_file(config_path)
                             if temp_config.get('use_default_sources') is False:
                                 use_defaults = False
                                 break
-                        except:
-                            pass  # Continue checking other files
+                        except Exception as e:
+                            logger.debug(f"Failed to check use_default_sources in {config_path}: {e}")
+                            continue  # Continue checking other files
 
-                # Start with default configuration from YAML (if user wants defaults)
+                # Start with MCP default configuration (if user wants defaults)
                 config_dict = {}
                 if use_defaults:
-                    builtin_path = self.config_paths['builtin']
-                    if builtin_path.exists():
-                        config_dict = self._load_yaml_file(builtin_path)
-                        logger.info(f"Loaded builtin config: {builtin_path}")
+                    # Load MCP default config as primary base
+                    mcp_default_path = self.config_paths['mcp_default']
+                    if mcp_default_path.exists():
+                        config_dict = self._load_yaml_file(mcp_default_path)
+                        logger.info(f"Loaded MCP default config: {mcp_default_path}")
                     else:
-                        logger.error(f"Builtin config not found: {builtin_path}")
-                        # Fallback to minimal config
+                        logger.error(f"MCP default config not found: {mcp_default_path}")
+                        # Ultimate fallback
                         config_dict = {
                             'version': '1.0',
                             'default_category': 'comprehensive',
@@ -123,19 +128,26 @@ class ConfigManager:
                             'categories': {}
                         }
                 else:
-                    # User disabled defaults - start with minimal config
-                    config_dict = {
-                        'version': '1.0',
-                        'default_category': 'comprehensive',
-                        'sources': {},
-                        'categories': {},
-                        'use_default_sources': False
-                    }
-                    logger.info("Default sources disabled by user configuration")
+                    # User disabled defaults - start with minimal MCP config
+                    mcp_minimal_path = self.config_paths['mcp_minimal']
+                    if mcp_minimal_path.exists():
+                        config_dict = self._load_yaml_file(mcp_minimal_path)
+                        config_dict['use_default_sources'] = False  # Ensure this is set
+                        logger.info(f"Default sources disabled - using minimal config: {mcp_minimal_path}")
+                    else:
+                        # Ultimate fallback for minimal config
+                        config_dict = {
+                            'version': '1.0',
+                            'default_category': 'comprehensive',
+                            'sources': {},
+                            'categories': {},
+                            'use_default_sources': False
+                        }
+                        logger.warning("Minimal config not found - using empty fallback")
 
                 # Load and merge each configuration layer
                 for layer_name, config_path in self.config_paths.items():
-                    if layer_name == 'builtin':
+                    if layer_name in ['mcp_default', 'mcp_minimal']:
                         continue  # Already loaded
 
                     if config_path and config_path.exists():
@@ -236,7 +248,7 @@ class ConfigManager:
             return
 
         for layer_name, config_path in self.config_paths.items():
-            if layer_name == 'builtin' or not config_path:
+            if layer_name in ['mcp_default', 'mcp_minimal'] or not config_path:
                 continue
 
             if config_path.exists():

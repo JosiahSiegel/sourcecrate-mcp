@@ -1,0 +1,174 @@
+# PaperezMCP Default Configuration
+# This is the primary configuration file used by the MCP server
+# Users can override these settings by placing their own config.yaml in their .paperez directory
+
+# Version and basic settings
+version: "1.0"
+default_category: comprehensive
+max_concurrent_searches: 15  # Higher concurrency for comprehensive setup
+global_cache_enabled: true
+global_cache_expire: 7200  # Longer cache for comprehensive setup
+default_output_dir: .paperez
+cleanup_temp_files: true
+
+# User control options
+use_default_sources: true  # Set to false to disable all built-in sources
+
+# Query routing configuration
+routing:
+  enabled: true
+  fallback_enabled: true
+  domain_keywords:
+    medical:
+      - medical
+      - clinical
+      - patient
+      - treatment
+      - therapy
+      - diagnosis
+    computer_science:
+      - algorithm
+      - machine learning
+      - artificial intelligence
+      - neural
+      - deep learning
+      - AI
+    physics:
+      - quantum
+      - physics
+      - engineering
+      - materials
+      - energy
+    historical:
+      - history
+      - historical
+      - archive
+      - government
+      - document
+    business:
+      - business
+      - economics
+      - finance
+      - management
+      - corporate
+  domain_categories:
+    medical: medical
+    computer_science: preprints
+    physics: preprints
+    historical: historical
+    business: business
+    general: comprehensive
+
+# Enhanced source configurations
+sources:
+  # Enhanced CrossRef configuration for production use
+  crossref:
+    name: crossref
+    type: http_api
+    enabled: true
+    timeout: 45
+    max_retries: 5
+    cache_expire: 7200
+    config:
+      description: Primary academic publisher database (enhanced)
+      base_url: https://api.crossref.org
+      search_path: /works
+      query_param: query
+      limit_param: rows
+      response_format: json
+      results_path: message.items
+      extra_params:
+        sort: relevance
+        order: desc
+        mailto: research@paperez.org
+      field_mappings:
+        title: title.0
+        authors: author
+        doi: DOI
+        abstract: abstract
+        journal: container-title.0
+        year: published-print.date-parts.0.0
+        url: URL
+        citation_count: is-referenced-by-count
+      rate_limit_delay: 0.05
+
+  # Enhanced Semantic Scholar configuration
+  semantic_scholar:
+    name: semantic_scholar
+    type: http_api
+    enabled: true
+    timeout: 60
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: AI-powered academic search engine (enhanced)
+      base_url: https://api.semanticscholar.org/graph/v1
+      search_path: /paper/search
+      query_param: query
+      limit_param: limit
+      response_format: json
+      results_path: data
+      extra_params:
+        fields: paperId,title,authors,year,abstract,venue,citationCount,url,openAccessPdf,externalIds
+      field_mappings:
+        title: title
+        authors: authors
+        year: year
+        abstract: abstract
+        journal: venue
+        doi: externalIds.DOI
+        url: url
+        pdf_url: openAccessPdf.url
+        citation_count: citationCount
+      rate_limit_delay: 0.5
+
+# Enhanced categories for production use
+categories:
+  # Enhanced comprehensive search
+  comprehensive:
+    name: comprehensive
+    display_name: Comprehensive Search (Enhanced)
+    description: Search across all available sources with optimized settings
+    type: standard
+    sources:
+      - crossref
+      - semantic_scholar
+      - arxiv
+      - pubmed
+      - pubmed_central
+      - europe_pmc
+      - doaj
+      - hathitrust
+      - internet_archive
+      - ssrn
+      - clinicaltrials
+    max_results_per_source: 6
+    parallel_search: true
+
+  # High-quality academic sources
+  academic_premium:
+    name: academic_premium
+    display_name: Premium Academic Sources
+    description: High-quality peer-reviewed sources for authoritative research
+    type: standard
+    sources:
+      - crossref
+      - pubmed
+      - semantic_scholar
+      - pubmed_central
+      - europe_pmc
+    max_results_per_source: 8
+    parallel_search: true
+
+# This is the default configuration used by PaperezMCP
+# Features:
+# - Enhanced performance settings (higher concurrency, longer cache)
+# - Optimized source configurations with improved timeouts and rate limits
+# - Complete query routing for automatic category selection
+# - Production-ready categories for different research needs
+# - All built-in sources remain available unless overridden
+#
+# User Override:
+# - Users can override any setting by placing config.yaml in their .paperez directory
+# - Same-name sources/categories in user config will completely replace these defaults
+# - Use use_default_sources: false to disable all built-in sources

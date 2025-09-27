@@ -96,4 +96,5 @@ logs/
 .fastmcp/
 
 test_*/
-.paperez/
+.paperez/*
+!.paperez/*.yaml
