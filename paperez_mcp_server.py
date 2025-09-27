@@ -369,13 +369,14 @@ async def download_papers(
     query: str,
     limit: int = 5,
     output_dir: str = ".paperez",
-    force_category: str = None
+    force_category: str = None,
+    convert_to_markdown: bool = True
 ) -> List[Dict[str, Any]]:
     """
-    📄 GET FULL PAPERS: Download academic papers as markdown files
+    📄 GET FULL PAPERS: Download academic papers as files
 
     This function is designed for when you want to actually GET papers, not just search for them.
-    It automatically downloads PDFs and converts them to markdown files.
+    It automatically downloads PDFs and optionally converts them to markdown files.
 
     Use this when:
     - User says "get papers", "download papers", "save papers"
@@ -385,8 +386,10 @@ async def download_papers(
     Args:
         query: Search query (keywords, DOI, title, or author)
         limit: Maximum papers to download (default: 5, recommended: 5-10)
-        output_dir: Directory to save markdown files (default: ".paperez")
+        output_dir: Directory to save files (default: ".paperez")
         force_category: 🎯 FORCE SPECIFIC SOURCE TYPES (optional, overrides smart routing)
+        convert_to_markdown: If True (default), convert PDFs to markdown. If False, keep as PDFs only.
+        force_category options:
                        - "preprints" → arXiv, SocArXiv, OSF (latest research, not peer-reviewed)
                        - "journals" → CrossRef, PubMed, DOAJ (peer-reviewed publications)
                        - "open_access" → CORE, DOAJ, arXiv (free full-text available)
@@ -437,34 +440,44 @@ async def download_papers(
                     safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
                     output_path = Path(output_dir) / f"{safe_title}.md"
 
-                    # Download PDF to file
-                    download_result = await utils['download_pdf'](pdf_url, output_dir)
+                    # Download PDF to file with paper title for readable filename
+                    download_result = await utils['download_pdf'](pdf_url, output_dir, paper.get("title"))
                     if download_result.get("success"):
                         pdf_file_path = download_result["pdf_path"]
 
-                        # Convert PDF to markdown
-                        markdown_result = utils['convert_pdf_to_markdown_content'](
-                            pdf_file_path,
-                            paper.get("title", ""),
-                            paper.get("authors", [])
-                        )
+                        if convert_to_markdown:
+                            # Convert PDF to markdown
+                            markdown_result = utils['convert_pdf_to_markdown_content'](
+                                pdf_file_path,
+                                paper.get("title", ""),
+                                paper.get("authors", [])
+                            )
 
-                        if markdown_result.get("success"):
-                            markdown_content = markdown_result["markdown"]
+                            if markdown_result.get("success"):
+                                markdown_content = markdown_result["markdown"]
 
-                            # Save markdown file
-                            save_result = utils['save_markdown_file'](markdown_content, str(output_path))
-                            if save_result.get("success"):
-                                paper["local_markdown"] = str(output_path)
-                                paper["markdown_characters"] = len(markdown_content)
-                                downloaded_count += 1
+                                # Save markdown file
+                                save_result = utils['save_markdown_file'](markdown_content, str(output_path))
+                                if save_result.get("success"):
+                                    paper["local_markdown"] = str(output_path)
+                                    paper["markdown_characters"] = len(markdown_content)
+                                    downloaded_count += 1
 
-                                # Clean up PDF file since we only need the markdown
-                                try:
-                                    import os
-                                    os.remove(pdf_file_path)
-                                except Exception:
-                                    pass  # If cleanup fails, continue silently
+                                    # Clean up PDF file since we only need the markdown
+                                    try:
+                                        import os
+                                        os.remove(pdf_file_path)
+                                    except Exception:
+                                        pass  # If cleanup fails, continue silently
+                                else:
+                                    paper["download_error"] = f"Failed to save markdown: {save_result.get('error')}"
+                            else:
+                                paper["download_error"] = f"Failed to convert to markdown: {markdown_result.get('error')}"
+                        else:
+                            # PDF-only mode: keep the PDF file
+                            paper["local_pdf"] = pdf_file_path
+                            paper["pdf_file_size"] = download_result.get("file_size", 0)
+                            downloaded_count += 1
                 except Exception as e:
                     paper["download_error"] = str(e)
 
@@ -510,7 +523,8 @@ async def get_papers(
     query: str,
     limit: int = 5,
     output_dir: str = ".paperez",
-    force_category: str = None
+    force_category: str = None,
+    convert_to_markdown: bool = True
 ) -> List[Dict[str, Any]]:
     """
     📄 GET FULL PAPERS: Alias for download_papers()
@@ -526,8 +540,10 @@ async def get_papers(
     Args:
         query: Search query (keywords, DOI, title, or author)
         limit: Maximum papers to get (default: 5, recommended: 5-10)
-        output_dir: Directory to save papers (default: "papers")
+        output_dir: Directory to save papers (default: ".paperez")
         force_category: 🎯 FORCE SPECIFIC SOURCE TYPES (optional, overrides smart routing)
+        convert_to_markdown: If True (default), convert PDFs to markdown. If False, keep as PDFs only.
+        force_category options:
                        - "preprints" → arXiv, SocArXiv, OSF (latest research, not peer-reviewed)
                        - "journals" → CrossRef, PubMed, DOAJ (peer-reviewed publications)
                        - "open_access" → CORE, DOAJ, arXiv (free full-text available)
@@ -574,38 +590,44 @@ async def get_papers(
                 safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
                 output_path = Path(output_dir) / f"{safe_title}.md"
 
-                # Download PDF to file
-                download_result = await utils['download_pdf'](pdf_url, output_dir)
+                # Download PDF to file with paper title for readable filename
+                download_result = await utils['download_pdf'](pdf_url, output_dir, paper.get("title"))
                 if download_result.get("success"):
                     pdf_file_path = download_result["pdf_path"]
 
-                    # Convert PDF to markdown
-                    markdown_result = utils['convert_pdf_to_markdown_content'](
-                        pdf_file_path,
-                        paper.get("title", ""),
-                        paper.get("authors", [])
-                    )
+                    if convert_to_markdown:
+                        # Convert PDF to markdown
+                        markdown_result = utils['convert_pdf_to_markdown_content'](
+                            pdf_file_path,
+                            paper.get("title", ""),
+                            paper.get("authors", [])
+                        )
 
-                    if markdown_result.get("success"):
-                        markdown_content = markdown_result["markdown"]
+                        if markdown_result.get("success"):
+                            markdown_content = markdown_result["markdown"]
 
-                        # Save markdown file (correct parameter order: content, file_path)
-                        save_result = utils['save_markdown_file'](markdown_content, str(output_path))
-                        if save_result.get("success"):
-                            paper["local_markdown"] = str(output_path)
-                            paper["markdown_characters"] = len(markdown_content)
-                            downloaded_count += 1
+                            # Save markdown file (correct parameter order: content, file_path)
+                            save_result = utils['save_markdown_file'](markdown_content, str(output_path))
+                            if save_result.get("success"):
+                                paper["local_markdown"] = str(output_path)
+                                paper["markdown_characters"] = len(markdown_content)
+                                downloaded_count += 1
 
-                            # Clean up PDF file since we only need the markdown
-                            try:
-                                import os
-                                os.remove(pdf_file_path)
-                            except Exception:
-                                pass  # If cleanup fails, continue silently
+                                # Clean up PDF file since we only need the markdown
+                                try:
+                                    import os
+                                    os.remove(pdf_file_path)
+                                except Exception:
+                                    pass  # If cleanup fails, continue silently
+                            else:
+                                paper["download_error"] = f"Failed to save markdown: {save_result.get('error')}"
                         else:
-                            paper["download_error"] = f"Failed to save markdown: {save_result.get('error')}"
+                            paper["download_error"] = f"Failed to convert to markdown: {markdown_result.get('error')}"
                     else:
-                        paper["download_error"] = f"Failed to convert to markdown: {markdown_result.get('error')}"
+                        # PDF-only mode: keep the PDF file
+                        paper["local_pdf"] = pdf_file_path
+                        paper["pdf_file_size"] = download_result.get("file_size", 0)
+                        downloaded_count += 1
                 else:
                     paper["download_error"] = f"Failed to download PDF: {download_result.get('error')}"
             except Exception as e:

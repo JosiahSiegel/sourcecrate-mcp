@@ -11,13 +11,14 @@ from urllib.parse import urlparse
 import httpx
 
 
-async def download_pdf(pdf_url: str, output_dir: str = ".paperez") -> Dict[str, Any]:
+async def download_pdf(pdf_url: str, output_dir: str = ".paperez", title: str = None) -> Dict[str, Any]:
     """
     Download a PDF from URL to local directory.
 
     Args:
         pdf_url: URL of the PDF to download
         output_dir: Directory to save the PDF
+        title: Optional paper title for readable filename
 
     Returns:
         Dictionary with download results
@@ -26,27 +27,37 @@ async def download_pdf(pdf_url: str, output_dir: str = ".paperez") -> Dict[str, 
         # Create output directory
         os.makedirs(output_dir, exist_ok=True)
 
-        # Try to extract paper ID from URL
-        paper_id = None
-        if "arxiv.org" in pdf_url:
-            # Extract arXiv ID
-            match = re.search(r'(\d{4}\.\d{4,5})', pdf_url)
-            if match:
-                paper_id = f"arxiv_{match.group(1)}"
-        elif "doi.org" in pdf_url:
-            # Extract DOI
-            match = re.search(r'10\.\d+/(.+)', pdf_url)
-            if match:
-                paper_id = f"doi_{match.group(1).replace('/', '_')}"
+        # Generate filename - prefer title, fallback to technical ID
+        if title:
+            # Use paper title for readable filename
+            filename = title[:50]  # Truncate to reasonable length
+            filename = "".join(c for c in filename if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            filename = re.sub(r'\s+', ' ', filename)  # Normalize whitespace
+            if not filename:  # If title sanitization results in empty string
+                filename = "unknown_paper"
+        else:
+            # Fallback to technical ID extraction
+            paper_id = None
+            if "arxiv.org" in pdf_url:
+                # Extract arXiv ID
+                match = re.search(r'(\d{4}\.\d{4,5})', pdf_url)
+                if match:
+                    paper_id = f"arxiv_{match.group(1)}"
+            elif "doi.org" in pdf_url:
+                # Extract DOI
+                match = re.search(r'10\.\d+/(.+)', pdf_url)
+                if match:
+                    paper_id = f"doi_{match.group(1).replace('/', '_')}"
 
-        if not paper_id:
-            # Use URL path as fallback
-            parsed = urlparse(pdf_url)
-            paper_id = Path(parsed.path).stem or "unknown_paper"
+            if not paper_id:
+                # Use URL path as fallback
+                parsed = urlparse(pdf_url)
+                paper_id = Path(parsed.path).stem or "unknown_paper"
 
-        # Clean filename
-        paper_id = re.sub(r'[^\w\-_\.]', '_', paper_id)
-        pdf_path = os.path.join(output_dir, f"{paper_id}.pdf")
+            # Clean filename
+            filename = re.sub(r'[^\w\-_\.]', '_', paper_id)
+
+        pdf_path = os.path.join(output_dir, f"{filename}.pdf")
 
         # Download PDF with redirect handling
         async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
@@ -60,7 +71,7 @@ async def download_pdf(pdf_url: str, output_dir: str = ".paperez") -> Dict[str, 
                     "success": True,
                     "pdf_path": pdf_path,
                     "file_size": len(response.content),
-                    "paper_id": paper_id
+                    "filename": filename
                 }
             else:
                 return {
