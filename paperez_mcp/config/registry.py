@@ -242,8 +242,9 @@ class ConfigurableSearchService:
         for source_name in self.source_registry.get_enabled_sources():
             search_func = self.source_registry.get_source_function(source_name)
             if search_func:
-                # Use the function name format expected by existing code
-                search_funcs[f"search_{source_name}"] = search_func
+                # Use source name directly (not prefixed with "search_")
+                # This matches what smart_search.py expects
+                search_funcs[source_name] = search_func
         return search_funcs
 
     def resolve_category_sources(self, category_name: str) -> List[str]:
