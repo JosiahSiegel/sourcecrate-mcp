@@ -98,8 +98,8 @@ def _parse_pmc_xml(xml_content: str) -> List[Dict[str, Any]]:
                 # Extract PMC ID
                 pmc_id = None
                 for article_id in article_ids:
-                    if article_id.get('pub-id-type') == 'pmc':
-                        pmc_id = f"PMC{article_id.text}"
+                    if article_id.get('pub-id-type') == 'pmcid':
+                        pmc_id = article_id.text  # Already includes PMC prefix
                         break
 
                 if title:  # Only include if we have a real title
