@@ -1,0 +1,54 @@
+# Minimal Config Example - Just Add Europe PMC
+# Copy this to ~/.paperez/config.yaml to add Europe PMC source
+
+sources:
+  # Europe PMC - 39M+ life sciences papers, no API key needed
+  europe_pmc:
+    name: europe_pmc
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: Europe PMC - Life sciences database with 39M+ abstracts
+      base_url: https://www.ebi.ac.uk/europepmc/webservices/rest
+      search_path: /search
+      query_param: query
+      limit_param: pageSize
+      response_format: json
+      results_path: resultList.result
+      extra_params:
+        format: json
+        resultType: core
+      field_mappings:
+        title: title
+        authors: authorString
+        abstract: abstractText
+        journal: journalTitle
+        year: pubYear
+        doi: doi
+        url: fullTextUrlList.fullTextUrl.0.url
+        citation_count: citedByCount
+      rate_limit_delay: 0.2
+
+categories:
+  # Update comprehensive category to include Europe PMC
+  comprehensive:
+    name: comprehensive
+    display_name: Comprehensive Search
+    description: Search across all available sources for maximum coverage
+    type: standard
+    sources: [crossref, semantic_scholar, arxiv, pubmed, pubmed_central, clinicaltrials, europe_pmc]
+    max_results_per_source: 4
+    parallel_search: true
+
+  # Add life sciences category
+  life_sciences:
+    name: life_sciences
+    display_name: Life Sciences Research
+    description: Specialized life sciences and biomedical research
+    type: standard
+    sources: [pubmed, pubmed_central, europe_pmc]
+    max_results_per_source: 8
+    parallel_search: true
+
+# That's it! Restart PaperezMCP and Europe PMC is available

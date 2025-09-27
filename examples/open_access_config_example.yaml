@@ -1,0 +1,88 @@
+# Open Access Config Example - DOAJ + Europe PMC
+# Perfect for researchers needing freely available papers
+
+sources:
+  # Europe PMC - 39M+ life sciences papers (many open access)
+  europe_pmc:
+    name: europe_pmc
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: 'Europe PMC - Life sciences database with 39M+ abstracts'
+      base_url: 'https://www.ebi.ac.uk/europepmc/webservices/rest'
+      search_path: '/search'
+      query_param: 'query'
+      limit_param: 'pageSize'
+      response_format: 'json'
+      results_path: 'resultList.result'
+      extra_params:
+        format: 'json'
+        resultType: 'core'
+      field_mappings:
+        title: 'title'
+        authors: 'authorString'
+        abstract: 'abstractText'
+        journal: 'journalTitle'
+        year: 'pubYear'
+        doi: 'doi'
+        url: 'fullTextUrlList.fullTextUrl.0.url'
+        citation_count: 'citedByCount'
+      rate_limit_delay: 0.2
+
+  # DOAJ - 2.1M+ peer-reviewed open access articles
+  doaj:
+    name: doaj
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: 'Directory of Open Access Journals - 2.1M+ open access articles'
+      base_url: 'https://doaj.org/api/search'
+      search_path: '/articles/_search'
+      query_param: 'q'
+      limit_param: 'pageSize'
+      response_format: 'json'
+      results_path: 'results'
+      field_mappings:
+        title: 'bibjson.title'
+        authors: 'bibjson.author'
+        abstract: 'bibjson.abstract'
+        journal: 'bibjson.journal.title'
+        year: 'bibjson.year'
+        doi: 'bibjson.identifier.0.id'
+        url: 'bibjson.link.0.url'
+      rate_limit_delay: 0.5
+
+categories:
+  # Enhanced open access category
+  open_access:
+    name: open_access
+    display_name: 'Open Access Publications'
+    description: 'Focus on freely available full-text articles'
+    type: standard
+    sources: ['arxiv', 'pubmed_central', 'semantic_scholar', 'doaj', 'europe_pmc']
+    max_results_per_source: 6
+    parallel_search: true
+
+  # Pure open access journals
+  open_journals:
+    name: open_journals
+    display_name: 'Open Access Journals Only'
+    description: 'Search only fully open access journals and repositories'
+    type: standard
+    sources: ['doaj', 'arxiv', 'pubmed_central']
+    max_results_per_source: 10
+    parallel_search: true
+
+  # Comprehensive with open access priority
+  comprehensive:
+    name: comprehensive
+    display_name: 'Comprehensive Search'
+    description: 'Search across all sources, prioritizing open access'
+    type: standard
+    sources: ['doaj', 'europe_pmc', 'arxiv', 'pubmed_central', 'crossref', 'semantic_scholar', 'pubmed']
+    max_results_per_source: 4
+    parallel_search: true
+
+# Perfect for researchers, students, and institutions prioritizing open access content

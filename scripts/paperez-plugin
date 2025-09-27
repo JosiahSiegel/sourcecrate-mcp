@@ -1,0 +1,290 @@
+#!/usr/bin/env python3
+"""
+PaperezMCP Plugin CLI - The simplest way to add new academic sources.
+
+Usage:
+    paperez-plugin create <source_name>    # Create a new plugin template
+    paperez-plugin install <plugin_file>   # Install a plugin
+    paperez-plugin list                    # List installed plugins
+    paperez-plugin example <source_name>   # Create a working example
+
+Examples:
+    paperez-plugin create ieee_xplore
+    paperez-plugin install ieee_xplore_plugin.py
+    paperez-plugin example researchgate
+"""
+
+import sys
+import os
+from pathlib import Path
+
+# Add paperez_mcp to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from paperez_mcp.plugins.simple import create_plugin, register_plugin, list_plugins
+
+
+def create_example(source_name: str) -> str:
+    """Create a working example plugin."""
+    examples = {
+        "researchgate": """
+# ResearchGate Plugin Example - Web scraping with rate limiting
+async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[str, Any]]:
+    import httpx
+    from bs4 import BeautifulSoup
+    import asyncio
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            # ResearchGate search URL
+            url = f"https://www.researchgate.net/search?q={query}"
+
+            # Rate limiting - be respectful
+            await asyncio.sleep(1)
+
+            response = await client.get(url, headers={
+                "User-Agent": "PaperezMCP Academic Research Tool"
+            })
+
+            if response.status_code != 200:
+                return []
+
+            soup = BeautifulSoup(response.text, 'html.parser')
+            results = []
+
+            # Parse search results (simplified)
+            for item in soup.select('.nova-legacy-v-publication-item')[:limit]:
+                title_elem = item.select_one('.nova-legacy-v-publication-item__title')
+                authors_elem = item.select_one('.nova-legacy-v-person-list')
+
+                if title_elem:
+                    paper = {
+                        "title": title_elem.get_text(strip=True),
+                        "authors": [a.get_text(strip=True) for a in authors_elem.select('a')] if authors_elem else [],
+                        "abstract": "",
+                        "journal": "",
+                        "year": None,
+                        "doi": "",
+                        "url": f"https://www.researchgate.net{title_elem.get('href', '')}",
+                        "pdf_url": None,
+                        "citation_count": 0
+                    }
+                    results.append(self._standardize_paper(paper))
+
+            return results
+
+    except Exception as e:
+        self.logger.error(f"ResearchGate search failed: {e}")
+        return []
+""",
+
+        "ieee_xplore": """
+# IEEE Xplore Plugin Example - API integration
+async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[str, Any]]:
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            # IEEE Xplore API endpoint
+            url = "https://ieeexploreapi.ieee.org/api/v1/search/articles"
+
+            headers = {"x-api-key": self.api_key}
+            params = {
+                "querytext": query,
+                "max_records": limit,
+                "start_record": 1,
+                "sort_field": "article_number",
+                "sort_order": "desc"
+            }
+
+            response = await client.get(url, headers=headers, params=params)
+
+            if response.status_code != 200:
+                self.logger.warning(f"IEEE API error {response.status_code}")
+                return []
+
+            data = response.json()
+            results = []
+
+            for article in data.get("articles", []):
+                paper = {
+                    "title": article.get("title", ""),
+                    "authors": [
+                        f"{author.get('full_name', '')}"
+                        for author in article.get("authors", {}).get("authors", [])
+                    ],
+                    "abstract": article.get("abstract", ""),
+                    "journal": article.get("publication_title", ""),
+                    "year": article.get("publication_year"),
+                    "doi": article.get("doi"),
+                    "url": f"https://ieeexplore.ieee.org/document/{article.get('article_number', '')}",
+                    "pdf_url": article.get("pdf_url"),
+                    "citation_count": article.get("citing_paper_count", 0)
+                }
+                results.append(self._standardize_paper(paper))
+
+            return results
+
+    except Exception as e:
+        self.logger.error(f"IEEE Xplore search failed: {e}")
+        return []
+""",
+
+        "institutional": """
+# Institutional Repository Plugin Example - Generic repository support
+async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[str, Any]]:
+    import httpx
+
+    try:
+        # Support common repository types (DSpace, EPrints, etc.)
+        base_url = self.config.get("base_url")
+        repo_type = self.config.get("type", "dspace")  # dspace, eprints, fedora
+
+        if repo_type == "dspace":
+            search_url = f"{base_url}/rest/items/find-by-metadata-field"
+            params = {
+                "field": "dc.title",
+                "value": query,
+                "limit": limit
+            }
+        elif repo_type == "oai-pmh":
+            search_url = f"{base_url}/oai/request"
+            params = {
+                "verb": "ListRecords",
+                "metadataPrefix": "oai_dc",
+                "set": kwargs.get("set", ""),
+                "from": kwargs.get("from_date", "")
+            }
+
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(search_url, params=params)
+
+            if response.status_code != 200:
+                return []
+
+            # Parse repository response (format depends on repo type)
+            results = self._parse_repository_response(response.text, repo_type)
+            return results[:limit]
+
+    except Exception as e:
+        self.logger.error(f"Repository search failed: {e}")
+        return []
+
+def _parse_repository_response(self, response_text: str, repo_type: str) -> List[Dict[str, Any]]:
+    # Implementation depends on repository type
+    # This is a simplified example
+    import xml.etree.ElementTree as ET
+
+    results = []
+    try:
+        root = ET.fromstring(response_text)
+
+        # Parse based on repository type
+        for record in root.findall(".//item"):  # Simplified
+            title = record.findtext(".//title", "")
+            creator = record.findtext(".//creator", "")
+
+            paper = {
+                "title": title,
+                "authors": [creator] if creator else [],
+                "abstract": record.findtext(".//description", ""),
+                "journal": "",
+                "year": None,
+                "doi": "",
+                "url": record.findtext(".//identifier", ""),
+                "pdf_url": None,
+                "citation_count": 0
+            }
+            results.append(paper)
+
+    except Exception as e:
+        self.logger.error(f"Failed to parse repository response: {e}")
+
+    return results
+"""
+    }
+
+    if source_name not in examples:
+        print(f"❌ No example available for '{source_name}'")
+        print(f"Available examples: {', '.join(examples.keys())}")
+        return ""
+
+    # Create plugin with example implementation
+    plugin_path = create_plugin(source_name)
+
+    # Replace the TODO section with the example
+    with open(plugin_path, 'r') as f:
+        content = f.read()
+
+    # Replace the placeholder implementation
+    placeholder_start = "        # TODO: Replace this with your actual API implementation"
+    placeholder_end = "            return []"
+
+    start_idx = content.find(placeholder_start)
+    if start_idx != -1:
+        end_idx = content.find(placeholder_end, start_idx) + len(placeholder_end)
+        new_content = content[:start_idx] + examples[source_name].strip() + content[end_idx:]
+
+        with open(plugin_path, 'w') as f:
+            f.write(new_content)
+
+        print(f"")
+        print(f"✅ Created working example: {plugin_path}")
+        print(f"   This example includes a complete implementation for {source_name}")
+
+    return plugin_path
+
+
+def main():
+    if len(sys.argv) < 2:
+        print(__doc__)
+        sys.exit(1)
+
+    command = sys.argv[1]
+
+    try:
+        if command == "create":
+            if len(sys.argv) < 3:
+                print("Usage: paperez-plugin create <source_name>")
+                sys.exit(1)
+            create_plugin(sys.argv[2])
+
+        elif command == "install":
+            if len(sys.argv) < 3:
+                print("Usage: paperez-plugin install <plugin_file>")
+                sys.exit(1)
+            register_plugin(sys.argv[2])
+
+        elif command == "list":
+            plugins = list_plugins()
+            if plugins:
+                print("📋 Installed plugins:")
+                for name, info in plugins.items():
+                    print(f"  ✅ {name} v{info['version']} - {info['description']}")
+                    print(f"     📁 {info['file']}")
+            else:
+                print("📋 No plugins installed yet.")
+                print("💡 Create one with: paperez-plugin create <source_name>")
+
+        elif command == "example":
+            if len(sys.argv) < 3:
+                print("Usage: paperez-plugin example <source_name>")
+                print("Available examples: researchgate, ieee_xplore, institutional")
+                sys.exit(1)
+            create_example(sys.argv[2])
+
+        else:
+            print(f"❌ Unknown command: {command}")
+            print(__doc__)
+            sys.exit(1)
+
+    except KeyboardInterrupt:
+        print("\n👋 Cancelled by user")
+        sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

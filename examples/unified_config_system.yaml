@@ -1,0 +1,176 @@
+# Unified Config System - All Sources Use Same Config Pattern
+# This shows how ALL sources (built-in + custom) could use the same system
+
+sources:
+  # Built-in sources converted to config (much cleaner!)
+  crossref:
+    name: crossref
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: Primary academic publisher database
+      base_url: https://api.crossref.org
+      search_path: /works
+      query_param: query
+      limit_param: rows
+      response_format: json
+      results_path: message.items
+      extra_params:
+        sort: relevance
+        order: desc
+        mailto: research@example.com  # User provides
+      field_mappings:
+        title: title.0
+        authors: author
+        doi: DOI
+        abstract: abstract.0
+        journal: container-title.0
+        year: published-print.date-parts.0.0
+        url: URL
+        citation_count: is-referenced-by-count
+      rate_limit_delay: 0.1
+
+  semantic_scholar:
+    name: semantic_scholar
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: AI-powered academic search engine
+      base_url: https://api.semanticscholar.org/graph/v1
+      search_path: /paper/search
+      query_param: query
+      limit_param: limit
+      response_format: json
+      results_path: data
+      extra_params:
+        fields: title,authors,abstract,year,citationCount,url,openAccessPdf
+      field_mappings:
+        title: title
+        authors: authors
+        abstract: abstract
+        year: year
+        doi: externalIds.DOI
+        url: url
+        pdf_url: openAccessPdf.url
+        citation_count: citationCount
+      rate_limit_delay: 0.1
+
+  arxiv:
+    name: arxiv
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: Preprint repository for STEM fields
+      base_url: http://export.arxiv.org/api
+      search_path: /query
+      query_param: search_query
+      limit_param: max_results
+      response_format: xml  # GenericHTTPClient could support XML too
+      results_path: entry
+      extra_params:
+        sortBy: relevance
+        sortOrder: descending
+      field_mappings:
+        title: title
+        authors: author.name
+        abstract: summary
+        year: published  # Extract year automatically
+        url: id
+        pdf_url: link[@title='pdf']/@href
+      rate_limit_delay: 0.5
+
+  pubmed:
+    name: pubmed
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: Biomedical literature database
+      base_url: https://eutils.ncbi.nlm.nih.gov/entrez/eutils
+      search_path: /esearch.fcgi
+      query_param: term
+      limit_param: retmax
+      response_format: json
+      results_path: esearchresult.idlist
+      extra_params:
+        db: pubmed
+        retmode: json
+        usehistory: 'y'
+      # Note: PubMed requires 2-step process, but could be handled
+      field_mappings:
+        # Would need post-processing for full metadata
+        id: ''  # Returns just IDs, needs efetch step
+      rate_limit_delay: 0.34  # NCBI rate limit
+
+  # Custom sources work exactly the same way
+  europe_pmc:
+    name: europe_pmc
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: Europe PMC - Life sciences database
+      base_url: https://www.ebi.ac.uk/europepmc/webservices/rest
+      search_path: /search
+      query_param: query
+      limit_param: pageSize
+      response_format: json
+      results_path: resultList.result
+      extra_params:
+        format: json
+        resultType: core
+      field_mappings:
+        title: title
+        authors: authorString
+        abstract: abstractText
+        journal: journalTitle
+        year: pubYear
+        doi: doi
+        url: fullTextUrlList.fullTextUrl.0.url
+        citation_count: citedByCount
+      rate_limit_delay: 0.2
+
+  doaj:
+    name: doaj
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: Directory of Open Access Journals
+      base_url: https://doaj.org/api/search
+      search_path: /articles/_search
+      query_param: q
+      limit_param: pageSize
+      response_format: json
+      results_path: results
+      field_mappings:
+        title: bibjson.title
+        authors: bibjson.author
+        abstract: bibjson.abstract
+        journal: bibjson.journal.title
+        year: bibjson.year
+        doi: bibjson.identifier.0.id
+        url: bibjson.link.0.url
+      rate_limit_delay: 0.5
+
+categories:
+  comprehensive:
+    name: comprehensive
+    display_name: Comprehensive Search
+    description: Search across all sources using unified system
+    type: standard
+    sources: [crossref, semantic_scholar, arxiv, pubmed, europe_pmc, doaj]
+    max_results_per_source: 4
+    parallel_search: true
+
+# Benefits of unified system:
+# ✅ All sources work the same way
+# ✅ Users can customize ANY source (even built-ins)
+# ✅ No more Python API client code needed
+# ✅ Consistent error handling, retry, caching
+# ✅ Much simpler codebase
+# ✅ Easy to add new sources
+# ✅ Easy to debug and maintain

@@ -1,0 +1,151 @@
+# Simple Config-Only Source Examples
+# Users can add new academic sources with just configuration - no Python code needed!
+
+sources:
+  # Example 1: Europe PMC (39M+ life sciences abstracts, no API key needed)
+  europe_pmc:
+    name: europe_pmc
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: 'Europe PMC - Life sciences database with 39M+ abstracts'
+      base_url: 'https://www.ebi.ac.uk/europepmc/webservices/rest'
+      search_path: '/search'
+      query_param: 'query'
+      limit_param: 'pageSize'
+      response_format: 'json'
+      results_path: 'resultList.result'
+      extra_params:
+        format: 'json'
+        resultType: 'core'
+      field_mappings:
+        title: 'title'
+        authors: 'authorString'
+        abstract: 'abstractText'
+        journal: 'journalTitle'
+        year: 'pubYear'
+        doi: 'doi'
+        url: 'fullTextUrlList.fullTextUrl.0.url'
+        citation_count: 'citedByCount'
+      rate_limit_delay: 0.2
+
+  # Example 2: Directory of Open Access Journals (2.1M+ open access articles)
+  doaj:
+    name: doaj
+    type: http_api
+    enabled: true
+    timeout: 30
+    config:
+      description: 'Directory of Open Access Journals - 2.1M+ open access articles'
+      base_url: 'https://doaj.org/api/search'
+      search_path: '/articles/_search'
+      query_param: 'q'
+      limit_param: 'pageSize'
+      response_format: 'json'
+      results_path: 'results'
+      field_mappings:
+        title: 'bibjson.title'
+        authors: 'bibjson.author'
+        abstract: 'bibjson.abstract'
+        journal: 'bibjson.journal.title'
+        year: 'bibjson.year'
+        doi: 'bibjson.identifier.0.id'
+        url: 'bibjson.link.0.url'
+      rate_limit_delay: 0.5
+
+  # Example 3: CORE (requires free API key)
+  core_ac_uk:
+    name: core_ac_uk
+    type: http_api
+    enabled: false  # Set to true after adding API key
+    timeout: 30
+    config:
+      description: 'CORE - Open access research papers aggregator'
+      base_url: 'https://api.core.ac.uk/v3'
+      search_path: '/search/works'
+      query_param: 'q'
+      limit_param: 'limit'
+      response_format: 'json'
+      results_path: 'results'
+      api_key: 'YOUR_API_KEY_HERE'  # Get free key from https://core.ac.uk/services/api/
+      auth_header: 'Authorization'
+      auth_type: 'Bearer'
+      field_mappings:
+        title: 'title'
+        authors: 'authors'
+        abstract: 'abstract'
+        journal: 'journals.0.title'
+        year: 'yearPublished'
+        doi: 'doi'
+        url: 'downloadUrl'
+        pdf_url: 'fullTextPdfUrl'
+      rate_limit_delay: 0.1
+
+  # Example 4: How to add a hypothetical API source
+  # (This is just an example - replace with real API details)
+  my_university_repo:
+    name: my_university_repo
+    type: http_api
+    enabled: false  # Enable after configuring
+    timeout: 30
+    config:
+      description: 'My University Institutional Repository'
+      base_url: 'https://repository.myuniversity.edu/api'
+      search_path: '/search'
+      query_param: 'q'
+      limit_param: 'limit'
+      response_format: 'json'
+      results_path: 'items'
+      # Optional authentication
+      # api_key: 'your-api-key'
+      # auth_header: 'X-API-Key'
+      # auth_type: 'ApiKey'
+      field_mappings:
+        title: 'metadata.title'
+        authors: 'metadata.creators'
+        abstract: 'metadata.description'
+        year: 'metadata.date'
+        url: 'handle'
+        pdf_url: 'downloads.0.url'
+      extra_params:
+        type: 'thesis'
+        status: 'published'
+      rate_limit_delay: 1.0
+
+categories:
+  # Updated categories to include new sources
+  comprehensive:
+    name: comprehensive
+    display_name: 'Comprehensive Search'
+    description: 'Search across all available sources for maximum coverage'
+    type: standard
+    sources: ['crossref', 'semantic_scholar', 'arxiv', 'pubmed', 'pubmed_central', 'clinicaltrials', 'europe_pmc', 'doaj']
+    max_results_per_source: 4
+    parallel_search: true
+
+  open_access:
+    name: open_access
+    display_name: 'Open Access Publications'
+    description: 'Focus on freely available full-text articles'
+    type: standard
+    sources: ['arxiv', 'pubmed_central', 'semantic_scholar', 'doaj', 'europe_pmc']
+    max_results_per_source: 6
+    parallel_search: true
+
+  life_sciences:
+    name: life_sciences
+    display_name: 'Life Sciences Research'
+    description: 'Specialized life sciences and biomedical research'
+    type: standard
+    sources: ['pubmed', 'pubmed_central', 'europe_pmc', 'doaj']
+    max_results_per_source: 8
+    parallel_search: true
+
+# How to use this config:
+# 1. Save as ~/.paperez/config.yaml (overwrites defaults)
+# 2. Or merge sections into your existing config
+# 3. Restart PaperezMCP to load new sources
+# 4. New sources will be available immediately in searches!
+
+# That's it! No Python code needed.

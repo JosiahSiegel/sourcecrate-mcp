@@ -1,0 +1,303 @@
+"""
+Generic HTTP API client for config-based sources.
+
+This allows users to add new academic sources just by providing configuration,
+without needing to write any Python code.
+"""
+
+import asyncio
+import logging
+from typing import Any, Dict, List, Optional
+import httpx
+from urllib.parse import urlencode
+
+from .base_client import BaseAPIClient
+
+logger = logging.getLogger(__name__)
+
+
+class GenericHTTPClient(BaseAPIClient):
+    """
+    Generic HTTP API client that works with any REST API via configuration.
+
+    Users can add new sources by just providing config like:
+    {
+        "base_url": "https://api.example.com",
+        "search_path": "/search",
+        "query_param": "q",
+        "limit_param": "max_results",
+        "response_format": "json",
+        "results_path": "data.results",
+        "field_mappings": {
+            "title": "title",
+            "authors": "authors",
+            "abstract": "description",
+            "year": "publication_year",
+            "doi": "doi",
+            "url": "url"
+        }
+    }
+    """
+
+    def __init__(self, source_name: str, **config):
+        """
+        Initialize generic HTTP client.
+
+        Args:
+            source_name: Name of the source
+            **config: Source configuration
+        """
+        super().__init__(source_name, cache_expire=config.get('cache_expire', 3600))
+
+        # Required configuration
+        self.base_url = config.get('base_url')
+        if not self.base_url:
+            raise ValueError(f"base_url is required for {source_name}")
+
+        # API endpoint configuration
+        self.search_path = config.get('search_path', '/search')
+        self.query_param = config.get('query_param', 'q')
+        self.limit_param = config.get('limit_param', 'limit')
+
+        # Authentication
+        self.api_key = config.get('api_key')
+        self.auth_header = config.get('auth_header', 'Authorization')
+        self.auth_type = config.get('auth_type', 'Bearer')  # Bearer, Basic, ApiKey
+
+        # Request configuration
+        self.timeout = config.get('timeout', 30)
+        self.headers = config.get('headers', {})
+        self.extra_params = config.get('extra_params', {})
+
+        # Response parsing
+        self.response_format = config.get('response_format', 'json')
+        self.results_path = config.get('results_path', 'results')  # e.g., "data.results"
+        self.total_path = config.get('total_path', 'total')
+
+        # Field mappings from API response to standard format
+        self.field_mappings = config.get('field_mappings', {
+            'title': 'title',
+            'authors': 'authors',
+            'abstract': 'abstract',
+            'journal': 'journal',
+            'year': 'year',
+            'doi': 'doi',
+            'url': 'url',
+            'pdf_url': 'pdf_url',
+            'citation_count': 'citation_count'
+        })
+
+        # Rate limiting
+        self.rate_limit_delay = config.get('rate_limit_delay', 0.1)
+
+    def _get_nested_value(self, data: Dict[str, Any], path: str) -> Any:
+        """Get value from nested dictionary using dot notation path."""
+        try:
+            keys = path.split('.')
+            value = data
+            for key in keys:
+                if isinstance(value, list) and key.isdigit():
+                    value = value[int(key)]
+                elif isinstance(value, dict):
+                    value = value.get(key)
+                else:
+                    return None
+            return value
+        except (KeyError, IndexError, AttributeError):
+            return None
+
+    def _build_headers(self) -> Dict[str, str]:
+        """Build request headers including authentication."""
+        headers = self.headers.copy()
+        headers['User-Agent'] = 'PaperezMCP Academic Research Tool'
+
+        if self.api_key:
+            if self.auth_type == 'Bearer':
+                headers[self.auth_header] = f"Bearer {self.api_key}"
+            elif self.auth_type == 'ApiKey':
+                headers[self.auth_header] = self.api_key
+            elif self.auth_type == 'Basic':
+                import base64
+                encoded = base64.b64encode(f"{self.api_key}:".encode()).decode()
+                headers[self.auth_header] = f"Basic {encoded}"
+
+        return headers
+
+    def _build_params(self, query: str, limit: int, **kwargs) -> Dict[str, Any]:
+        """Build query parameters."""
+        params = self.extra_params.copy()
+
+        # Handle CrossRef-style query formatting
+        formatted_query = query
+        if self.source_name == 'crossref':
+            # Wrap multi-word queries in quotes for better phrase search
+            if ' ' in query.strip() and not (query.strip().startswith('"') and query.strip().endswith('"')):
+                formatted_query = f'"{query}"'
+
+        params[self.query_param] = formatted_query
+        params[self.limit_param] = limit
+
+        # Add any additional parameters from kwargs
+        for key, value in kwargs.items():
+            if key not in ['force_category']:  # Skip internal parameters
+                params[key] = value
+
+        return params
+
+    def _parse_authors(self, authors_data: Any) -> List[str]:
+        """Parse authors from various formats."""
+        if not authors_data:
+            return []
+
+        if isinstance(authors_data, str):
+            # Handle comma-separated string
+            return [author.strip() for author in authors_data.split(',') if author.strip()]
+        elif isinstance(authors_data, list):
+            # Handle list of author objects or strings
+            result = []
+            for author in authors_data:
+                if isinstance(author, str):
+                    result.append(author.strip())
+                elif isinstance(author, dict):
+                    # Try common author field names
+                    name = None
+
+                    # CrossRef format: {"given": "John", "family": "Smith"}
+                    if 'given' in author and 'family' in author:
+                        name = f"{author.get('given', '')} {author.get('family', '')}".strip()
+                    # Semantic Scholar format: {"name": "John Smith"}
+                    elif 'name' in author:
+                        name = author.get('name', '').strip()
+                    # Other common formats
+                    else:
+                        name = (author.get('full_name') or
+                               author.get('display_name') or
+                               f"{author.get('first_name', '')} {author.get('last_name', '')}".strip())
+
+                    if name:
+                        result.append(name)
+            return result
+        else:
+            return [str(authors_data)]
+
+    def _standardize_paper(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert API response item to standard paper format."""
+        paper = {}
+
+        for standard_field, api_field in self.field_mappings.items():
+            if api_field:
+                value = self._get_nested_value(item, api_field)
+
+                if standard_field == 'authors':
+                    paper[standard_field] = self._parse_authors(value)
+                elif standard_field == 'year' and value:
+                    # Try to extract year from various date formats
+                    try:
+                        if isinstance(value, str):
+                            # Extract first 4-digit number (likely year)
+                            import re
+                            year_match = re.search(r'\b(19|20)\d{2}\b', value)
+                            paper[standard_field] = int(year_match.group()) if year_match else None
+                        else:
+                            paper[standard_field] = int(value)
+                    except (ValueError, TypeError):
+                        paper[standard_field] = None
+                elif standard_field == 'citation_count' and value:
+                    try:
+                        paper[standard_field] = int(value)
+                    except (ValueError, TypeError):
+                        paper[standard_field] = 0
+                elif standard_field == 'url' and self.source_name == 'crossref':
+                    # CrossRef: Generate DOI URL if no direct URL provided
+                    if not value and paper.get('doi'):
+                        paper[standard_field] = f"https://doi.org/{paper['doi']}"
+                    else:
+                        paper[standard_field] = value or ""
+                else:
+                    paper[standard_field] = value or ""
+            else:
+                # Set default values for unmapped fields
+                if standard_field in ['authors']:
+                    paper[standard_field] = []
+                elif standard_field in ['citation_count']:
+                    paper[standard_field] = 0
+                else:
+                    paper[standard_field] = ""
+
+        return super()._standardize_paper(paper)
+
+    async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[str, Any]]:
+        """
+        Perform search using generic HTTP API configuration.
+
+        Args:
+            query: Search query
+            limit: Maximum results to return
+            **kwargs: Additional search parameters
+
+        Returns:
+            List of standardized paper dictionaries
+        """
+        try:
+            # Rate limiting
+            if self.rate_limit_delay > 0:
+                await asyncio.sleep(self.rate_limit_delay)
+
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                # Build request
+                url = f"{self.base_url.rstrip('/')}{self.search_path}"
+                headers = self._build_headers()
+                params = self._build_params(query, limit, **kwargs)
+
+                self.logger.debug(f"Requesting {url} with params: {params}")
+
+                # Make request
+                response = await client.get(url, headers=headers, params=params)
+
+                if response.status_code == 429:
+                    # Rate limited - wait and retry once
+                    retry_after = int(response.headers.get('Retry-After', 60))
+                    self.logger.warning(f"Rate limited, waiting {retry_after}s")
+                    await asyncio.sleep(retry_after)
+                    response = await client.get(url, headers=headers, params=params)
+
+                if response.status_code != 200:
+                    self.logger.warning(f"API returned {response.status_code}: {response.text[:200]}")
+                    return []
+
+                # Parse response
+                if self.response_format == 'json':
+                    data = response.json()
+                else:
+                    self.logger.error(f"Unsupported response format: {self.response_format}")
+                    return []
+
+                # Extract results
+                results = self._get_nested_value(data, self.results_path)
+                if not isinstance(results, list):
+                    self.logger.warning(f"Expected list at {self.results_path}, got {type(results)}")
+                    return []
+
+                # Convert to standard format
+                papers = []
+                for item in results[:limit]:
+                    try:
+                        paper = self._standardize_paper(item)
+                        if paper.get('title'):  # Only include papers with titles
+                            papers.append(paper)
+                    except Exception as e:
+                        self.logger.warning(f"Failed to parse item: {e}")
+                        continue
+
+                self.logger.info(f"Found {len(papers)} papers from {self.source_name}")
+                return papers
+
+        except httpx.TimeoutException:
+            self.logger.warning(f"Timeout searching {self.source_name}")
+            return []
+        except httpx.HTTPError as e:
+            self.logger.warning(f"HTTP error searching {self.source_name}: {e}")
+            return []
+        except Exception as e:
+            self.logger.error(f"Unexpected error searching {self.source_name}: {e}")
+            return []
