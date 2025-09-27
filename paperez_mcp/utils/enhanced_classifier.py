@@ -372,7 +372,7 @@ class EnhancedTopicClassifier:
                 if len(keyword.split()) > 1 and keyword.lower() in query_lower:
                     phrase_bonus += 0.1  # Bonus for exact phrase matches
 
-            # Combine scores with weights
+            # Combine scores with static weights
             combined_score = (
                 0.4 * jaccard_score +      # Primary: Jaccard with synonyms
                 0.3 * tfidf_score +        # Secondary: TF-IDF weighting
@@ -415,7 +415,6 @@ class EnhancedTopicClassifier:
             subcategory_scores[subcat_name] = score
 
         return subcategory_scores
-
 
 # Convenience functions for backward compatibility
 def classify_query_topic_enhanced(query: str) -> Dict[str, float]:

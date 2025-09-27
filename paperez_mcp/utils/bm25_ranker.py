@@ -589,7 +589,6 @@ class BM25SourceRanker:
 
         return alternatives
 
-
 # Convenience functions
 def rank_sources_bm25(query: str, available_sources: List[str] = None) -> List[Tuple[str, float]]:
     """Rank sources using BM25 algorithm."""
