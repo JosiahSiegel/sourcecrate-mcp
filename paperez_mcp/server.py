@@ -967,65 +967,108 @@ async def batch_convert_pdfs(
 
         os.makedirs(output_dir, exist_ok=True)
 
+        import asyncio
+
         results = []
         successful = 0
         failed = 0
 
-        for pdf_file in pdf_files:
-            try:
-                result = await _convert_pdf_to_markdown_internal(str(pdf_file))
+        async def process_single_pdf(
+            pdf_file: Path, semaphore: asyncio.Semaphore
+        ) -> dict[str, Any]:
+            """Process a single PDF file and return result."""
+            async with semaphore:  # Limit concurrent processing
+                try:
+                    result = await _convert_pdf_to_markdown_internal(str(pdf_file))
 
-                if result.get("success"):
-                    # Move to output directory
-                    filename = pdf_file.stem + "_full.md"
-                    output_path = os.path.join(output_dir, filename)
+                    if result.get("success"):
+                        # Move to output directory
+                        filename = pdf_file.stem + "_full.md"
+                        output_path = os.path.join(output_dir, filename)
 
-                    save_result = utils["save_markdown_file"](
-                        result["markdown"], output_path
-                    )
+                        save_result = utils["save_markdown_file"](
+                            result["markdown"], output_path
+                        )
 
-                    # Clean up markdown content to avoid context window usage
-                    if "markdown" in result:
-                        del result["markdown"]
+                        # Clean up markdown content to avoid context window usage
+                        if "markdown" in result:
+                            del result["markdown"]
 
-                    if save_result.get("success"):
-                        successful += 1
-                        results.append(
-                            {
+                        if save_result.get("success"):
+                            return {
                                 "input_file": str(pdf_file),
                                 "output_file": output_path,
                                 "success": True,
                                 "characters": result.get("markdown_length", 0),
                             }
-                        )
-                    else:
-                        failed += 1
-                        results.append(
-                            {
+                        else:
+                            return {
                                 "input_file": str(pdf_file),
                                 "success": False,
                                 "error": save_result.get("error"),
                             }
-                        )
-                else:
-                    # Clean up markdown content even on failure
-                    if "markdown" in result:
-                        del result["markdown"]
+                    else:
+                        # Clean up markdown content even on failure
+                        if "markdown" in result:
+                            del result["markdown"]
 
-                    failed += 1
-                    results.append(
-                        {
+                        return {
                             "input_file": str(pdf_file),
                             "success": False,
                             "error": result.get("error"),
                         }
-                    )
 
-            except Exception as e:
-                failed += 1
-                results.append(
-                    {"input_file": str(pdf_file), "success": False, "error": str(e)}
-                )
+                except Exception as e:
+                    return {
+                        "input_file": str(pdf_file),
+                        "success": False,
+                        "error": str(e),
+                    }
+
+        # Process PDFs in parallel for better performance
+        if len(pdf_files) > 1:
+            # Limit concurrent PDF processing to avoid overwhelming the system
+            max_concurrent_pdfs = min(
+                5, len(pdf_files)
+            )  # Process max 5 PDFs concurrently
+            semaphore = asyncio.Semaphore(max_concurrent_pdfs)
+
+            # Create tasks for parallel processing
+            pdf_tasks = [
+                process_single_pdf(pdf_file, semaphore) for pdf_file in pdf_files
+            ]
+
+            # Execute all tasks concurrently
+            pdf_results = await asyncio.gather(*pdf_tasks, return_exceptions=True)
+
+            # Collect results
+            for i, result in enumerate(pdf_results):
+                if isinstance(result, Exception):
+                    # Handle exception from gather
+                    failed += 1
+                    results.append(
+                        {
+                            "input_file": str(pdf_files[i]),
+                            "success": False,
+                            "error": str(result),
+                        }
+                    )
+                elif result.get("success"):
+                    successful += 1
+                    results.append(result)
+                else:
+                    failed += 1
+                    results.append(result)
+        else:
+            # For single files, process directly
+            semaphore = asyncio.Semaphore(1)
+            for pdf_file in pdf_files:
+                result = await process_single_pdf(pdf_file, semaphore)
+                if result.get("success"):
+                    successful += 1
+                else:
+                    failed += 1
+                results.append(result)
 
         return {
             "success": True,

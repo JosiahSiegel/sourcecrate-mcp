@@ -6,10 +6,7 @@ Supports custom categories, source providers, and meta-categories.
 import logging
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
-
-# Temporarily disable validators for testing - will fix with proper Pydantic V2 syntax
-# from pydantic import validator
+from pydantic import BaseModel, Field, model_validator
 
 logger = logging.getLogger(__name__)
 
@@ -126,24 +123,19 @@ class SourceProviderConfig(BaseModel):
     # Source capabilities and characteristics
     capabilities: SourceCapabilities | None = None
 
-    # TODO: Fix validators for Pydantic V2
-    # @validator('function_name')
-    # def validate_builtin_function(cls, v, values):
-    #     if values.get('type') == 'builtin' and not v:
-    #         raise ValueError("function_name required for builtin sources")
-    #     return v
+    @model_validator(mode="after")
+    def validate_source_config(self) -> "SourceProviderConfig":
+        """Validate source configuration based on type."""
+        if self.type == "builtin" and not self.function_name:
+            raise ValueError("function_name required for builtin sources")
 
-    # @validator('module_path')
-    # def validate_module_path(cls, v, values):
-    #     if values.get('type') == 'plugin' and not v:
-    #         raise ValueError("module_path required for plugin sources")
-    #     return v
+        if self.type == "plugin":
+            if not self.module_path:
+                raise ValueError("module_path required for plugin sources")
+            if not self.class_name:
+                raise ValueError("class_name required for plugin sources")
 
-    # @validator('class_name')
-    # def validate_class_name(cls, v, values):
-    #     if values.get('type') == 'plugin' and not v:
-    #         raise ValueError("class_name required for plugin sources")
-    #     return v
+        return self
 
 
 class CategoryConfig(BaseModel):
@@ -176,18 +168,16 @@ class CategoryConfig(BaseModel):
     max_results_per_source: int = Field(5, description="Max results per source")
     parallel_search: bool = Field(True, description="Search sources in parallel")
 
-    # TODO: Fix validators for Pydantic V2
-    # @validator('sources')
-    # def validate_standard_sources(cls, v, values):
-    #     if values.get('type') == 'standard' and not v:
-    #         raise ValueError("sources required for standard categories")
-    #     return v
+    @model_validator(mode="after")
+    def validate_category_config(self) -> "CategoryConfig":
+        """Validate category configuration based on type."""
+        if self.type == "standard" and not self.sources:
+            raise ValueError("sources required for standard categories")
 
-    # @validator('includes')
-    # def validate_meta_includes(cls, v, values):
-    #     if values.get('type') == 'meta' and not v:
-    #         raise ValueError("includes required for meta categories")
-    #     return v
+        if self.type == "meta" and not self.includes:
+            raise ValueError("includes required for meta categories")
+
+        return self
 
 
 class QueryRoutingConfig(BaseModel):
@@ -285,13 +275,15 @@ class PaperezConfig(BaseModel):
         True, description="Enable built-in default sources"
     )
 
-    # TODO: Fix validators for Pydantic V2
-    # @validator('default_category')
-    # def validate_default_category(cls, v, values):
-    #     categories = values.get('categories', {})
-    #     if categories and v not in categories:
-    #         logger.warning(f"Default category '{v}' not found in categories")
-    #     return v
+    @model_validator(mode="after")
+    def validate_paperez_config(self) -> "PaperezConfig":
+        """Validate configuration consistency."""
+        if self.default_category and self.default_category not in self.categories:
+            logger.warning(
+                f"Default category '{self.default_category}' not found in categories"
+            )
+
+        return self
 
     def get_category_sources(self, category_name: str) -> list[str]:
         """Get source names for a category, resolving meta-categories."""
