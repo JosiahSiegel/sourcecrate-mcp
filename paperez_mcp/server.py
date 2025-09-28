@@ -857,8 +857,10 @@ async def get_status() -> dict[str, Any]:
         logger.warning(f"Health monitoring unavailable: {e}")
         basic_status.update({
             "health_report": {"status": "monitoring_unavailable"},
-            "recommendations": [],
-            "monitoring_enabled": False
+            "recommendations": [],  # list[dict[str, Any]] - empty list is valid
+            "monitoring_enabled": False,  # bool - matches successful case
+            "health_check_results": {},
+            "timestamp": ""
         })
 
     return basic_status
