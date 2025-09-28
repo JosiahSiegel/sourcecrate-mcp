@@ -67,15 +67,14 @@ or
 /mcp add paperez-mcp uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp
 ```
 
-## 📋 Available Tools (6 Optimized Functions)
-
-🚨 **CRITICAL**: Default behavior returns only metadata/abstracts! Use `download_and_convert=True` for full papers.
+## 📋 Available Tools (7 Optimized Functions)
 
 ### 🔍 Search & Discovery
 
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
-| **`search_papers`** | 🚨 **MAIN TOOL** - Search academic papers across 5 databases | `download_and_convert=True` for files<br/>`include_full_text=True` for memory |
+| **`download_papers`** | 📄 **MAIN TOOL** - Get/download full papers as files | `limit=5` papers<br/>`output_dir` for custom location |
+| **`browse_papers`** | 🔍 Quick metadata overview (titles/abstracts only) | Use for exploration before downloading |
 
 ### 📄 PDF Processing
 
@@ -89,75 +88,71 @@ or
 
 | Tool | Description | Purpose |
 |------|-------------|---------|
-| **`get_status`** | Check API health and system configuration | Troubleshooting, monitoring |
+| **`get_status`** | Check API health, performance metrics, and system status | Troubleshooting, monitoring |
+| **`get_help`** | Configuration guide with paths, schemas, and examples | Setup, customization |
 
-## 🚨 CRITICAL: Getting Full Papers vs Metadata
+## 🎯 Getting Papers: Browse vs Download
 
-### ❌ Common Mistake (Returns Only Summaries)
+### 🔍 Browse Papers (Metadata Only)
 ```python
-# This only gets metadata/abstracts - NOT full papers!
-search_papers("Balfour Declaration documents", limit=10)
+# Quick overview of available papers - returns titles/abstracts only
+browse_papers("machine learning transformers", limit=10)
 ```
 
-### ✅ Correct Usage (Gets Full Papers)
+### 📄 Download Papers (Full Papers as Files)
 ```python
-# Option 1: Get 3 full papers as markdown files
-search_papers("Balfour Declaration documents", limit=3, download_and_convert=True)
+# Get full papers as markdown files - this is what most users want
+download_papers("machine learning transformers", limit=5)
 
-# Option 2: Get full text in memory for analysis
-search_papers("Balfour Declaration documents", limit=10, include_full_text=True)
+# Save to specific directory
+download_papers("neural networks", limit=3, output_dir="my_research")
 
-# Option 3: Multi-step for 10+ papers
-papers = search_papers("Balfour Declaration documents", limit=10)  # Get metadata
-for paper in papers[0]["results"]:
-    if paper.get("pdf_url"):
-        convert_pdf_to_markdown(paper["pdf_url"], output_path=f"papers/{paper['title'][:50]}.md")
+# Keep as PDFs instead of converting to markdown
+download_papers("AI papers", limit=2, convert_to_markdown=False)
 ```
 
 ### 🎯 Quick Solutions by Use Case
 
 | Request | Solution |
 |---------|----------|
-| "Get 10 papers on topic" | `search_papers("topic", limit=10)` → **metadata only** |
-| "Save 3 papers as files" | `search_papers("topic", limit=3, download_and_convert=True)` |
-| "Save 10 papers as files" | Multiple calls or multi-step workflow |
-| "Analyze paper content" | `search_papers("topic", include_full_text=True)` |
+| "Get papers on topic" | `download_papers("topic", limit=5)` → **full papers as files** |
+| "Browse papers first" | `browse_papers("topic", limit=10)` → **metadata only** |
+| "Save to specific folder" | `download_papers("topic", output_dir="my_folder")` |
+| "Get configuration help" | `get_help()` → **setup guidance** |
 
-### Advanced Processing & Storage
-
-| Tool                         | Description                                      |
-| ---------------------------- | ------------------------------------------------ |
-| `download_and_convert_paper` | **Download + convert to markdown (zero tokens)** |
-| `batch_convert_local_pdfs`   | **Bulk process PDF collections**                 |
-| `find_open_access_versions`  | **Find free versions across multiple sources**   |
-| `get_api_status`             | View API health and cache statistics             |
 
 ## 💡 Usage Examples
 
 ### Basic Usage
 
 ```bash
-# Search for papers
-/mcp call paperez-mcp search_papers '{"query": "machine learning", "limit": 3}'
+# Download papers as files (most common use case)
+/mcp call paperez-mcp download_papers '{"query": "machine learning", "limit": 3}'
 
-# Find papers by author (use author name in search)
+# Browse papers (metadata only)
 /mcp call paperez-mcp browse_papers '{"query": "Geoffrey Hinton", "limit": 5}'
+
+# Get configuration help
+/mcp call paperez-mcp get_help '{}'
 ```
 
 ### Full-Text Retrieval & Processing
 
 ```bash
-# Comprehensive search with multi-source fallback
-/mcp call paperez-mcp search_papers '{"query": "transformer attention mechanism", "limit": 3, "include_full_text": true}'
+# Download full papers as files
+/mcp call paperez-mcp download_papers '{"query": "transformer attention mechanism", "limit": 3}'
 
-# Get unlimited text from paper (no character limits)
-/mcp call paperez-mcp search_papers '{"query": "Attention Is All You Need", "include_full_text": true}'
+# Browse papers first, then download selected ones
+/mcp call paperez-mcp browse_papers '{"query": "Attention Is All You Need", "limit": 5}'
 
-# Download and convert to markdown (zero AI tokens)
-/mcp call paperez-mcp convert_pdf_to_markdown '{"pdf_url": "https://arxiv.org/pdf/1706.03762.pdf"}'
-
-# Convert local PDF to structured markdown
+# Convert PDF to markdown (zero AI tokens)
 /mcp call paperez-mcp convert_pdf_to_markdown '{"file_path": "/path/to/paper.pdf"}'
+
+# Convert PDF to plain text
+/mcp call paperez-mcp convert_pdf_to_text '{"file_path": "/path/to/paper.pdf"}'
+
+# Batch convert multiple PDFs
+/mcp call paperez-mcp batch_convert_pdfs '{"directory": "research_papers/"}'
 ```
 
 ### Natural Language with AI

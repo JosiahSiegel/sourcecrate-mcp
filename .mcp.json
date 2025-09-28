@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "description": "PaperezMCP - Academic Paper Research Made Easy - 6 Optimized Tools",
+  "description": "PaperezMCP - Academic Paper Research Made Easy - 7 Optimized Tools",
   "mcpServers": {
     "paperez-mcp": {
       "command": "uvx",
@@ -40,7 +40,11 @@
         },
         {
           "name": "get_status",
-          "description": "Get system status including API health for all academic databases and cache statistics for troubleshooting."
+          "description": "Get comprehensive system status including API health, source monitoring, performance metrics, and configuration details for troubleshooting."
+        },
+        {
+          "name": "get_help",
+          "description": "❓ CONFIGURATION HELP: Get comprehensive guidance on creating config files, including paths, schemas, examples, and troubleshooting."
         }
       ]
     }

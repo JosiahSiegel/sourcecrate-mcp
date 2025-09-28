@@ -983,144 +983,63 @@ async def batch_convert_pdfs(
         }
 
 
-@mcp.tool
-async def get_source_health() -> Dict[str, Any]:
-    """
-    Get comprehensive source health monitoring report.
-
-    Provides detailed health metrics, performance data, and recommendations
-    for all academic database sources. Includes active health checks.
-
-    Args:
-        None - This tool takes no parameters
-
-    Returns:
-        Dictionary containing:
-        - health_report: Overall health status and source metrics
-        - recommendations: Specific recommendations for improving source health
-        - health_check_results: Results from active health checks
-        - monitoring_enabled: Whether health monitoring is active
-
-    Health Report contains:
-        - overall_status: "healthy", "degraded", or "critical"
-        - sources: Detailed metrics for each source including:
-          - health_score: 0.0 to 1.0 health rating
-          - success_rate: Percentage of successful requests
-          - average_response_time: Average response time in seconds
-          - consecutive_failures: Number of consecutive failures
-          - last_success/failure: Timestamps of last success/failure
-        - summary: Count of healthy/unhealthy/disabled sources
-
-    Recommendations include:
-        - severity: "high", "medium", or "low"
-        - issue: Description of the problem
-        - recommendation: Suggested action
-        - action: Specific next steps
-
-    Use Cases:
-        - Monitor system health proactively
-        - Identify sources with performance issues
-        - Get recommendations for system improvements
-        - Troubleshoot search performance problems
-        - Plan maintenance and optimization
-
-    Example Usage:
-        # Get comprehensive health report
-        health = get_source_health()
-
-        # Check overall system status
-        if health["health_report"]["overall_status"] == "critical":
-            print("System needs immediate attention")
-
-        # Review recommendations
-        for rec in health["recommendations"]:
-            if rec["severity"] == "high":
-                print(f"URGENT: {rec['recommendation']}")
-    """
-    from paperez_mcp.utils.source_health_monitor import health_monitor
-
-    # Perform active health check
-    health_check = await health_monitor.perform_health_check()
-
-    # Save metrics to cache for persistence
-    health_monitor.save_metrics_to_cache()
-
-    return {
-        "health_report": health_monitor.get_health_report(),
-        "recommendations": health_monitor.get_source_recommendations(),
-        "health_check_results": health_check["health_check_results"],
-        "monitoring_enabled": health_monitor.monitoring_enabled,
-        "timestamp": health_check["overall_report"]["timestamp"]
-    }
 
 
 @mcp.tool
 async def get_status() -> Dict[str, Any]:
     """
-    Get system status including API health and cache statistics.
+    Get comprehensive system status including API health, source monitoring, and configuration details.
 
-    Reports the operational status of all academic databases (CrossRef, Semantic Scholar,
-    arXiv, PubMed, Google Scholar), cache usage, and configuration details.
+    Reports operational status of all academic databases, detailed health metrics, performance data,
+    cache usage, and configuration details with recommendations for system improvements.
 
     Args:
         None - This tool takes no parameters
 
     Returns:
         Dictionary containing:
-        - api_status: Status of all academic database APIs
+        - api_status: Basic status of all academic database APIs
         - cache_stats: Cache usage and configuration information
         - config: System configuration details
+        - health_report: Detailed health monitoring with performance metrics
+        - recommendations: Specific recommendations for system improvements
+        - monitoring_enabled: Whether health monitoring is active
 
         api_status contains:
-        - crossref: Boolean indicating CrossRef API availability
-        - semantic_scholar: Boolean indicating Semantic Scholar API availability
-        - arxiv: Boolean indicating arXiv API availability
-        - pubmed: Boolean indicating PubMed API availability
-        - google_scholar: Boolean indicating Google Scholar availability
+        - crossref, semantic_scholar, arxiv, pubmed, google_scholar, etc: Boolean availability
 
-        cache_stats contains:
-        - size: Number of cached entries currently stored
-        - cache_dir: Directory path where cache files are stored
-        - size_limit: Maximum cache size in bytes (default: 1GB)
+        health_report contains:
+        - overall_status: "healthy", "degraded", or "critical"
+        - sources: Detailed metrics for each source (health scores, response times, success rates)
+        - summary: Count of healthy/unhealthy/disabled sources
 
-        config contains:
-        - has_semantic_scholar_key: Boolean indicating if API key is configured
-        - has_scraperapi_key: Boolean indicating if scraper API key is configured
-        - crossref_email: Email address used for CrossRef API requests
-        - max_retries: Maximum number of retry attempts for failed requests
-
-    Status Interpretation:
-        - api_status true = API is operational and accessible
-        - api_status false = API is unavailable, rate-limited, or has connectivity issues
-        - cache size indicates how many search results are cached
-        - Missing API keys may limit access to certain features
+        recommendations include:
+        - severity: "high", "medium", or "low"
+        - issue: Description of the problem
+        - recommendation: Suggested action
 
     Use Cases:
+        - Comprehensive system health monitoring
         - Troubleshooting API connectivity issues
-        - Monitoring cache usage and performance
-        - Verifying system configuration
-        - Checking which databases are available for searches
-        - Debugging search failures
+        - Performance optimization insights
+        - Configuration verification
+        - Proactive maintenance planning
 
     Example Usage:
-        # Check overall system health
+        # Get complete system status
         status = get_status()
 
-        # Verify specific API availability
-        if status["api_status"]["crossref"]:
-            print("CrossRef API is operational")
+        # Check overall health
+        if status["health_report"]["overall_status"] == "critical":
+            print("System needs immediate attention")
 
-        # Monitor cache usage
-        cache_size = status["cache_stats"]["size"]
-        if cache_size > 1000:
-            print(f"Cache has {cache_size} entries")
-
-        # Check configuration
-        config = status["config"]
-        if not config["has_semantic_scholar_key"]:
-            print("Consider adding Semantic Scholar API key for better performance")
+        # Review urgent recommendations
+        for rec in status["recommendations"]:
+            if rec["severity"] == "high":
+                print(f"URGENT: {rec['recommendation']}")
     """
-    return {
+    # Get basic status
+    basic_status = {
         "api_status": api_status.copy(),
         "cache_stats": {
             "size": len(cache),
@@ -1135,6 +1054,272 @@ async def get_status() -> Dict[str, Any]:
         }
     }
 
+    # Add comprehensive health monitoring
+    try:
+        from paperez_mcp.utils.source_health_monitor import health_monitor
+
+        # Perform active health check
+        health_check = await health_monitor.perform_health_check()
+
+        # Save metrics to cache for persistence
+        health_monitor.save_metrics_to_cache()
+
+        # Add health data to basic status
+        basic_status.update({
+            "health_report": health_monitor.get_health_report(),
+            "recommendations": health_monitor.get_source_recommendations(),
+            "health_check_results": health_check["health_check_results"],
+            "monitoring_enabled": health_monitor.monitoring_enabled,
+            "timestamp": health_check["overall_report"]["timestamp"]
+        })
+
+    except Exception as e:
+        logger.warning(f"Health monitoring unavailable: {e}")
+        basic_status.update({
+            "health_report": {"status": "monitoring_unavailable"},
+            "recommendations": [],
+            "monitoring_enabled": False
+        })
+
+    return basic_status
+
+
+@mcp.tool
+async def get_help() -> Dict[str, Any]:
+    """
+    Get comprehensive configuration guidance and help for PaperezMCP.
+
+    Provides detailed instructions on how to create configuration files, including
+    file paths, schemas, available options, and examples for customizing the system.
+
+    Args:
+        None - This tool takes no parameters
+
+    Returns:
+        Dictionary containing:
+        - config_guide: Complete configuration setup guide
+        - file_paths: Required file paths for configuration
+        - schema_info: Configuration schema and structure
+        - examples: Common configuration examples
+        - troubleshooting: Common issues and solutions
+    """
+
+    from pathlib import Path
+
+    help_info = {
+        "config_guide": {
+            "overview": "PaperezMCP uses YAML configuration files to customize sources, categories, and behavior.",
+            "setup_steps": [
+                "1. Create the configuration directory: .paperez/config/",
+                "2. Place your config.yaml file in that directory",
+                "3. Restart Claude Code after making changes for them to take effect",
+                "4. Use get_status() to verify your configuration is working"
+            ],
+            "important_notes": [
+                "Changes only take effect after pushing to GitHub and restarting Claude Code",
+                "User configs override defaults - same-name sources/categories replace entirely",
+                "Set use_default_sources: false to disable all built-in sources"
+            ]
+        },
+
+        "file_paths": {
+            "user_config_path": str(Path.home() / ".paperez" / "config" / "config.yaml"),
+            "project_config_path": str(Path.cwd() / ".paperez" / "config" / "config.yaml"),
+            "config_directory": ".paperez/config/",
+            "create_commands": [
+                "mkdir -p .paperez/config/",
+                "touch .paperez/config/config.yaml"
+            ]
+        },
+
+        "schema_info": {
+            "required_fields": {
+                "version": "Configuration version (string, e.g., '1.0')",
+                "sources": "Dictionary of source configurations",
+                "categories": "Dictionary of search categories"
+            },
+            "optional_fields": {
+                "use_default_sources": "Boolean - whether to include built-in sources (default: true)",
+                "default_category": "String - default search category (default: 'comprehensive')",
+                "max_concurrent_searches": "Integer - max parallel searches (default: 15)",
+                "global_cache_enabled": "Boolean - enable caching (default: true)",
+                "global_cache_expire": "Integer - cache expiration in seconds (default: 7200)",
+                "default_output_dir": "String - default output directory (default: '.paperez')",
+                "cleanup_temp_files": "Boolean - clean temporary files (default: true)"
+            },
+            "source_structure": {
+                "name": "Unique identifier for the source",
+                "type": "Source type: 'http_api' or 'builtin'",
+                "enabled": "Boolean - whether source is active",
+                "timeout": "Integer - request timeout in seconds",
+                "max_retries": "Integer - max retry attempts",
+                "cache_expire": "Integer - cache duration in seconds",
+                "config": "Source-specific configuration dictionary"
+            },
+            "category_structure": {
+                "name": "Unique identifier for the category",
+                "display_name": "Human-readable name",
+                "description": "Description of the category purpose",
+                "type": "Category type (usually 'standard')",
+                "sources": "List of source names to include",
+                "max_results_per_source": "Integer - max results per source",
+                "parallel_search": "Boolean - enable parallel searching"
+            }
+        },
+
+        "examples": {
+            "minimal_config": {
+                "description": "Basic configuration with just one source",
+                "content": """version: "1.0"
+use_default_sources: false
+sources:
+  crossref:
+    name: crossref
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: Primary academic publisher database
+      base_url: https://api.crossref.org
+      search_path: /works
+      query_param: query
+      limit_param: rows
+      response_format: json
+      results_path: message.items
+      field_mappings:
+        title: title.0
+        authors: author
+        doi: DOI
+        year: published-print.date-parts.0.0
+categories:
+  simple:
+    name: simple
+    display_name: Simple Search
+    description: Basic CrossRef search
+    type: standard
+    sources:
+      - crossref
+    max_results_per_source: 10
+    parallel_search: false"""
+            },
+
+            "custom_source_config": {
+                "description": "Adding a custom HTTP API source",
+                "content": """sources:
+  my_custom_api:
+    name: my_custom_api
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: My custom academic API
+      base_url: https://api.example.com
+      search_path: /search
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: results
+      field_mappings:
+        title: title
+        authors: authors
+        doi: doi
+        year: publication_year
+        abstract: abstract
+        url: url
+      rate_limit_delay: 0.5"""
+            },
+
+            "disable_defaults_config": {
+                "description": "Disable all default sources and use only custom ones",
+                "content": """version: "1.0"
+use_default_sources: false
+# Your custom sources and categories here"""
+            },
+
+            "enhance_defaults_config": {
+                "description": "Keep defaults but add custom sources",
+                "content": """version: "1.0"
+use_default_sources: true
+# Add your custom sources - they will be merged with defaults
+sources:
+  my_source:
+    # custom source configuration
+categories:
+  my_category:
+    # custom category configuration"""
+            }
+        },
+
+        "available_categories": {
+            "comprehensive": "Search across all available sources (default)",
+            "academic_premium": "High-quality peer-reviewed sources",
+            "preprints": "Latest research from preprint repositories",
+            "medical": "Medical and biomedical research sources",
+            "open_access": "Freely available full-text articles",
+            "historical": "Historical and archival content",
+            "business": "Business, economics, and finance research"
+        },
+
+        "available_sources": {
+            "crossref": "Primary academic publisher database",
+            "semantic_scholar": "AI-powered academic search engine",
+            "arxiv": "Preprint repository for STEM fields",
+            "pubmed": "Biomedical literature database",
+            "pubmed_central": "Full-text biomedical repository",
+            "europe_pmc": "European life sciences database",
+            "doaj": "Directory of Open Access Journals",
+            "hathitrust": "Historical books and documents",
+            "internet_archive": "Historical documents and archives",
+            "ssrn": "Business and economics research",
+            "clinicaltrials": "Clinical trials database",
+            "google_scholar": "Google Scholar (disabled by default)"
+        },
+
+        "troubleshooting": {
+            "config_not_loading": [
+                "Ensure file is at correct path: .paperez/config/config.yaml",
+                "Check YAML syntax is valid (use online YAML validator)",
+                "Restart Claude Code after configuration changes",
+                "Use get_status() to check if config loaded successfully"
+            ],
+            "sources_not_working": [
+                "Check source 'enabled' field is set to true",
+                "Verify API endpoints are accessible",
+                "Check timeout and retry settings",
+                "Review rate limiting delays",
+                "Use get_status() to check API health"
+            ],
+            "permission_errors": [
+                "Ensure .paperez directory is writable",
+                "Check file permissions on config.yaml",
+                "Verify directory exists before creating config file"
+            ],
+            "yaml_syntax_errors": [
+                "Use consistent indentation (spaces, not tabs)",
+                "Quote string values that contain special characters",
+                "Ensure proper list formatting with dashes",
+                "Check for unclosed brackets or quotes"
+            ]
+        },
+
+        "quick_start": {
+            "basic_setup": [
+                "mkdir -p .paperez/config/",
+                "Create .paperez/config/config.yaml with your desired sources",
+                "Use examples above as starting points",
+                "Test with get_status() and browse_papers()",
+                "Push changes and restart Claude Code"
+            ],
+            "recommended_first_config": "Start with 'enhance_defaults_config' example to keep built-in sources while adding custom ones"
+        }
+    }
+
+    return help_info
+
 
 def main() -> None:
     """Main entry point for the server"""
@@ -1146,9 +1331,11 @@ def main() -> None:
     print("  🔄 convert_pdf_to_markdown: Convert PDF to markdown format")
     print("  📁 batch_convert_pdfs: Convert multiple PDFs in a directory")
     print("  🔧 get_status: Check system health and API status")
+    print("  ❓ get_help: Configuration guide and setup instructions")
     print("")
     print("🎯 QUICK START: Use download_papers('topic') to get/download full papers!")
     print("   Only use browse_papers() if you just want to explore titles/abstracts.")
+    print("   Use get_help() for configuration guidance and setup instructions.")
     print("")
     print("🔗 PaperezMCP ready at: stdio")
     mcp.run()
