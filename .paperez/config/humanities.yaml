@@ -41,7 +41,7 @@ categories:
     type: standard
     sources:
       - openlibrary
-      - core_repository  # From social-sciences.yaml - also has humanities content
+      # - core_repository  # DISABLED: Requires API key registration
     max_results_per_source: 8
     parallel_search: true
 

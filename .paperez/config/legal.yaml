@@ -8,12 +8,12 @@ sources:
   courtlistener:
     name: courtlistener
     type: http_api
-    enabled: true
+    enabled: false  # DISABLED: Requires API token - create account at courtlistener.com
     timeout: 30
     max_retries: 3
     cache_expire: 7200
     config:
-      description: CourtListener - Free legal opinions and court documents
+      description: "CourtListener - Free legal opinions and court documents (REQUIRES API TOKEN: Create account at courtlistener.com, get token from profile, add to auth_header)"
       coverage: federal and state court opinions, legal documents, case law
       base_url: https://www.courtlistener.com/api/rest/v3
       search_path: /search/
@@ -21,6 +21,9 @@ sources:
       limit_param: page_size
       response_format: json
       results_path: results
+      auth_type: Token  # Token authentication required
+      auth_header: Authorization
+      # api_key: "YOUR_TOKEN_HERE"  # Get from courtlistener.com after creating account
       extra_params:
         type: o  # opinions
         format: json
@@ -33,6 +36,12 @@ sources:
         url: absolute_url
         citation_count: citeCount
       rate_limit_delay: 0.2
+      # NOTE: 5,000 queries per hour limit for authenticated users
+      # Instructions:
+      # 1. Create account at courtlistener.com
+      # 2. Login and get your API token from profile
+      # 3. Add token to api_key field above
+      # 4. Set enabled: true
 
 categories:
   legal_research:
@@ -41,7 +50,7 @@ categories:
     description: Case law, court opinions, and legal scholarship
     type: standard
     sources:
-      - courtlistener
+      # - courtlistener  # DISABLED: Requires API token
       - crossref  # From scientific.yaml for legal scholarship
     max_results_per_source: 8
     parallel_search: true

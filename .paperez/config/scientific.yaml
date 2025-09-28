@@ -38,10 +38,10 @@ sources:
     type: http_api
     enabled: true
     timeout: 60
-    max_retries: 3
+    max_retries: 5  # Increased for exponential backoff
     cache_expire: 7200
     config:
-      description: AI-powered academic search engine (enhanced)
+      description: "AI-powered academic search engine (RATE LIMITED: 1 RPS for API keys, 5000/5min shared for unauthenticated)"
       base_url: https://api.semanticscholar.org/graph/v1
       search_path: /paper/search
       query_param: query
@@ -50,6 +50,10 @@ sources:
       results_path: data
       extra_params:
         fields: paperId,title,authors,year,abstract,venue,citationCount,url,openAccessPdf,externalIds
+      # Optional API key for higher rate limits
+      auth_type: ApiKey
+      auth_header: x-api-key
+      # api_key: "YOUR_API_KEY_HERE"  # Get from semanticscholar.org/product/api#api-key-form
       field_mappings:
         title: title
         authors: authors
@@ -60,7 +64,19 @@ sources:
         url: url
         pdf_url: openAccessPdf.url
         citation_count: citationCount
-      rate_limit_delay: 0.5
+      rate_limit_delay: 1.1  # Conservative 1.1 seconds (under 1 RPS) for API key users
+      exponential_backoff: true  # Required by Semantic Scholar
+      backoff_base: 2  # Base multiplier for exponential backoff
+      backoff_max_delay: 60  # Maximum delay between retries
+      # NOTE: Rate limits:
+      # - Unauthenticated: 5,000 requests per 5 minutes (shared pool)
+      # - API key users: 1 RPS (requests per second)
+      # - Exponential backoff required for system stability
+      # Instructions for API key (optional but recommended):
+      # 1. Go to semanticscholar.org/product/api#api-key-form
+      # 2. Submit request with your use case
+      # 3. Add received API key to api_key field above
+      # 4. Reduces rate_limit_delay to 1.1 seconds for 1 RPS compliance
 
   arxiv:
     name: arxiv

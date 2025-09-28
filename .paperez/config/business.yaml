@@ -7,21 +7,22 @@ sources:
   repec:
     name: repec
     type: http_api
-    enabled: true
+    enabled: false  # DISABLED: Requires special API access - contact team@mail.authors.repec.org
     timeout: 30
     max_retries: 3
     cache_expire: 7200
     config:
-      description: RePEc - Economics research papers (5M+ items)
+      description: "RePEc - Economics research papers (REQUIRES API ACCESS: Contact Christian Zimmermann at team@mail.authors.repec.org to request access code tied to IP address)"
       coverage: economics, finance, business research papers
       base_url: https://ideas.repec.org/api
-      search_path: /papers
+      search_path: /papers  # NOTE: This is incorrect - RePEc uses function-based API, not search endpoint
       query_param: q
       limit_param: limit
       response_format: json
       results_path: results
       extra_params:
         format: json
+        # access_code: "REQUIRED"  # Must be provided by RePEc team
       field_mappings:
         title: title
         authors: authors
@@ -31,6 +32,11 @@ sources:
         url: url
         citation_count: citation_count
       rate_limit_delay: 0.2
+      # NOTE: RePEc API doesn't provide search functionality, only specific functions like:
+      # - getref (get paper by handle)
+      # - getrecentpapers (get recent papers)
+      # - getpubsfromwpseries (get publications from working paper series)
+      # - getauthorshortid (get author info)
 
   openalex:
     name: openalex
@@ -70,7 +76,7 @@ categories:
     description: Business, economics, finance, and management research
     type: standard
     sources:
-      - repec
+      # - repec  # DISABLED: Requires special API access
       - openalex
       - crossref  # From scientific.yaml
       - semantic_scholar  # From scientific.yaml
