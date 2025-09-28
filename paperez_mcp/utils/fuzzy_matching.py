@@ -60,19 +60,17 @@ class FuzzyPaperMatcher:
         normalized = re.sub(r"\s+", " ", normalized).strip()
 
         # Remove common academic words that don't affect matching
+        # But preserve words that might be important for disambiguation
         stop_words = {
             "study",
-            "analysis",
-            "review",
             "investigation",
             "research",
             "case",
             "systematic",
             "meta",
-            "comprehensive",
         }
         words = normalized.split()
-        words = [w for w in words if w not in stop_words]
+        words = [w for w in words if w not in stop_words and len(w) > 1]  # Also remove single letters
 
         return " ".join(words)
 
@@ -230,25 +228,25 @@ class FuzzyPaperMatcher:
         # Title is most important, followed by authors, then year, then DOI
         weights = {"title": 0.5, "author": 0.3, "year": 0.1, "doi": 0.1}
 
-        # If DOI exists and matches, it's a definitive match
-        if doi_score == 1.0:
-            overall_score = 1.0
-            confidence = "high"
-        else:
-            overall_score = (
-                title_score * weights["title"]
-                + author_score * weights["author"]
-                + year_score * weights["year"]
-                + doi_score * weights["doi"]
-            )
+        # Calculate weighted overall score
+        overall_score = (
+            title_score * weights["title"]
+            + author_score * weights["author"]
+            + year_score * weights["year"]
+            + doi_score * weights["doi"]
+        )
 
-            # Determine confidence level
-            if overall_score >= 0.9:
-                confidence = "high"
-            elif overall_score >= 0.7:
-                confidence = "medium"
-            else:
-                confidence = "low"
+        # If DOI exists and matches perfectly, boost the score but don't override completely
+        if doi_score == 1.0:
+            overall_score = min(1.0, overall_score + 0.1)  # Slight boost for matching DOI
+
+        # Determine confidence level
+        if overall_score >= 0.9:
+            confidence = "high"
+        elif overall_score >= 0.7:
+            confidence = "medium"
+        else:
+            confidence = "low"
 
         return MatchScore(
             overall_score=overall_score,

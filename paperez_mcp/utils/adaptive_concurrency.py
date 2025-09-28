@@ -186,7 +186,11 @@ class AdaptiveConcurrencyManager:
         target_concurrency = int(self.base_concurrency / load_factor)
 
         # Consider number of healthy sources
-        max_useful_concurrency = min(active_sources + 2, self.max_concurrency)
+        # If no sources are tracked yet, allow reasonable concurrency based on performance
+        if active_sources == 0:
+            max_useful_concurrency = self.max_concurrency
+        else:
+            max_useful_concurrency = min(active_sources + 2, self.max_concurrency)
         target_concurrency = min(target_concurrency, max_useful_concurrency)
         target_concurrency = max(target_concurrency, self.min_concurrency)
 

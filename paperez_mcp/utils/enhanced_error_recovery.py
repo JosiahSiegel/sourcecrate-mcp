@@ -265,7 +265,9 @@ class EnhancedErrorRecovery:
                         f"❌ {self.service_name}.{operation_name} failed after "
                         f"{attempt} attempts: {e}"
                     )
-                    self.circuit_breaker.record_failure()
+                    # Record multiple failures for circuit breaker when operation exhausts retries
+                    for _ in range(min(attempt, self.circuit_breaker.failure_threshold)):
+                        self.circuit_breaker.record_failure()
                     break
 
                 # Calculate delay and wait
