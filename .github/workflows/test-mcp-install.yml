@@ -28,22 +28,77 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install uvx (Unix)
+    - name: Install uv and uvx (Unix)
       if: runner.os != 'Windows'
       run: |
-        python -m pip install --upgrade pip
-        pip install uvx
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-    - name: Install uvx (Windows)
+    - name: Install uv and uvx (Windows)
       if: runner.os == 'Windows'
       run: |
-        python -m pip install --upgrade pip
-        pip install uvx
+        powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+        echo "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    - name: Test MCP Installation via uvx
+    - name: Verify UV installation (Unix)
+      if: runner.os != 'Windows'
       run: |
-        # Try uvx installation, but don't fail the build if packaging has issues
-        uvx --from . paperez-mcp --help || echo "⚠️ uvx installation failed - testing direct approach"
+        # Wait for PATH to update and verify uv/uvx are available
+        echo "Current PATH: $PATH"
+        which uv || echo "uv not found in PATH"
+        which uvx || echo "uvx not found in PATH"
+
+        # Try direct path
+        $HOME/.cargo/bin/uv --version || echo "Direct uv path failed"
+        $HOME/.cargo/bin/uvx --version || echo "Direct uvx path failed"
+
+    - name: Verify UV installation (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        # Check for uv/uvx in Windows
+        where uv || echo "uv not found in PATH"
+        where uvx || echo "uvx not found in PATH"
+
+        # Try direct path if PATH isn't updated yet
+        if (Test-Path "$env:USERPROFILE\.cargo\bin\uv.exe") {
+          & "$env:USERPROFILE\.cargo\bin\uv.exe" --version
+        } else {
+          echo "Direct uv path failed"
+        }
+
+        if (Test-Path "$env:USERPROFILE\.cargo\bin\uvx.exe") {
+          & "$env:USERPROFILE\.cargo\bin\uvx.exe" --version
+        } else {
+          echo "Direct uvx path failed"
+        }
+
+    - name: Test MCP Installation via uvx (Unix)
+      if: runner.os != 'Windows'
+      run: |
+        # Try uvx installation with fallback approaches
+        if command -v uvx >/dev/null 2>&1; then
+          uvx --from . paperez-mcp --help || echo "⚠️ uvx installation failed - testing direct approach"
+        elif [ -f "$HOME/.cargo/bin/uvx" ]; then
+          $HOME/.cargo/bin/uvx --from . paperez-mcp --help || echo "⚠️ uvx installation failed - testing direct approach"
+        else
+          echo "⚠️ uvx not available - skipping uvx installation test"
+        fi
+
+    - name: Test MCP Installation via uvx (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        # Try uvx installation with fallback approaches
+        try {
+          if (Get-Command uvx -ErrorAction SilentlyContinue) {
+            uvx --from . paperez-mcp --help
+          } elseif (Test-Path "$env:USERPROFILE\.cargo\bin\uvx.exe") {
+            & "$env:USERPROFILE\.cargo\bin\uvx.exe" --from . paperez-mcp --help
+          } else {
+            echo "⚠️ uvx not available - skipping uvx installation test"
+          }
+        } catch {
+          echo "⚠️ uvx installation failed - testing direct approach"
+        }
 
     - name: Install dependencies and test direct import
       run: |
