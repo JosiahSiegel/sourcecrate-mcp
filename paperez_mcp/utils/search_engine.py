@@ -81,10 +81,15 @@ async def comprehensive_search_internal(
     # Sort sources by preference score (highest first)
     available_sources.sort(key=lambda x: x[2], reverse=True)
 
-    # Search through sources in priority order until limit is reached
+    # Search through sources in priority order with minimum search threshold
     sources_used = []
+    sources_attempted = 0
+    min_sources_to_try = min(3, len(available_sources))  # Always try at least top 3 sources
+
     for source_name, search_func, preference_score in available_sources:
-        if remaining_limit <= 0:
+        # Continue searching if we haven't hit the minimum threshold or still need results
+        # But always try the minimum number of sources regardless of remaining_limit
+        if remaining_limit <= 0 and len(sources_used) >= min_sources_to_try and sources_attempted >= min_sources_to_try:
             break
 
         try:
@@ -92,10 +97,16 @@ async def comprehensive_search_internal(
                 f"Searching {source_name} (preference: {preference_score:.3f}, remaining: {remaining_limit})"
             )
 
-            # Determine appropriate limit for this source
-            source_limit = min(
-                remaining_limit, max(1, int(remaining_limit * preference_score * 2))
-            )
+            # Determine appropriate limit for this source - ensure meaningful limits
+            # For top sources (high preference), use higher limits; for others, ensure minimum viable limit
+            if sources_attempted < min_sources_to_try:
+                # For top sources, use more generous limits
+                source_limit = max(2, min(remaining_limit, max(3, int(limit * preference_score * 1.5))))
+            else:
+                # For additional sources, use standard calculation but with minimum threshold
+                source_limit = min(
+                    remaining_limit, max(2, int(remaining_limit * preference_score * 2))
+                )
 
             # Handle special cases for legacy function signatures
             if source_name in ["pubmed", "pubmed_central"]:
@@ -124,6 +135,9 @@ async def comprehensive_search_internal(
             else:
                 logger.warning(f"Skipping {source_name}: not callable")
                 continue
+
+            # Increment sources attempted counter after each attempt
+            sources_attempted += 1
 
             if results:
                 all_results.extend(results)
@@ -197,11 +211,27 @@ async def comprehensive_search_internal(
                 except Exception as e:
                     logger.warning(f"PDF extraction failed for {pdf_url}: {e}")
 
-    # Sort by citation count if available, then by relevance
-    all_results.sort(
-        key=lambda x: (x.get("citation_count", 0), x.get("relevance_score", 0)),
-        reverse=True,
-    )
+    # Sort by citation count if available, then by relevance (handle mixed data types)
+    def safe_numeric_key(x: dict[str, Any]) -> tuple[float, float]:
+        """Safely extract numeric values for sorting, handling string/None values."""
+        citation_count = x.get("citation_count", 0)
+        relevance_score = x.get("relevance_score", 0)
+
+        # Convert citation_count to float safely
+        try:
+            citation_float = float(citation_count) if citation_count is not None else 0.0
+        except (ValueError, TypeError):
+            citation_float = 0.0
+
+        # Convert relevance_score to float safely
+        try:
+            relevance_float = float(relevance_score) if relevance_score is not None else 0.0
+        except (ValueError, TypeError):
+            relevance_float = 0.0
+
+        return (citation_float, relevance_float)
+
+    all_results.sort(key=safe_numeric_key, reverse=True)
 
     # Prepare result summary with enhanced metadata
     result_summary = {

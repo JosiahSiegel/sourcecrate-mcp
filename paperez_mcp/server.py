@@ -208,7 +208,7 @@ async def browse_papers(
         limit,
         search_funcs,
         utils,
-        api_status,
+        api_status.copy(),
         force_category,
         metadata_only=True,
     )
@@ -241,7 +241,7 @@ async def browse_papers(
     result = {
         "results": browse_results,
         "total_found": len(browse_results),
-        "api_status": api_status,
+        "api_status": api_status.copy(),
         "sources_used": list(
             set(paper.get("source", "Unknown") for paper in browse_results)
         ),

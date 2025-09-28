@@ -60,12 +60,16 @@ config = APIConfig()
 
 
 # Dynamic API health status - populated from configuration
-class DynamicAPIStatus:
+class DynamicAPIStatus(dict):
     """Dynamic API status tracking that supports infinite custom sources."""
 
     def __init__(self) -> None:
+        super().__init__()
         self._status: dict[str, bool] = {}
         self._initialize_from_config()
+        # Sync the dict contents with our internal status
+        self.clear()
+        self.update(self._status)
 
     def _initialize_from_config(self) -> None:
         """Initialize API status from current configuration."""
@@ -127,12 +131,14 @@ class DynamicAPIStatus:
                 source_config = config.sources[source_name]
                 status = getattr(source_config, "enabled", default)
                 self._status[source_name] = status  # Cache it
+                super().__setitem__(source_name, status)
                 return status
         except Exception:
             pass
 
         # Ultimate fallback
         self._status[source_name] = default
+        super().__setitem__(source_name, default)
         return default
 
     def __getitem__(self, source_name: str) -> bool:
@@ -142,6 +148,7 @@ class DynamicAPIStatus:
     def __setitem__(self, source_name: str, status: bool) -> None:
         """Set API status for a source."""
         self._status[source_name] = status
+        super().__setitem__(source_name, status)
 
     def copy(self) -> dict[str, bool]:
         """Return a copy of current status for compatibility."""
@@ -158,6 +165,18 @@ class DynamicAPIStatus:
     def values(self) -> Any:
         """Return status values."""
         return self._status.values()
+
+    def __json__(self) -> dict[str, bool]:
+        """Make the object JSON serializable by returning the underlying dict."""
+        return self._status.copy()
+
+    def __iter__(self):
+        """Make the object iterable like a dict."""
+        return iter(self._status)
+
+    def __len__(self) -> int:
+        """Return the number of sources."""
+        return len(self._status)
 
 
 # Create dynamic API status instance
