@@ -4,6 +4,7 @@ Configuration and settings for the Scholarly MCP server.
 
 import os
 from dataclasses import dataclass
+from typing import Any
 
 from diskcache import Cache
 
@@ -57,17 +58,107 @@ class APIConfig:
 # Global configuration
 config = APIConfig()
 
-# API health status
-api_status = {
-    "crossref": True,
-    "semantic_scholar": True,
-    "arxiv": True,
-    "pubmed": True,
-    "pubmed_central": True,
-    "clinicaltrials": True,
-    "google_scholar": True,
-    "core": True,
-    "doaj": True,
-    "socarxiv": True,
-    "osf_preprints": True,
-}
+
+# Dynamic API health status - populated from configuration
+class DynamicAPIStatus:
+    """Dynamic API status tracking that supports infinite custom sources."""
+
+    def __init__(self) -> None:
+        self._status: dict[str, bool] = {}
+        self._initialize_from_config()
+
+    def _initialize_from_config(self) -> None:
+        """Initialize API status from current configuration."""
+        try:
+            from . import get_current_config
+
+            config = get_current_config()
+            if config and config.sources:
+                # Initialize all configured sources as available
+                for source_name, source_config in config.sources.items():
+                    if getattr(source_config, "enabled", False):
+                        self._status[source_name] = True
+                    else:
+                        self._status[source_name] = False
+            else:
+                # Fallback - initialize with basic sources
+                default_sources = [
+                    "crossref",
+                    "semantic_scholar",
+                    "arxiv",
+                    "pubmed",
+                    "pubmed_central",
+                    "clinicaltrials",
+                    "core",
+                    "doaj",
+                    "socarxiv",
+                    "osf_preprints",
+                ]
+                for source in default_sources:
+                    self._status[source] = True
+        except Exception:
+            # Fallback if config not available
+            default_sources = [
+                "crossref",
+                "semantic_scholar",
+                "arxiv",
+                "pubmed",
+                "pubmed_central",
+                "clinicaltrials",
+                "core",
+                "doaj",
+                "socarxiv",
+                "osf_preprints",
+            ]
+            for source in default_sources:
+                self._status[source] = True
+
+    def get(self, source_name: str, default: bool = True) -> bool:
+        """Get API status for a source with dynamic fallback for unknown sources."""
+        if source_name in self._status:
+            return self._status[source_name]
+
+        # For unknown sources, check if they exist in current config
+        try:
+            from . import get_current_config
+
+            config = get_current_config()
+            if config and source_name in config.sources:
+                source_config = config.sources[source_name]
+                status = getattr(source_config, "enabled", default)
+                self._status[source_name] = status  # Cache it
+                return status
+        except Exception:
+            pass
+
+        # Ultimate fallback
+        self._status[source_name] = default
+        return default
+
+    def __getitem__(self, source_name: str) -> bool:
+        """Dictionary-style access for backward compatibility."""
+        return self.get(source_name, True)
+
+    def __setitem__(self, source_name: str, status: bool) -> None:
+        """Set API status for a source."""
+        self._status[source_name] = status
+
+    def copy(self) -> dict[str, bool]:
+        """Return a copy of current status for compatibility."""
+        return self._status.copy()
+
+    def keys(self) -> Any:
+        """Return source names."""
+        return self._status.keys()
+
+    def items(self) -> Any:
+        """Return status items."""
+        return self._status.items()
+
+    def values(self) -> Any:
+        """Return status values."""
+        return self._status.values()
+
+
+# Create dynamic API status instance
+api_status = DynamicAPIStatus()

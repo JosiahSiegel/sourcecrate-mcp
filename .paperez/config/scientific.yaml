@@ -100,17 +100,36 @@ sources:
         url: bibjson.link.0.url
       rate_limit_delay: 0.5
 
-  google_scholar:
-    name: google_scholar
-    type: builtin
-    enabled: false  # Disabled by default - requires proxy setup
-    function_name: search_google_scholar_fallback
-    timeout: 45
-    max_retries: 2
+  openalex:
+    name: openalex
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
     cache_expire: 7200
     config:
-      description: Google Scholar fallback search
-      coverage: broad academic content across all disciplines
+      description: Open catalog of global research system (240M+ works)
+      coverage: comprehensive multidisciplinary academic database
+      base_url: https://api.openalex.org
+      search_path: /works
+      query_param: search
+      limit_param: per-page
+      response_format: json
+      results_path: results
+      extra_params:
+        mailto: research@paperez.org
+      field_mappings:
+        title: title
+        authors: authorships
+        abstract: abstract_inverted_index
+        journal: primary_location.source.display_name
+        year: publication_year
+        doi: doi
+        url: primary_location.landing_page_url
+        pdf_url: open_access.oa_url
+        citation_count: cited_by_count
+      rate_limit_delay: 0.1
+
 
 # Scientific research categories
 categories:
@@ -122,8 +141,9 @@ categories:
     sources:
       - crossref
       - semantic_scholar
+      - openalex
       - doaj
-    max_results_per_source: 8
+    max_results_per_source: 6
     parallel_search: true
 
   preprints:
@@ -134,7 +154,8 @@ categories:
     sources:
       - arxiv
       - semantic_scholar
-    max_results_per_source: 8
+      - openalex
+    max_results_per_source: 6
     parallel_search: true
 
   open_access:
@@ -145,15 +166,18 @@ categories:
     sources:
       - arxiv
       - semantic_scholar
+      - openalex
       - doaj
-    max_results_per_source: 6
+    max_results_per_source: 5
     parallel_search: true
 
 # GAPS IDENTIFIED - NEED MORE SOURCES:
 # - IEEE Xplore (engineering/computer science conferences)
 # - ACM Digital Library (computer science)
-# - OpenAlex (comprehensive multidisciplinary)
 # - Physics databases beyond arXiv
 # - Mathematics research databases
 # - Chemistry databases (ChemRxiv, etc.)
 # - Materials science sources
+
+# ADDED SOURCES:
+# ✅ OpenAlex (comprehensive multidisciplinary) - Added 240M+ works coverage

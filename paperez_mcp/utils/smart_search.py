@@ -113,7 +113,6 @@ async def smart_downloadable_search(
         "pubmed": "PubMed for biomedical literature",
         "pubmed_central": "PMC for full-text medical papers",
         "clinicaltrials": "ClinicalTrials.gov for trial data",
-        "google_scholar": "Google Scholar fallback",
         "core": "CORE open access repository",
         "doaj": "DOAJ open access journals",
         "socarxiv": "SocArXiv social science preprints",
@@ -221,7 +220,7 @@ async def smart_downloadable_search(
     search_log["search_limit_per_source"] = search_limit_per_source
 
     logger.info(f"🔍 Starting smart search for '{query}' (limit: {limit})")
-    logger.info(f"📊 API Status: {json.dumps(api_status, indent=2)}")
+    logger.info(f"📊 API Status: {json.dumps(api_status.copy(), indent=2)}")
 
     for source_name, description in source_priority:
         if api_status.get(source_name, False):

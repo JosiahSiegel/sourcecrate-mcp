@@ -18,7 +18,6 @@ from paperez_mcp.config import api_status, cache, config
 
 # Lazy import flags
 _PYMUPDF4LLM_AVAILABLE = None
-_scholarly_setup_done = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -28,15 +27,7 @@ logger = logging.getLogger(__name__)
 mcp = FastMCP("PaperezMCP - Academic Paper Research Made Easy")
 
 
-# Lazy import helpers
-def _ensure_scholarly_setup() -> None:
-    """Lazy initialization of scholarly proxy setup"""
-    global _scholarly_setup_done
-    if not _scholarly_setup_done:
-        from paperez_mcp.api_clients import setup_scholarly_proxy
-
-        setup_scholarly_proxy()
-        _scholarly_setup_done = True
+# Lazy import helpers - Google Scholar setup removed for ToS compliance
 
 
 def _ensure_pymupdf4llm() -> Any:
@@ -208,7 +199,6 @@ async def browse_papers(
         browse_papers("doi:10.1000/xyz123")          # DOI search
     """
     # Lazy import utilities
-    _ensure_scholarly_setup()
     utils = _lazy_import_utils()
     search_funcs = _lazy_import_search_functions()
 
@@ -339,7 +329,6 @@ async def download_papers(
         download_papers("climate change", limit=5, output_dir="climate_papers")  # Custom directory
     """
     # Lazy import utilities
-    _ensure_scholarly_setup()
     utils = _lazy_import_utils()
     search_funcs = _lazy_import_search_functions()
 
@@ -353,7 +342,7 @@ async def download_papers(
         output_dir=output_dir,
         search_funcs=search_funcs,
         utils=utils,
-        api_status=api_status,
+        api_status=api_status.copy(),
         force_category=force_category,
         convert_to_markdown=convert_to_markdown,
     )
@@ -1084,9 +1073,7 @@ categories:
             "doaj": "Directory of Open Access Journals",
             "hathitrust": "Historical books and documents",
             "internet_archive": "Historical documents and archives",
-            "ssrn": "Business and economics research",
             "clinicaltrials": "Clinical trials database",
-            "google_scholar": "Google Scholar (disabled by default)",
         },
         "troubleshooting": {
             "config_not_loading": [

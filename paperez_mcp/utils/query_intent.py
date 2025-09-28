@@ -480,17 +480,18 @@ class QueryIntentDetector:
         self, intent: QueryIntent, temporal: TemporalPreference
     ) -> dict[str, float]:
         """Get source preferences based on intent and temporal preference."""
-        preferences = {
-            "arxiv": 0.5,
-            "semantic_scholar": 0.6,
-            "crossref": 0.5,
-            "pubmed": 0.3,
-            "google_scholar": 0.4,
-            "core": 0.4,
-            "doaj": 0.4,
-            "socarxiv": 0.3,
-            "osf_preprints": 0.3,
-        }
+        # Get all available sources from configuration
+        preferences = self._get_base_source_preferences()
+        if not preferences:
+            # Ultimate fallback if no configuration available
+            preferences = {
+                "arxiv": 0.5,
+                "semantic_scholar": 0.6,
+                "crossref": 0.5,
+                "pubmed": 0.3,
+                "core": 0.4,
+                "doaj": 0.4,
+            }
 
         # Adjust based on intent
         if intent == QueryIntent.SURVEY_REVIEW:
@@ -516,7 +517,6 @@ class QueryIntentDetector:
                 {
                     "core": 0.9,  # Historical archives
                     "crossref": 0.8,  # Established journals
-                    "google_scholar": 0.7,  # Comprehensive coverage
                     "doaj": 0.6,  # Open access archives
                 }
             )
@@ -546,11 +546,9 @@ class QueryIntentDetector:
             preferences["semantic_scholar"] *= 1.2
             preferences["arxiv"] *= 1.1
             preferences["crossref"] *= 1.1
-            preferences["google_scholar"] *= 1.1
         elif temporal == TemporalPreference.HISTORICAL:
             # Strong preference for comprehensive archives
             preferences["core"] *= 1.4  # Best for historical content
-            preferences["google_scholar"] *= 1.3  # Comprehensive backlog
             preferences["crossref"] *= 1.2  # Established journals
             preferences["doaj"] *= 1.1  # Open access archives
             # Reduce preprint preferences for historical searches
@@ -575,54 +573,8 @@ class QueryIntentDetector:
         self, temporal: TemporalPreference
     ) -> dict[str, float]:
         """Get temporal-specific adjustments based on source characteristics."""
-        # Define source characteristics for temporal routing
-        source_temporal_profiles = {
-            "arxiv": {
-                "update_frequency": "daily",
-                "historical_depth": "medium",
-                "recent_bias": 1.0,
-            },
-            "semantic_scholar": {
-                "update_frequency": "weekly",
-                "historical_depth": "high",
-                "recent_bias": 0.8,
-            },
-            "crossref": {
-                "update_frequency": "weekly",
-                "historical_depth": "very_high",
-                "recent_bias": 0.6,
-            },
-            "pubmed": {
-                "update_frequency": "daily",
-                "historical_depth": "high",
-                "recent_bias": 0.7,
-            },
-            "google_scholar": {
-                "update_frequency": "variable",
-                "historical_depth": "very_high",
-                "recent_bias": 0.5,
-            },
-            "core": {
-                "update_frequency": "monthly",
-                "historical_depth": "very_high",
-                "recent_bias": 0.3,
-            },
-            "doaj": {
-                "update_frequency": "weekly",
-                "historical_depth": "high",
-                "recent_bias": 0.5,
-            },
-            "socarxiv": {
-                "update_frequency": "daily",
-                "historical_depth": "low",
-                "recent_bias": 1.0,
-            },
-            "osf_preprints": {
-                "update_frequency": "daily",
-                "historical_depth": "low",
-                "recent_bias": 1.0,
-            },
-        }
+        # Get source characteristics from configuration or infer from source names/descriptions
+        source_temporal_profiles = self._get_source_temporal_profiles()
 
         adjustments = {}
 
@@ -649,6 +601,163 @@ class QueryIntentDetector:
             adjustments = {source: 1.0 for source in source_temporal_profiles.keys()}
 
         return adjustments
+
+    def _get_base_source_preferences(self) -> dict[str, float]:
+        """Get base source preferences from configuration."""
+        try:
+            from ..config import get_current_config
+
+            config = get_current_config()
+            if not config or not config.sources:
+                return {}
+
+            # Create base preferences for all enabled sources
+            preferences = {}
+            for source_name, source_config in config.sources.items():
+                if getattr(source_config, "enabled", False):
+                    # Default preference based on source type/category
+                    preferences[source_name] = self._infer_base_preference(
+                        source_name, source_config
+                    )
+
+            return preferences
+        except Exception:
+            return {}
+
+    def _infer_base_preference(self, source_name: str, source_config: Any) -> float:
+        """Infer base preference score for a source."""
+        source_name_lower = source_name.lower()
+
+        # High-quality comprehensive sources
+        if any(term in source_name_lower for term in ["semantic_scholar", "crossref"]):
+            return 0.6
+        # Preprint servers (good for recent content)
+        elif any(term in source_name_lower for term in ["arxiv", "socarxiv", "osf"]):
+            return 0.5
+        # Specialized medical sources
+        elif any(term in source_name_lower for term in ["pubmed", "pmc", "clinical"]):
+            return 0.4
+        # Open access repositories
+        elif any(term in source_name_lower for term in ["core", "doaj", "openalex"]):
+            return 0.4
+        # Business/economics sources
+        elif any(term in source_name_lower for term in ["repec", "ssrn"]):
+            return 0.4
+        # Default for unknown sources
+        else:
+            return 0.3
+
+    def _get_source_temporal_profiles(self) -> dict[str, dict[str, Any]]:
+        """Get temporal profiles for all configured sources."""
+        try:
+            from ..config import get_current_config
+
+            config = get_current_config()
+            if not config or not config.sources:
+                # Fallback to basic profiles
+                return self._get_fallback_temporal_profiles()
+
+            profiles = {}
+            for source_name, source_config in config.sources.items():
+                if getattr(source_config, "enabled", False):
+                    profiles[source_name] = self._infer_temporal_profile(
+                        source_name, source_config
+                    )
+
+            return profiles
+        except Exception:
+            return self._get_fallback_temporal_profiles()
+
+    def _infer_temporal_profile(
+        self, source_name: str, source_config: Any
+    ) -> dict[str, Any]:
+        """Infer temporal profile for a source based on its characteristics."""
+        source_name_lower = source_name.lower()
+
+        # Preprint servers - fast updates, recent bias
+        if any(
+            term in source_name_lower
+            for term in ["arxiv", "socarxiv", "osf", "preprint"]
+        ):
+            return {
+                "update_frequency": "daily",
+                "historical_depth": (
+                    "low"
+                    if "socarxiv" in source_name_lower or "osf" in source_name_lower
+                    else "medium"
+                ),
+                "recent_bias": 1.0,
+            }
+        # Comprehensive academic databases
+        elif any(
+            term in source_name_lower
+            for term in ["semantic_scholar", "crossref", "openalex"]
+        ):
+            return {
+                "update_frequency": "weekly",
+                "historical_depth": (
+                    "very_high" if "crossref" in source_name_lower else "high"
+                ),
+                "recent_bias": 0.6 if "crossref" in source_name_lower else 0.8,
+            }
+        # Medical databases
+        elif any(term in source_name_lower for term in ["pubmed", "pmc", "clinical"]):
+            return {
+                "update_frequency": "daily",
+                "historical_depth": "high",
+                "recent_bias": 0.7,
+            }
+        # Repository/archive sources
+        elif any(term in source_name_lower for term in ["core", "doaj"]):
+            return {
+                "update_frequency": (
+                    "weekly" if "doaj" in source_name_lower else "monthly"
+                ),
+                "historical_depth": "very_high",
+                "recent_bias": 0.5 if "doaj" in source_name_lower else 0.3,
+            }
+        # Default profile for unknown sources
+        else:
+            return {
+                "update_frequency": "weekly",
+                "historical_depth": "medium",
+                "recent_bias": 0.5,
+            }
+
+    def _get_fallback_temporal_profiles(self) -> dict[str, dict[str, Any]]:
+        """Get fallback temporal profiles for basic sources."""
+        return {
+            "arxiv": {
+                "update_frequency": "daily",
+                "historical_depth": "medium",
+                "recent_bias": 1.0,
+            },
+            "semantic_scholar": {
+                "update_frequency": "weekly",
+                "historical_depth": "high",
+                "recent_bias": 0.8,
+            },
+            "crossref": {
+                "update_frequency": "weekly",
+                "historical_depth": "very_high",
+                "recent_bias": 0.6,
+            },
+            "pubmed": {
+                "update_frequency": "daily",
+                "historical_depth": "high",
+                "recent_bias": 0.7,
+            },
+            "core": {
+                "update_frequency": "monthly",
+                "historical_depth": "very_high",
+                "recent_bias": 0.3,
+            },
+            "doaj": {
+                "update_frequency": "weekly",
+                "historical_depth": "high",
+                "recent_bias": 0.5,
+            },
+        }
 
     def analyze_query(self, query: str) -> QueryAnalysis:
         """

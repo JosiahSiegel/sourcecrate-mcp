@@ -1,12 +1,15 @@
 """
 BM25-based source ranking for intelligent source selection.
 Uses BM25 algorithm to rank academic sources based on query relevance.
+Supports both built-in and custom user-defined sources.
 """
 
 import math
 from collections import Counter
 from dataclasses import dataclass
 from typing import Any
+
+from ..config import get_current_config
 
 
 @dataclass
@@ -32,9 +35,89 @@ class BM25SourceRanker:
         self.b = 0.75  # Document length normalization parameter
         self._compute_idf_scores()
 
+    def _create_default_profile(
+        self, source_name: str, source_config: Any
+    ) -> SourceProfile:
+        """Create a default profile for unknown/custom sources."""
+        # Extract keywords from source description/coverage if available
+        specialty_terms = []
+        domain_focus = ["general"]
+        content_type = "repository"
+        temporal_coverage = "comprehensive"
+        access_type = "mixed"
+
+        if hasattr(source_config, "config") and source_config.config:
+            config = source_config.config
+            # Extract terms from description and coverage
+            description = getattr(config, "description", "")
+            coverage = getattr(config, "coverage", "")
+
+            # Basic keyword extraction from description/coverage
+            text = f"{description} {coverage}".lower()
+            keywords = [word.strip() for word in text.split() if len(word.strip()) > 3]
+            specialty_terms.extend(keywords[:20])  # Limit to reasonable size
+
+            # Infer characteristics from description
+            if any(term in text for term in ["medical", "biomedical", "health"]):
+                domain_focus = ["medical"]
+            elif any(term in text for term in ["computer", "ai", "algorithm", "tech"]):
+                domain_focus = ["computer_science"]
+            elif any(term in text for term in ["history", "historical", "archive"]):
+                domain_focus = ["historical"]
+                temporal_coverage = "historical"
+            elif any(term in text for term in ["business", "economics", "finance"]):
+                domain_focus = ["business"]
+            elif any(term in text for term in ["social", "psychology", "sociology"]):
+                domain_focus = ["social_science"]
+            elif any(term in text for term in ["humanities", "literature", "art"]):
+                domain_focus = ["humanities"]
+
+            # Infer access type
+            if any(term in text for term in ["open", "free", "public"]):
+                access_type = "open"
+            elif any(term in text for term in ["subscription", "commercial"]):
+                access_type = "subscription"
+
+            # Infer content type
+            if any(term in text for term in ["preprint", "arxiv"]):
+                content_type = "preprint"
+            elif any(term in text for term in ["journal", "peer"]):
+                content_type = "journal"
+            elif any(term in text for term in ["repository", "archive"]):
+                content_type = "repository"
+
+        # Add source name as a specialty term
+        specialty_terms.append(source_name.lower())
+
+        return SourceProfile(
+            name=source_name.title(),
+            specialty_terms=specialty_terms or ["research", "academic", "papers"],
+            domain_focus=domain_focus,
+            content_type=content_type,
+            temporal_coverage=temporal_coverage,
+            access_type=access_type,
+            quality_indicators={
+                "peer_review": 0.5,  # Default moderate quality
+                "recency": 0.6,
+                "technical_depth": 0.5,
+                "accessibility": 0.7,
+            },
+        )
+
     def _build_source_profiles(self) -> dict[str, SourceProfile]:
-        """Build profiles for each academic source."""
-        return {
+        """Build profiles for academic sources from configuration and built-in knowledge."""
+        profiles = {}
+
+        # Try to get current configuration
+        try:
+            config = get_current_config()
+            configured_sources = config.sources if config else {}
+        except Exception:
+            # Fallback if config not available
+            configured_sources = {}
+
+        # Built-in profiles for known sources (optimized for performance)
+        builtin_profiles = {
             "arxiv": SourceProfile(
                 name="arXiv",
                 specialty_terms=[
@@ -415,83 +498,6 @@ class BM25SourceRanker:
                     "accessibility": 0.9,  # Public access
                 },
             ),
-            "google_scholar": SourceProfile(
-                name="Google Scholar",
-                specialty_terms=[
-                    # General academic
-                    "research",
-                    "study",
-                    "analysis",
-                    "paper",
-                    "thesis",
-                    "dissertation",
-                    "conference",
-                    "workshop",
-                    "symposium",
-                    "proceedings",
-                    "book",
-                    "chapter",
-                    "report",
-                    "working paper",
-                    "technical report",
-                    # Broad coverage indicators
-                    "academic",
-                    "scholarly",
-                    "university",
-                    "institution",
-                    "faculty",
-                    "professor",
-                    "researcher",
-                    "student",
-                    "graduate",
-                    "undergraduate",
-                    # Citation and impact
-                    "citation",
-                    "cited",
-                    "reference",
-                    "bibliography",
-                    "impact",
-                    "influence",
-                    "significance",
-                    "contribution",
-                    "innovation",
-                    # Historical documents (comprehensive coverage)
-                    "declaration",
-                    "treaty",
-                    "historical",
-                    "history",
-                    "document",
-                    "archive",
-                    "primary source",
-                    "manuscript",
-                    "diplomatic",
-                    "government",
-                    "official",
-                    "colonial",
-                    "political",
-                    # Economic and financial topics
-                    "banking",
-                    "federal reserve",
-                    "economics",
-                    "finance",
-                    "monetary",
-                    "business",
-                    "corporate",
-                    "financial",
-                    "economic",
-                    "money",
-                ],
-                domain_focus=["all"],
-                content_type="aggregator",
-                temporal_coverage="comprehensive",
-                access_type="mixed",
-                quality_indicators={
-                    "peer_review": 0.6,  # Mixed quality
-                    "recency": 0.7,
-                    "technical_depth": 0.6,
-                    "accessibility": 0.8,
-                },
-            ),
             "core": SourceProfile(
                 name="CORE",
                 specialty_terms=[
@@ -750,6 +756,56 @@ class BM25SourceRanker:
             ),
         }
 
+        # Start with built-in profiles for known sources
+        for source_name, profile in builtin_profiles.items():
+            profiles[source_name] = profile
+
+        # Add profiles for any configured sources not in built-ins
+        for source_name, source_config in configured_sources.items():
+            if source_name not in profiles and getattr(source_config, "enabled", False):
+                # Create dynamic profile for custom source
+                profiles[source_name] = self._create_default_profile(
+                    source_name, source_config
+                )
+
+        return profiles
+
+    def get_source_profile(self, source_name: str) -> SourceProfile:
+        """Get or create a profile for any source (supports runtime addition of custom sources)."""
+        if source_name in self.source_profiles:
+            return self.source_profiles[source_name]
+
+        # If source not found, try to get from current config and create profile
+        try:
+            config = get_current_config()
+            if config and source_name in config.sources:
+                source_config = config.sources[source_name]
+                if getattr(source_config, "enabled", False):
+                    # Create and cache the profile
+                    profile = self._create_default_profile(source_name, source_config)
+                    self.source_profiles[source_name] = profile
+                    return profile
+        except Exception:
+            pass
+
+        # Ultimate fallback - create minimal profile
+        fallback_profile = SourceProfile(
+            name=source_name.title(),
+            specialty_terms=[source_name.lower(), "research", "academic"],
+            domain_focus=["general"],
+            content_type="repository",
+            temporal_coverage="comprehensive",
+            access_type="mixed",
+            quality_indicators={
+                "peer_review": 0.5,
+                "recency": 0.5,
+                "technical_depth": 0.5,
+                "accessibility": 0.5,
+            },
+        )
+        self.source_profiles[source_name] = fallback_profile
+        return fallback_profile
+
     def _compute_idf_scores(self) -> None:
         """Pre-compute IDF scores for all terms across sources."""
         # Collect all terms from all sources (tokenize specialty terms)
@@ -957,10 +1013,8 @@ class BM25SourceRanker:
         scored_sources = []
 
         for source_name in available_sources:
-            if source_name not in self.source_profiles:
-                continue
-
-            profile = self.source_profiles[source_name]
+            # Use get_source_profile to handle unknown/custom sources
+            profile = self.get_source_profile(source_name)
 
             # Calculate base BM25 score
             base_score = self._calculate_bm25_score(query_terms, profile)
@@ -1102,7 +1156,7 @@ class BM25SourceRanker:
             )
 
         # If only general sources rank high, suggest domain-specific sources
-        general_sources = ["google_scholar", "crossref"]
+        general_sources = ["crossref"]
         if all(name in general_sources for name in top_names[:2]):
             alternatives.append(
                 {

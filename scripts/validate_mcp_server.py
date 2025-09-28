@@ -19,7 +19,6 @@ def setup_log_capture():
     # Add to relevant loggers
     loggers_to_monitor = [
         "paperez_mcp.api_clients.pubmed_client",
-        "paperez_mcp.api_clients.google_scholar_client",
         "paperez_mcp.utils.smart_search",
         "paperez_mcp.config.manager",
     ]

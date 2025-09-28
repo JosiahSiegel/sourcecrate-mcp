@@ -104,7 +104,7 @@ Use `get_help` tool for complete configuration schemas and examples.
 
 ## 🌟 Features
 
-- 🔍 **Multi-Source Search** - 11 verified legal academic APIs across all disciplines
+- 🔍 **Multi-Source Search** - 15+ verified legal academic APIs across all disciplines
 - 🔧 **Fully Extensible** - Add custom sources via YAML configuration
 - 📖 **Unlimited PDF Processing** - No page or character limits
 - 🔄 **Zero-Token Conversion** - PDF to markdown without AI usage
@@ -121,9 +121,12 @@ Use `get_help` tool for complete configuration schemas and examples.
 
 ## ⚖️ Legal & Ethical Usage
 
-**All 11 enabled sources verified legal for academic research (2025):**
+**📋 [Complete Terms of Service](TERMS_OF_SERVICE.md) - Full legal compliance details and user obligations**
+
+**All 15+ enabled sources verified legal for academic research (2025):**
 
 ### Scientific & General Sources
+- **[OpenAlex](https://docs.openalex.org/)** - Open catalog of 240M+ scholarly works, fully open access, no authentication required
 - **[CrossRef](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)** - Official API from non-profit organization, requires email contact (configured)
 - **[Semantic Scholar](https://www.semanticscholar.org/product/api#Terms-of-Service)** - Microsoft/Allen Institute official API, 1 RPS rate limit respected
 - **[arXiv](https://info.arxiv.org/help/api/user-manual.html)** - Cornell University preprint repository, 1 request per 3 seconds
@@ -133,6 +136,9 @@ Use `get_help` tool for complete configuration schemas and examples.
 - **[PubMed/PMC](https://www.ncbi.nlm.nih.gov/home/about/policies/)** - NIH/NCBI government databases, 3 RPS default rate limit
 - **[Europe PMC](https://europepmc.org/privacy)** - European biomedical database, ~10 requests/time period limit
 - **[ClinicalTrials.gov](https://clinicaltrials.gov/data-about-studies/learn-about-this-site/terms-and-conditions)** - US government database, ~50 requests/minute, public domain
+
+### Business & Economics Sources
+- **[RePEc](https://ideas.repec.org/api.html)** - Economics research papers (5M+ items), public domain bibliographic data
 
 ### Specialized Domain Sources ✅
 - **[Open Library](https://openlibrary.org/developers/api)** - Internet Archive's book database, humanities focus
@@ -148,21 +154,22 @@ Use `get_help` tool for complete configuration schemas and examples.
 - **SSRN** - ToS restrictions on data mining
 
 **Compliance measures (verified 2025):**
-- ✅ **ToS verification completed** for all 11 enabled sources as of 2025
+- ✅ **ToS verification completed** for all 15+ enabled sources as of 2025
 - ✅ **Strict rate limiting** per each source's requirements (0.05s to 1.0s delays)
-- ✅ **Email contact** configured where required (CrossRef: research@paperez.org)
+- ✅ **Email contact** configured where required (CrossRef: <research@paperez.org>)
 - ✅ **Academic research use only** - all sources designed for scholarly access
 - ✅ **Attribution requirements** met with proper source citation
 - ✅ **Government databases** prioritized for public domain content
 - ✅ **Official APIs only** - no web scraping or unofficial endpoints
 - ✅ **Proactive compliance monitoring** - sources disabled if ToS change
 
-**User responsibility for custom sources:**
-- Verify Terms of Service compliance before adding custom sources
-- Respect rate limits and usage restrictions of institutional APIs
-- Ensure proper authorization for private/subscription databases
-- Custom configurations are under user control and responsibility
-- Users must comply with their institution's data usage policies
+**Legal Disclaimer - Custom Source Liability:**
+- PaperezMCP provides legal compliance only for default configuration sources
+- Users who modify configurations assume full legal responsibility for compliance
+- Custom source additions are solely under user control and legal liability
+- Users must independently verify Terms of Service compliance for any modifications
+- PaperezMCP disclaims all responsibility for user-configured sources outside defaults
+- Institutional and legal compliance for custom sources is the user's sole responsibility
 
 ## 🤝 Contributing
 
@@ -172,9 +179,10 @@ Use `get_help` tool for complete configuration schemas and examples.
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📄 License
+## 📄 License & Terms
 
-MIT License - see the [LICENSE](LICENSE) file for details.
+- **Software License:** MIT License - see the [LICENSE](LICENSE) file for details
+- **Terms of Service:** [TERMS_OF_SERVICE.md](TERMS_OF_SERVICE.md) - Legal compliance and usage terms
 
 ---
 

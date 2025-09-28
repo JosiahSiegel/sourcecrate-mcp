@@ -120,14 +120,18 @@ categories:
 - **timeout**: Prevent hanging requests
 - **cache_expire**: Cache duration in seconds
 
-## Legal and Ethical Guidelines
+## Legal Compliance and Liability
 
-### For Custom Sources
-1. **Verify Terms of Service** compliance before adding any source
-2. **Respect rate limits** - set appropriate `rate_limit_delay`
-3. **Use legitimate APIs** only - no web scraping
-4. **Academic use only** - ensure non-commercial compliance
-5. **Attribution required** - include proper source credits
+### Legal Disclaimer for Custom Sources
+**PaperezMCP provides legal compliance only for default configuration sources. Users who add custom sources assume full legal responsibility for compliance with all applicable Terms of Service, copyright laws, and institutional policies.**
+
+### User Legal Obligations for Custom Sources
+1. **Full liability assumed** - Users are solely responsible for custom source compliance
+2. **Independent verification required** - Users must verify Terms of Service compliance
+3. **Legal compliance mandatory** - Respect rate limits, use legitimate APIs only
+4. **Institutional policy compliance** - Ensure compliance with organizational policies
+5. **No web scraping** - Use only official APIs with proper authorization
+6. **PaperezMCP disclaims liability** - No responsibility for user-configured sources
 
 ### Best Practices
 ```yaml

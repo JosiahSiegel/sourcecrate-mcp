@@ -234,7 +234,8 @@ def get_primary_topic(query: str) -> str:
 
 def get_recommended_sources(query: str) -> list[str]:
     """
-    Recommend sources based on query topic.
+    Get recommended sources based on query topic classification.
+    Now configuration-aware to support infinite custom sources.
 
     Args:
         query: The search query to analyze
@@ -245,20 +246,178 @@ def get_recommended_sources(query: str) -> list[str]:
     classify_query_topic(query)
     primary_topic = get_primary_topic(query)
 
-    # Determine sources based on primary topic and scores
-    if primary_topic == "stem":
-        return ["arxiv", "semantic_scholar", "crossref"]
-    elif primary_topic == "medical" or primary_topic == "biological":
-        return ["pubmed", "semantic_scholar", "crossref", "core"]
-    elif primary_topic == "historical":
-        return ["core", "doaj", "socarxiv", "google_scholar", "crossref"]
-    elif primary_topic == "social_science":
-        return ["socarxiv", "osf_preprints", "core", "semantic_scholar", "crossref"]
-    elif primary_topic == "humanities":
-        return ["core", "doaj", "google_scholar", "semantic_scholar", "crossref"]
-    else:
-        # General/mixed queries - use comprehensive search
+    # Get available sources from configuration
+    try:
+        from ..config import get_current_config
+
+        config = get_current_config()
+        if not config or not config.sources:
+            # Fallback to basic sources if config unavailable
+            return ["semantic_scholar", "crossref", "arxiv", "core"]
+
+        # Get all enabled sources
+        available_sources = [
+            name
+            for name, source_config in config.sources.items()
+            if getattr(source_config, "enabled", False)
+        ]
+
+        if not available_sources:
+            return []
+
+        # Categorize sources by inferring their focus from descriptions
+        categorized_sources: dict[str, list[str]] = {
+            "stem": [],
+            "medical": [],
+            "historical": [],
+            "social_science": [],
+            "humanities": [],
+            "business": [],
+            "general": [],
+        }
+
+        for source_name in available_sources:
+            source_config = config.sources[source_name]
+            category = _infer_source_category(source_name, source_config)
+            categorized_sources[category].append(source_name)
+
+        # Select sources based on primary topic
+        recommended = []
+
+        if primary_topic == "stem":
+            recommended.extend(categorized_sources["stem"])
+            recommended.extend(
+                categorized_sources["general"][:2]
+            )  # Add some general sources
+        elif primary_topic == "medical" or primary_topic == "biological":
+            recommended.extend(categorized_sources["medical"])
+            recommended.extend(categorized_sources["general"][:2])
+        elif primary_topic == "historical":
+            recommended.extend(categorized_sources["historical"])
+            recommended.extend(categorized_sources["general"][:2])
+        elif primary_topic == "social_science":
+            recommended.extend(categorized_sources["social_science"])
+            recommended.extend(categorized_sources["general"][:2])
+        elif primary_topic == "humanities":
+            recommended.extend(categorized_sources["humanities"])
+            recommended.extend(categorized_sources["general"][:2])
+        elif primary_topic == "business":
+            recommended.extend(categorized_sources["business"])
+            recommended.extend(categorized_sources["general"][:2])
+        else:
+            # General/mixed queries - prioritize general sources
+            recommended.extend(categorized_sources["general"])
+            # Add some from each category for comprehensive coverage
+            for category_sources in categorized_sources.values():
+                if category_sources and category_sources[0] not in recommended:
+                    recommended.append(category_sources[0])
+
+        # Remove duplicates while preserving order
+        unique_recommended = []
+        seen = set()
+        for source in recommended:
+            if source not in seen:
+                unique_recommended.append(source)
+                seen.add(source)
+
+        return unique_recommended[:6]  # Limit to reasonable number
+
+    except Exception:
+        # Ultimate fallback - return basic sources if anything fails
         return ["semantic_scholar", "crossref", "arxiv", "core"]
+
+
+def _infer_source_category(source_name: str, source_config: Any) -> str:
+    """
+    Infer the category of a source from its name and configuration.
+    This allows dynamic categorization of custom sources.
+    """
+    source_name_lower = source_name.lower()
+
+    # Check source name patterns first
+    if any(
+        term in source_name_lower
+        for term in ["arxiv", "preprint", "computer", "physics", "math"]
+    ):
+        return "stem"
+    elif any(
+        term in source_name_lower
+        for term in ["pubmed", "medical", "clinical", "health", "bio"]
+    ):
+        return "medical"
+    elif any(
+        term in source_name_lower
+        for term in ["history", "historical", "archive", "government"]
+    ):
+        return "historical"
+    elif any(
+        term in source_name_lower
+        for term in ["social", "psychology", "sociology", "education"]
+    ):
+        return "social_science"
+    elif any(
+        term in source_name_lower
+        for term in ["humanities", "literature", "art", "philosophy"]
+    ):
+        return "humanities"
+    elif any(
+        term in source_name_lower
+        for term in ["business", "economics", "finance", "repec"]
+    ):
+        return "business"
+
+    # Check source description/coverage if available
+    if hasattr(source_config, "config") and source_config.config:
+        config_obj = source_config.config
+        description = getattr(config_obj, "description", "").lower()
+        coverage = getattr(config_obj, "coverage", "").lower()
+        text = f"{description} {coverage}"
+
+        if any(
+            term in text
+            for term in [
+                "computer",
+                "algorithm",
+                "physics",
+                "mathematics",
+                "engineering",
+            ]
+        ):
+            return "stem"
+        elif any(
+            term in text
+            for term in ["medical", "biomedical", "clinical", "health", "biological"]
+        ):
+            return "medical"
+        elif any(
+            term in text
+            for term in ["historical", "history", "archive", "government", "policy"]
+        ):
+            return "historical"
+        elif any(
+            term in text
+            for term in [
+                "social",
+                "psychology",
+                "sociology",
+                "education",
+                "anthropology",
+            ]
+        ):
+            return "social_science"
+        elif any(
+            term in text
+            for term in ["humanities", "literature", "art", "philosophy", "culture"]
+        ):
+            return "humanities"
+        elif any(
+            term in text
+            for term in ["business", "economics", "finance", "management", "corporate"]
+        ):
+            return "business"
+
+    # Default to general if no clear category
+    return "general"
 
 
 def should_skip_source_for_topic(

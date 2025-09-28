@@ -6,7 +6,6 @@ import logging
 from typing import Any
 
 from ..api_clients.arxiv_client import search_arxiv
-from ..api_clients.google_scholar_client import search_google_scholar_fallback
 from ..api_clients.pubmed_client import search_pubmed, search_pubmed_central
 from ..config import api_status, get_search_service
 from .pdf_processor import extract_pdf_text
@@ -32,7 +31,7 @@ async def comprehensive_search_internal(
     query: str, limit: int = 5, include_full_text: bool = False
 ) -> dict[str, Any]:
     """
-    Comprehensive search across multiple academic databases with fallback support.
+    Comprehensive search across multiple academic databases with intelligent routing and fallback support.
 
     Args:
         query: Search query for publications
@@ -49,132 +48,144 @@ async def comprehensive_search_internal(
     search_service = get_search_service()
     search_functions = search_service.get_search_functions()
 
-    # Phase 1: CrossRef (most reliable, no blocking)
-    if (
-        remaining_limit > 0
-        and api_status["crossref"]
-        and "search_crossref" in search_functions
-    ):
-        try:
-            crossref_results = await health_monitor.monitor_request(
-                "crossref", search_functions["search_crossref"], query, remaining_limit
+    # Use intelligent query analysis for source prioritization
+    try:
+        from .query_intent import analyze_query_intent
+
+        query_analysis = analyze_query_intent(query)
+        source_preferences = query_analysis.source_preferences
+        logger.info(
+            f"Query intent: {query_analysis.intent.value}, temporal: {query_analysis.temporal_preference.value}"
+        )
+    except Exception as e:
+        logger.warning(f"Query analysis failed, using default preferences: {e}")
+        source_preferences = {}
+
+    # Get available sources and their priorities
+    available_sources = []
+    for source_name, search_func in search_functions.items():
+        if api_status.get(source_name, True):  # Default to True for unknown sources
+            # Extract actual source name from function name (remove "search_" prefix if present)
+            actual_source_name = (
+                source_name.replace("search_", "")
+                if source_name.startswith("search_")
+                else source_name
             )
-            all_results.extend(crossref_results)
-            remaining_limit = max(0, limit - len(all_results))
-        except Exception as e:
-            logger.warning(f"CrossRef failed: {e}")
-
-    # Phase 2: Semantic Scholar
-    if remaining_limit > 0 and api_status["semantic_scholar"]:
-        try:
-            semantic_results = await health_monitor.monitor_request(
-                "semantic_scholar", search_semantic_scholar, query, remaining_limit
+            preference_score = source_preferences.get(
+                actual_source_name, 0.3
+            )  # Default preference
+            available_sources.append(
+                (actual_source_name, search_func, preference_score)
             )
-            all_results.extend(semantic_results)
-            remaining_limit = max(0, limit - len(all_results))
-        except Exception as e:
-            logger.warning(f"Semantic Scholar failed: {e}")
 
-    # Phase 3: arXiv (for technical papers)
-    if remaining_limit > 0 and api_status["arxiv"]:
+    # Sort sources by preference score (highest first)
+    available_sources.sort(key=lambda x: x[2], reverse=True)
+
+    # Search through sources in priority order until limit is reached
+    sources_used = []
+    for source_name, search_func, preference_score in available_sources:
+        if remaining_limit <= 0:
+            break
+
         try:
-            arxiv_results = await health_monitor.monitor_request(
-                "arxiv", search_arxiv, query, remaining_limit
+            logger.info(
+                f"Searching {source_name} (preference: {preference_score:.3f}, remaining: {remaining_limit})"
             )
-            all_results.extend(arxiv_results)
-            remaining_limit = max(0, limit - len(all_results))
-        except Exception as e:
-            logger.warning(f"arXiv failed: {e}")
 
-    # Phase 4: Enhanced Medical Research - PubMed, PMC, and ClinicalTrials
-    biomedical_terms = [
-        "gene",
-        "protein",
-        "disease",
-        "medical",
-        "clinical",
-        "drug",
-        "therapy",
-        "patient",
-        "cancer",
-        "treatment",
-        "diabetes",
-        "immunotherapy",
-        "vaccine",
-        "trial",
-        "study",
-        "health",
-        "medicine",
-        "surgery",
-        "diagnosis",
-    ]
-    is_medical_query = any(term in query.lower() for term in biomedical_terms)
+            # Determine appropriate limit for this source
+            source_limit = min(
+                remaining_limit, max(1, int(remaining_limit * preference_score * 2))
+            )
 
-    if remaining_limit > 0 and is_medical_query:
-        # Phase 4a: PubMed Central (full-text medical papers)
-        if api_status["pubmed_central"]:
-            try:
-                pmc_results = await health_monitor.monitor_request(
-                    "pubmed_central",
-                    search_pubmed_central,
-                    query,
-                    min(remaining_limit, 3),
+            # Handle special cases for legacy function signatures
+            if source_name in ["pubmed", "pubmed_central"]:
+                # These functions might need different handling
+                if source_name == "pubmed":
+                    results = await health_monitor.monitor_request(
+                        source_name, search_pubmed, query, source_limit
+                    )
+                elif source_name == "pubmed_central":
+                    results = await health_monitor.monitor_request(
+                        source_name, search_pubmed_central, query, source_limit
+                    )
+                else:
+                    results = await health_monitor.monitor_request(
+                        source_name, search_func, query, source_limit
+                    )
+            elif source_name == "arxiv":
+                results = await health_monitor.monitor_request(
+                    source_name, search_arxiv, query, source_limit
                 )
-                all_results.extend(pmc_results)
-                remaining_limit = max(0, limit - len(all_results))
-                logger.info(f"PMC search: {len(pmc_results)} results")
-            except Exception as e:
-                logger.warning(f"PubMed Central failed: {e}")
-
-        # Phase 4b: PubMed (enhanced with PMC links)
-        if remaining_limit > 0 and api_status["pubmed"]:
-            try:
-                pubmed_results = await health_monitor.monitor_request(
-                    "pubmed", search_pubmed, query, remaining_limit
+            elif callable(search_func):
+                # Generic search function call
+                results = await health_monitor.monitor_request(
+                    source_name, search_func, query, source_limit
                 )
-                all_results.extend(pubmed_results)
-                remaining_limit = max(0, limit - len(all_results))
-                logger.info(f"PubMed search: {len(pubmed_results)} results")
-            except Exception as e:
-                logger.warning(f"PubMed failed: {e}")
+            else:
+                logger.warning(f"Skipping {source_name}: not callable")
+                continue
 
-        # Phase 4c: ClinicalTrials.gov (for clinical research)
-        if remaining_limit > 0 and api_status["clinicaltrials"]:
-            try:
-                trial_results = await health_monitor.monitor_request(
-                    "clinicaltrials",
-                    search_clinicaltrials,
-                    query,
-                    min(remaining_limit, 2),
+            if results:
+                all_results.extend(results)
+                sources_used.append(source_name)
+                remaining_limit = max(0, limit - len(all_results))
+                logger.info(
+                    f"✅ {source_name}: {len(results)} results (total: {len(all_results)})"
                 )
-                all_results.extend(trial_results)
-                remaining_limit = max(0, limit - len(all_results))
-                logger.info(f"ClinicalTrials search: {len(trial_results)} results")
+            else:
+                logger.info(f"⚪ {source_name}: No results")
+
+        except Exception as e:
+            logger.warning(f"❌ {source_name} failed: {e}")
+            continue
+
+    # Fallback: If we still haven't reached the limit, try additional sources with default category
+    if remaining_limit > 0:
+        logger.info(f"Using fallback search for remaining {remaining_limit} results")
+        fallback_sources = [
+            (name, func, 0.3)
+            for name, func, _ in available_sources
+            if name not in sources_used and api_status.get(name, True)
+        ]
+
+        for source_name, search_func, _ in fallback_sources:
+            if remaining_limit <= 0:
+                break
+
+            try:
+                logger.info(f"Fallback search: {source_name}")
+
+                # Try with smaller limits for fallback
+                fallback_limit = min(remaining_limit, 2)
+
+                if source_name == "pubmed":
+                    results = await health_monitor.monitor_request(
+                        source_name, search_pubmed, query, fallback_limit
+                    )
+                elif source_name == "arxiv":
+                    results = await health_monitor.monitor_request(
+                        source_name, search_arxiv, query, fallback_limit
+                    )
+                elif callable(search_func):
+                    results = await health_monitor.monitor_request(
+                        source_name, search_func, query, fallback_limit
+                    )
+                else:
+                    continue
+
+                if results:
+                    all_results.extend(results)
+                    sources_used.append(source_name)
+                    remaining_limit = max(0, limit - len(all_results))
+                    logger.info(f"✅ Fallback {source_name}: {len(results)} results")
+
             except Exception as e:
-                logger.warning(f"ClinicalTrials.gov failed: {e}")
-    elif remaining_limit > 0 and api_status["pubmed"]:
-        # Fallback: Still search PubMed for non-medical queries that might have biomedical relevance
-        try:
-            pubmed_results = await health_monitor.monitor_request(
-                "pubmed", search_pubmed, query, min(remaining_limit, 2)
-            )
-            all_results.extend(pubmed_results)
-            remaining_limit = max(0, limit - len(all_results))
-        except Exception as e:
-            logger.warning(f"PubMed fallback failed: {e}")
+                logger.warning(f"❌ Fallback {source_name} failed: {e}")
+                continue
 
-    # Phase 5: Google Scholar (final fallback)
-    if remaining_limit > 0 and api_status["google_scholar"]:
-        try:
-            scholar_results = await health_monitor.monitor_request(
-                "google_scholar", search_google_scholar_fallback, query, remaining_limit
-            )
-            all_results.extend(scholar_results)
-        except Exception as e:
-            logger.warning(f"Google Scholar failed: {e}")
-
-    # Phase 6: Add full text if requested
+    # Add full text if requested
     if include_full_text and all_results:
+        logger.info(f"Extracting full text for top {min(3, len(all_results))} results")
         for result in all_results[:3]:  # Only top 3 to avoid overload
             pdf_url = result.get("pdf_url") or result.get("open_access_pdf")
             if pdf_url:
@@ -186,16 +197,34 @@ async def comprehensive_search_internal(
                 except Exception as e:
                     logger.warning(f"PDF extraction failed for {pdf_url}: {e}")
 
-    # Sort by citation count if available
-    all_results.sort(key=lambda x: x.get("citation_count", 0), reverse=True)
+    # Sort by citation count if available, then by relevance
+    all_results.sort(
+        key=lambda x: (x.get("citation_count", 0), x.get("relevance_score", 0)),
+        reverse=True,
+    )
 
-    # Add API status info
+    # Prepare result summary with enhanced metadata
     result_summary = {
         "results": all_results[:limit],
         "total_found": len(all_results),
         "api_status": api_status.copy(),
-        "sources_used": list(set([r.get("source") for r in all_results])),
+        "sources_used": sources_used,  # Use the tracked sources_used list
         "query": query,
+        "search_strategy": "intelligent_routing",
+        "query_analysis": (
+            {
+                "intent": getattr(query_analysis, "intent", "unknown"),
+                "temporal_preference": getattr(
+                    query_analysis, "temporal_preference", "neutral"
+                ),
+                "confidence": getattr(query_analysis, "confidence", 0.0),
+            }
+            if "query_analysis" in locals()
+            else None
+        ),
     }
 
+    logger.info(
+        f"Search completed: {len(all_results)} total results from {len(sources_used)} sources"
+    )
     return result_summary

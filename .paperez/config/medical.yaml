@@ -86,6 +86,36 @@ sources:
         citation_count: "0"
       rate_limit_delay: 0.2
 
+  openalex:
+    name: openalex
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Open catalog with extensive medical/biomedical coverage
+      coverage: comprehensive multidisciplinary including medical research
+      base_url: https://api.openalex.org
+      search_path: /works
+      query_param: search
+      limit_param: per-page
+      response_format: json
+      results_path: results
+      extra_params:
+        mailto: research@paperez.org
+      field_mappings:
+        title: title
+        authors: authorships
+        abstract: abstract_inverted_index
+        journal: primary_location.source.display_name
+        year: publication_year
+        doi: doi
+        url: primary_location.landing_page_url
+        pdf_url: open_access.oa_url
+        citation_count: cited_by_count
+      rate_limit_delay: 0.1
+
 # Medical research categories
 categories:
   medical:
@@ -96,9 +126,10 @@ categories:
     sources:
       - pubmed
       - pubmed_central
+      - openalex
       - clinicaltrials
       - europe_pmc
-    max_results_per_source: 8
+    max_results_per_source: 6
     parallel_search: true
 
 # GAPS IDENTIFIED - NEED MORE SOURCES:

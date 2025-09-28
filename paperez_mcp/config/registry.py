@@ -26,7 +26,6 @@ class SourceRegistry:
         """Register all built-in search sources."""
         from ..api_clients import (
             search_arxiv,
-            search_google_scholar_fallback,
             search_pubmed,
             search_pubmed_central,
         )
@@ -36,7 +35,6 @@ class SourceRegistry:
             "search_arxiv": search_arxiv,
             "search_pubmed": search_pubmed,
             "search_pubmed_central": search_pubmed_central,
-            "search_google_scholar_fallback": search_google_scholar_fallback,
         }
 
         config = get_current_config()

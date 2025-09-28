@@ -128,32 +128,52 @@ class SourceHealthMonitor:
     def __init__(self) -> None:
         self.metrics: dict[str, SourceMetrics] = {}
         self.monitoring_enabled = True
+        self._initialize_from_config()
 
-        # Initialize metrics for all known sources
-        source_names = [
+    def _initialize_from_config(self) -> None:
+        """Initialize metrics for all configured sources."""
+        try:
+            from ..config import get_current_config
+
+            config = get_current_config()
+            if config and config.sources:
+                # Initialize metrics for all configured sources
+                for source_name, source_config in config.sources.items():
+                    if getattr(source_config, "enabled", False):
+                        self.metrics[source_name] = SourceMetrics(
+                            source_name=source_name
+                        )
+            else:
+                # Fallback to basic sources if config unavailable
+                self._initialize_fallback_sources()
+        except Exception:
+            # Ultimate fallback if config loading fails
+            self._initialize_fallback_sources()
+
+    def _initialize_fallback_sources(self) -> None:
+        """Initialize with fallback sources when configuration is unavailable."""
+        fallback_sources = [
             "crossref",
             "semantic_scholar",
             "arxiv",
             "pubmed",
-            "pubmed_central",
-            "clinicaltrials",
-            "google_scholar",
             "core",
             "doaj",
-            "socarxiv",
-            "osf_preprints",
         ]
-
-        for source in source_names:
+        for source in fallback_sources:
             self.metrics[source] = SourceMetrics(source_name=source)
 
     async def monitor_request(
         self, source_name: str, search_func: Any, *args: Any, **kwargs: Any
     ) -> Any:
         """Monitor a request to a source and update metrics"""
-        if not self.monitoring_enabled or source_name not in self.metrics:
-            # If monitoring disabled or unknown source, just call the function
+        if not self.monitoring_enabled:
+            # If monitoring disabled, just call the function
             return await search_func(*args, **kwargs)
+
+        # Dynamically add unknown sources
+        if source_name not in self.metrics:
+            self.metrics[source_name] = SourceMetrics(source_name=source_name)
 
         start_time = time.time()
         metrics = self.metrics[source_name]
@@ -274,20 +294,8 @@ class SourceHealthMonitor:
         """Perform active health check on all sources"""
         logger.info("🔍 Performing active health check on all sources...")
 
-        # Simple test queries for each source type
-        test_queries = {
-            "crossref": "machine learning",
-            "semantic_scholar": "artificial intelligence",
-            "arxiv": "neural networks",
-            "pubmed": "diabetes treatment",
-            "pubmed_central": "cancer therapy",
-            "clinicaltrials": "diabetes",
-            "google_scholar": "computer science",
-            "core": "climate change",
-            "doaj": "open access",
-            "socarxiv": "social science",
-            "osf_preprints": "psychology",
-        }
+        # Generate test queries for all configured sources
+        test_queries = self._generate_test_queries()
 
         # Use unified config system
         from ..config import get_search_service
@@ -331,6 +339,75 @@ class SourceHealthMonitor:
             "health_check_results": health_results,
             "overall_report": self.get_health_report(),
             "recommendations": self.get_source_recommendations(),
+        }
+
+    def _generate_test_queries(self) -> dict[str, str]:
+        """Generate appropriate test queries for all configured sources."""
+        test_queries = {}
+
+        try:
+            from ..config import get_current_config
+
+            config = get_current_config()
+            if config and config.sources:
+                for source_name, source_config in config.sources.items():
+                    if getattr(source_config, "enabled", False):
+                        test_queries[source_name] = self._get_test_query_for_source(
+                            source_name
+                        )
+            else:
+                # Fallback test queries
+                test_queries = self._get_fallback_test_queries()
+        except Exception:
+            test_queries = self._get_fallback_test_queries()
+
+        return test_queries
+
+    def _get_test_query_for_source(self, source_name: str) -> str:
+        """Get an appropriate test query for a specific source."""
+        source_name_lower = source_name.lower()
+
+        # Medical/biomedical sources
+        if any(
+            term in source_name_lower
+            for term in ["pubmed", "pmc", "clinical", "medical"]
+        ):
+            return "diabetes treatment"
+        # Computer science/tech sources
+        elif any(term in source_name_lower for term in ["arxiv", "computer", "tech"]):
+            return "neural networks"
+        # Social science sources
+        elif any(
+            term in source_name_lower for term in ["socarxiv", "social", "psychology"]
+        ):
+            return "social science"
+        # Business/economics sources
+        elif any(
+            term in source_name_lower for term in ["repec", "economics", "business"]
+        ):
+            return "economic growth"
+        # General academic sources
+        elif any(
+            term in source_name_lower
+            for term in ["semantic", "scholar", "crossref", "openalex"]
+        ):
+            return "machine learning"
+        # Open access sources
+        elif any(term in source_name_lower for term in ["doaj", "core", "open"]):
+            return "open access"
+        # Default query for unknown sources
+        else:
+            return "research"
+
+    def _get_fallback_test_queries(self) -> dict[str, str]:
+        """Get fallback test queries for basic sources."""
+        return {
+            "crossref": "machine learning",
+            "semantic_scholar": "artificial intelligence",
+            "arxiv": "neural networks",
+            "pubmed": "diabetes treatment",
+            "core": "climate change",
+            "doaj": "open access",
         }
 
     def save_metrics_to_cache(self) -> None:
