@@ -48,20 +48,33 @@ async def comprehensive_search_internal(
     search_service = get_search_service()
     search_functions = search_service.get_search_functions()
 
-    # Use intelligent query analysis for source prioritization
+    # Use BM25 ranking for intelligent source prioritization
     try:
-        from .query_intent import analyze_query_intent
+        from .bm25_ranker import BM25SourceRanker
 
-        query_analysis = analyze_query_intent(query)
-        source_preferences = query_analysis.source_preferences
-        logger.info(
-            f"Query intent: {query_analysis.intent.value}, temporal: {query_analysis.temporal_preference.value}"
-        )
+        bm25_ranker = BM25SourceRanker()
+        # Get list of available source names (without search_ prefix)
+        available_source_names = []
+        for source_name in search_functions.keys():
+            if api_status.get(source_name, True):  # Only include enabled sources
+                actual_source_name = (
+                    source_name.replace("search_", "")
+                    if source_name.startswith("search_")
+                    else source_name
+                )
+                available_source_names.append(actual_source_name)
+
+        # Get BM25 rankings for the query
+        source_rankings = bm25_ranker.rank_sources(query, available_source_names)
+        logger.info(f"🏆 BM25 source rankings: {[(name, f'{score:.3f}') for name, score in source_rankings[:5]]}")
+
+        # Convert rankings to source preferences dict
+        source_preferences = {name: score for name, score in source_rankings}
     except Exception as e:
-        logger.warning(f"Query analysis failed, using default preferences: {e}")
+        logger.warning(f"BM25 ranking failed, using default preferences: {e}")
         source_preferences = {}
 
-    # Get available sources and their priorities
+    # Get available sources and their BM25-based priorities
     available_sources = []
     for source_name, search_func in search_functions.items():
         if api_status.get(source_name, True):  # Default to True for unknown sources
@@ -73,7 +86,7 @@ async def comprehensive_search_internal(
             )
             preference_score = source_preferences.get(
                 actual_source_name, 0.3
-            )  # Default preference
+            )  # Default preference if BM25 failed
             available_sources.append(
                 (actual_source_name, search_func, preference_score)
             )
@@ -241,15 +254,13 @@ async def comprehensive_search_internal(
         "sources_used": sources_used,  # Use the tracked sources_used list
         "query": query,
         "search_strategy": "intelligent_routing",
-        "query_analysis": (
+        "bm25_rankings": (
             {
-                "intent": getattr(query_analysis, "intent", "unknown"),
-                "temporal_preference": getattr(
-                    query_analysis, "temporal_preference", "neutral"
-                ),
-                "confidence": getattr(query_analysis, "confidence", 0.0),
+                "top_sources": source_rankings[:5] if "source_rankings" in locals() else [],
+                "ranking_method": "BM25",
+                "total_sources_ranked": len(source_rankings) if "source_rankings" in locals() else 0,
             }
-            if "query_analysis" in locals()
+            if "source_rankings" in locals()
             else None
         ),
     }
