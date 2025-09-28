@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
+from ..config import get_current_config
 from .bm25_ranker import BM25SourceRanker
 from .enhanced_classifier import EnhancedTopicClassifier
 from .intelligent_error_handler import error_handler
@@ -383,10 +384,14 @@ async def smart_downloadable_search(
     search_log["total_candidates"] = len(all_candidates)
     logger.info(f"📊 Total candidates from all sources: {len(all_candidates)}")
 
-    # Sort by PDF availability first, then citation count
+    # Sort by PDF availability using capability-based priority
     def pdf_priority_score(paper: dict[str, Any]) -> tuple[int, int]:
         has_pdf = bool(paper.get("pdf_url") or paper.get("open_access_pdf"))
-        is_arxiv = paper.get("source") == "arXiv"
+
+        # Get source capabilities for priority determination
+        source_name = paper.get("source", "")
+        config = get_current_config()
+        source_config = config.sources.get(source_name)
 
         # Safely convert citation_count to integer
         citation_count = paper.get("citation_count", 0)
@@ -395,15 +400,22 @@ async def smart_downloadable_search(
         except (ValueError, TypeError):
             citation_count = 0
 
-        # High priority: arXiv papers (almost always downloadable)
-        if is_arxiv:
-            return (3, citation_count)
-        # Medium priority: papers with PDF URLs
-        elif has_pdf:
-            return (2, citation_count)
-        # Low priority: papers without PDF URLs
+        # Determine priority based on source capabilities
+        if source_config and source_config.enabled and source_config.capabilities:
+            capabilities = source_config.capabilities
+
+            # Highest priority: Sources with high PDF availability (like arXiv, PMC)
+            if capabilities.high_pdf_availability:
+                return (3, citation_count)
+            # Medium priority: Papers with confirmed PDF URLs
+            elif has_pdf:
+                return (2, citation_count)
+            # Lower priority: Papers without PDF URLs
+            else:
+                return (1, citation_count)
         else:
-            return (1, citation_count)
+            # Unknown source - prioritize only if has PDF
+            return (2 if has_pdf else 1, citation_count)
 
     all_candidates.sort(key=pdf_priority_score, reverse=True)
 

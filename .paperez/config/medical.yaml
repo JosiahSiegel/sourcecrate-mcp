@@ -14,6 +14,29 @@ sources:
     config:
       description: Biomedical literature database
       coverage: life sciences, biomedical research
+    capabilities:
+      medical_focus: true
+      stem_focus: false
+      humanities_focus: false
+      social_science_focus: false
+      preprint_server: false
+      field_search: true
+      phrase_search: true
+      boolean_search: true
+      wildcard_search: false
+      high_pdf_availability: false
+      open_access_only: false
+      subscription_content: true
+      prefers_simple_queries: false
+      prefers_natural_language: false
+      prefers_quoted_phrases: true
+      historical_depth: very_high
+      update_frequency: daily
+      average_response_time: 1.5
+      pdf_url_patterns: []
+      pdf_validation_required: true
+      search_priority: 9
+      topic_routing_weight: 1.5
 
   pubmed_central:
     name: pubmed_central
@@ -26,6 +49,30 @@ sources:
     config:
       description: Full-text biomedical literature repository
       coverage: open access medical and life science articles
+    capabilities:
+      medical_focus: true
+      stem_focus: false
+      humanities_focus: false
+      social_science_focus: false
+      preprint_server: false
+      field_search: true
+      phrase_search: true
+      boolean_search: true
+      wildcard_search: false
+      high_pdf_availability: true
+      open_access_only: true
+      subscription_content: false
+      prefers_simple_queries: false
+      prefers_natural_language: false
+      prefers_quoted_phrases: true
+      historical_depth: high
+      update_frequency: daily
+      average_response_time: 1.8
+      pdf_url_patterns:
+        - "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC([0-9]+)/pdf/"
+      pdf_validation_required: false
+      search_priority: 10
+      topic_routing_weight: 1.5
 
   europe_pmc:
     name: europe_pmc

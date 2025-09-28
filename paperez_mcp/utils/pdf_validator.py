@@ -11,6 +11,8 @@ import re
 
 import aiohttp
 
+from ..config import get_current_config
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,6 +41,39 @@ class PDFValidator:
 
         # Timeout for HTTP requests
         self.timeout = aiohttp.ClientTimeout(total=10, connect=5)
+
+    def get_all_pdf_patterns(self) -> dict[str, list[str]]:
+        """
+        Get all PDF patterns including both built-in and capability-based patterns.
+
+        Returns:
+            Dict mapping source names to lists of regex patterns
+        """
+        all_patterns = {}
+
+        # Add built-in patterns
+        for source, pattern_info in self.pdf_patterns.items():
+            if "pattern" in pattern_info:
+                all_patterns[source] = [pattern_info["pattern"]]
+
+        # Add capability-based patterns from configuration
+        try:
+            config = get_current_config()
+            for source_name, source_config in config.sources.items():
+                if (
+                    source_config.enabled
+                    and source_config.capabilities
+                    and source_config.capabilities.pdf_url_patterns
+                ):
+                    if source_name not in all_patterns:
+                        all_patterns[source_name] = []
+                    all_patterns[source_name].extend(
+                        source_config.capabilities.pdf_url_patterns
+                    )
+        except Exception as e:
+            logger.warning(f"Could not load capability-based PDF patterns: {e}")
+
+        return all_patterns
 
     async def validate_pdf_url(self, url: str) -> tuple[bool, str | None]:
         """

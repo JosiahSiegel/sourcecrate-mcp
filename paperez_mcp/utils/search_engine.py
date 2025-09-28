@@ -6,8 +6,7 @@ import asyncio
 import logging
 from typing import Any
 
-from ..api_clients.arxiv_client import search_arxiv
-from ..api_clients.pubmed_client import search_pubmed, search_pubmed_central
+# Note: Source functions are now handled by the registry system
 from ..config import api_status, get_search_service
 from ..config.settings import config
 from .pdf_processor import extract_pdf_text
@@ -153,30 +152,15 @@ async def comprehensive_search_internal(
                     # For additional sources, use preference-based allocation
                     source_limit = max(2, int(limit * preference_score * 0.4))
 
-                # Execute search with proper function routing
-                if source_name in ["pubmed", "pubmed_central"]:
-                    if source_name == "pubmed":
-                        results = await health_monitor.monitor_request(
-                            source_name, search_pubmed, query, source_limit
-                        )
-                    elif source_name == "pubmed_central":
-                        results = await health_monitor.monitor_request(
-                            source_name, search_pubmed_central, query, source_limit
-                        )
-                    else:
-                        results = await health_monitor.monitor_request(
-                            source_name, search_func, query, source_limit
-                        )
-                elif source_name == "arxiv":
-                    results = await health_monitor.monitor_request(
-                        source_name, search_arxiv, query, source_limit
-                    )
-                elif callable(search_func):
+                # Execute search using registry-based function routing
+                if callable(search_func):
                     results = await health_monitor.monitor_request(
                         source_name, search_func, query, source_limit
                     )
                 else:
-                    logger.warning(f"⚠️ Skipping {source_name}: not callable")
+                    logger.warning(
+                        f"⚠️ Skipping {source_name}: search function not available"
+                    )
                     return source_name, [], False
 
                 # Return results with source metadata
@@ -251,30 +235,15 @@ async def comprehensive_search_internal(
                         max(1, int(remaining_limit * preference_score * 2)),
                     )
 
-                # Execute search with proper function routing
-                if source_name in ["pubmed", "pubmed_central"]:
-                    if source_name == "pubmed":
-                        results = await health_monitor.monitor_request(
-                            source_name, search_pubmed, query, source_limit
-                        )
-                    elif source_name == "pubmed_central":
-                        results = await health_monitor.monitor_request(
-                            source_name, search_pubmed_central, query, source_limit
-                        )
-                    else:
-                        results = await health_monitor.monitor_request(
-                            source_name, search_func, query, source_limit
-                        )
-                elif source_name == "arxiv":
-                    results = await health_monitor.monitor_request(
-                        source_name, search_arxiv, query, source_limit
-                    )
-                elif callable(search_func):
+                # Execute search using registry-based function routing
+                if callable(search_func):
                     results = await health_monitor.monitor_request(
                         source_name, search_func, query, source_limit
                     )
                 else:
-                    logger.warning(f"⚠️ Skipping {source_name}: not callable")
+                    logger.warning(
+                        f"⚠️ Skipping {source_name}: search function not available"
+                    )
                     continue
 
                 sources_attempted += 1
@@ -312,15 +281,7 @@ async def comprehensive_search_internal(
                 # Try with smaller limits for fallback
                 fallback_limit = min(remaining_limit, 2)
 
-                if source_name == "pubmed":
-                    results = await health_monitor.monitor_request(
-                        source_name, search_pubmed, query, fallback_limit
-                    )
-                elif source_name == "arxiv":
-                    results = await health_monitor.monitor_request(
-                        source_name, search_arxiv, query, fallback_limit
-                    )
-                elif callable(search_func):
+                if callable(search_func):
                     results = await health_monitor.monitor_request(
                         source_name, search_func, query, fallback_limit
                     )

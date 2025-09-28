@@ -14,6 +14,84 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(__name__)
 
 
+class SourceCapabilities(BaseModel):
+    """Defines capabilities and characteristics of a search source."""
+
+    # Content domains
+    medical_focus: bool = Field(
+        False, description="Source specializes in medical/health content"
+    )
+    stem_focus: bool = Field(False, description="Source specializes in STEM fields")
+    humanities_focus: bool = Field(
+        False, description="Source specializes in humanities"
+    )
+    social_science_focus: bool = Field(
+        False, description="Source specializes in social sciences"
+    )
+    preprint_server: bool = Field(
+        False, description="Source primarily contains preprints"
+    )
+
+    # Technical capabilities
+    field_search: bool = Field(
+        False, description="Supports field-specific search (title, abstract, etc)"
+    )
+    phrase_search: bool = Field(True, description="Supports quoted phrase searching")
+    boolean_search: bool = Field(
+        False, description="Supports advanced boolean operators"
+    )
+    wildcard_search: bool = Field(
+        False, description="Supports wildcard pattern matching"
+    )
+
+    # Content availability
+    high_pdf_availability: bool = Field(
+        False, description="Most papers have accessible PDFs"
+    )
+    open_access_only: bool = Field(False, description="Only open access content")
+    subscription_content: bool = Field(
+        True, description="May include subscription-only content"
+    )
+
+    # Query optimization preferences
+    prefers_simple_queries: bool = Field(
+        False, description="Works better with simple keyword queries"
+    )
+    prefers_natural_language: bool = Field(
+        False, description="Works better with natural language queries"
+    )
+    prefers_quoted_phrases: bool = Field(
+        False, description="Works better with quoted multi-word queries"
+    )
+
+    # Content characteristics
+    historical_depth: Literal["low", "medium", "high", "very_high"] = Field(
+        "medium", description="How much historical content is available"
+    )
+    update_frequency: Literal["daily", "weekly", "monthly"] = Field(
+        "weekly", description="How often content is updated"
+    )
+    average_response_time: float = Field(
+        2.0, description="Typical response time in seconds"
+    )
+
+    # PDF-specific capabilities
+    pdf_url_patterns: list[str] = Field(
+        default_factory=list, description="Regex patterns for extracting PDF URLs"
+    )
+    pdf_validation_required: bool = Field(
+        True, description="PDF URLs should be validated"
+    )
+
+    # Priority and routing
+    search_priority: int = Field(
+        5, description="Search priority (1-10, higher = more important)"
+    )
+    topic_routing_weight: float = Field(
+        1.0, description="Weight for topic-based routing"
+    )
+
+
 class SourceProviderConfig(BaseModel):
     """Configuration for a search source provider."""
 
@@ -41,6 +119,9 @@ class SourceProviderConfig(BaseModel):
     timeout: int = Field(30, description="Request timeout in seconds")
     max_retries: int = Field(3, description="Maximum retry attempts")
     cache_expire: int = Field(3600, description="Cache expiration in seconds")
+
+    # Source capabilities and characteristics
+    capabilities: SourceCapabilities | None = None
 
     # TODO: Fix validators for Pydantic V2
     # @validator('function_name')

@@ -32,6 +32,29 @@ sources:
         url: URL
         citation_count: is-referenced-by-count
       rate_limit_delay: 0.05
+    capabilities:
+      medical_focus: false
+      stem_focus: true
+      humanities_focus: true
+      social_science_focus: true
+      preprint_server: false
+      field_search: false
+      phrase_search: true
+      boolean_search: false
+      wildcard_search: false
+      high_pdf_availability: false
+      open_access_only: false
+      subscription_content: true
+      prefers_simple_queries: false
+      prefers_natural_language: true
+      prefers_quoted_phrases: false
+      historical_depth: very_high
+      update_frequency: weekly
+      average_response_time: 1.8
+      pdf_url_patterns: []
+      pdf_validation_required: true
+      search_priority: 8
+      topic_routing_weight: 1.2
 
   semantic_scholar:
     name: semantic_scholar
@@ -77,6 +100,29 @@ sources:
       # 2. Submit request with your use case
       # 3. Add received API key to api_key field above
       # 4. Reduces rate_limit_delay to 1.1 seconds for 1 RPS compliance
+    capabilities:
+      medical_focus: false
+      stem_focus: true
+      humanities_focus: true
+      social_science_focus: true
+      preprint_server: false
+      field_search: false
+      phrase_search: true
+      boolean_search: false
+      wildcard_search: false
+      high_pdf_availability: true
+      open_access_only: false
+      subscription_content: true
+      prefers_simple_queries: false
+      prefers_natural_language: true
+      prefers_quoted_phrases: true
+      historical_depth: high
+      update_frequency: weekly
+      average_response_time: 2.5
+      pdf_url_patterns: []
+      pdf_validation_required: true
+      search_priority: 9
+      topic_routing_weight: 1.4
 
   arxiv:
     name: arxiv
@@ -89,6 +135,30 @@ sources:
     config:
       description: Preprint repository for STEM fields
       coverage: physics, mathematics, computer science, biology
+    capabilities:
+      medical_focus: false
+      stem_focus: true
+      humanities_focus: false
+      social_science_focus: false
+      preprint_server: true
+      field_search: true
+      phrase_search: true
+      boolean_search: true
+      wildcard_search: true
+      high_pdf_availability: true
+      open_access_only: true
+      subscription_content: false
+      prefers_simple_queries: false
+      prefers_natural_language: false
+      prefers_quoted_phrases: true
+      historical_depth: medium
+      update_frequency: daily
+      average_response_time: 1.2
+      pdf_url_patterns:
+        - "https://arxiv.org/pdf/([0-9]{4}\\.[0-9]{4,5})\\.pdf"
+      pdf_validation_required: false
+      search_priority: 10
+      topic_routing_weight: 1.8
 
   doaj:
     name: doaj

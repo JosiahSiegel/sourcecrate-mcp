@@ -4,6 +4,8 @@ Query processing and reformulation for better search coverage.
 
 import re
 
+from ..config import get_current_config
+
 
 def generate_alternative_queries(query: str) -> list[str]:
     """
@@ -347,7 +349,7 @@ def expand_historical_query(query: str) -> list[str]:
 
 def optimize_query_for_source(query: str, source: str) -> str:
     """
-    Optimize query formatting for specific sources.
+    Optimize query formatting for specific sources using capability-based routing.
 
     Args:
         query: Original query
@@ -356,34 +358,45 @@ def optimize_query_for_source(query: str, source: str) -> str:
     Returns:
         Optimized query for the source
     """
-    if source == "arxiv":
-        # arXiv works well with field-specific searches
-        if (
-            " " in query
-            and not query.startswith("ti:")
-            and not query.startswith("abs:")
-        ):
-            return f'ti:"{query}" OR abs:"{query}"'
+    config = get_current_config()
+    source_config = config.sources.get(source)
 
-    elif source == "pubmed":
-        # PubMed supports MeSH terms and field tags
-        if " " in query:
-            # Add field tags for better precision
-            return f'"{query}"[Title/Abstract]'
-
-    elif source == "semantic_scholar":
-        # Semantic Scholar works well with quoted phrases
-        if " " in query and not (query.startswith('"') and query.endswith('"')):
-            return f'"{query}"'
-
-    elif source == "crossref":
-        # CrossRef is more flexible with natural language
+    if not source_config or not source_config.enabled:
         return query
 
-    elif source in ["core", "doaj", "socarxiv"]:
-        # These APIs generally work better with simpler queries
-        # Remove quotes if present
-        if query.startswith('"') and query.endswith('"'):
-            return query[1:-1]
+    capabilities = source_config.capabilities
+    if not capabilities:
+        return query
+
+    # Multi-word query optimization based on capabilities
+    is_multiword = " " in query
+
+    if is_multiword:
+        # Field search sources (like arXiv, PubMed) - use field-specific syntax
+        if capabilities.field_search:
+            # Medical sources often prefer title/abstract field tags
+            if capabilities.medical_focus:
+                if not query.startswith('"') and not any(
+                    tag in query for tag in ["[Title", "[Abstract"]
+                ):
+                    return f'"{query}"[Title/Abstract]'
+            # STEM/preprint sources often prefer title OR abstract syntax
+            elif capabilities.stem_focus or capabilities.preprint_server:
+                if not any(prefix in query for prefix in ["ti:", "abs:"]):
+                    return f'ti:"{query}" OR abs:"{query}"'
+
+        # Sources that prefer quoted phrases
+        elif capabilities.prefers_quoted_phrases:
+            if not (query.startswith('"') and query.endswith('"')):
+                return f'"{query}"'
+
+        # Sources that prefer natural language (like CrossRef)
+        elif capabilities.prefers_natural_language:
+            return query
+
+        # Sources that prefer simple queries - remove quotes
+        elif capabilities.prefers_simple_queries:
+            if query.startswith('"') and query.endswith('"'):
+                return query[1:-1]
 
     return query

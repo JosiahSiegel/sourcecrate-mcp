@@ -4,6 +4,8 @@ Topic classification system for academic queries.
 
 from typing import Any
 
+from ..config import get_current_config
+
 
 def classify_query_topic(query: str) -> dict[str, float]:
     """
@@ -493,7 +495,7 @@ def should_skip_source_for_topic(
     source: str, query: str, threshold: float = 0.05
 ) -> bool:
     """
-    Determine if a source should be skipped for a given topic.
+    Determine if a source should be skipped for a given topic using capability-based routing.
 
     Args:
         source: The source name to check
@@ -503,15 +505,25 @@ def should_skip_source_for_topic(
     Returns:
         True if the source should be skipped, False otherwise
     """
+    config = get_current_config()
+    source_config = config.sources.get(source)
+
+    if not source_config or not source_config.enabled:
+        return True
+
+    capabilities = source_config.capabilities
+    if not capabilities:
+        return False
     scores = classify_query_topic(query)
 
-    # Skip arXiv for clearly non-STEM topics
-    if source == "arxiv":
+    # Skip sources with specialized focus if query doesn't match their domain
+    # STEM-focused sources (like arXiv) should be skipped for non-STEM topics
+    if capabilities.stem_focus:
         stem_score = scores.get("stem", 0)
         medical_score = scores.get("medical", 0)
         biological_score = scores.get("biological", 0)
 
-        # If it's clearly historical/social science and not STEM/medical/biological
+        # Calculate how much this is NOT in the source's focus area
         historical_score = scores.get("historical", 0)
         social_score = scores.get("social_science", 0)
         humanities_score = scores.get("humanities", 0)
@@ -519,15 +531,29 @@ def should_skip_source_for_topic(
         non_stem_score = max(historical_score, social_score, humanities_score)
         stem_related_score = max(stem_score, medical_score, biological_score)
 
+        # Skip if clearly not STEM-related
         if non_stem_score > threshold and stem_related_score < threshold / 2:
             return True
 
-    # Skip PubMed for clearly non-medical/biological topics
-    if source == "pubmed":
+    # Medical-focused sources (like PubMed) should be skipped for non-medical topics
+    if capabilities.medical_focus:
         medical_score = scores.get("medical", 0)
         biological_score = scores.get("biological", 0)
 
+        # Skip if not medical/biological related
         if max(medical_score, biological_score) < threshold / 2:
+            return True
+
+    # Humanities-focused sources should be skipped for non-humanities topics
+    if capabilities.humanities_focus:
+        humanities_score = scores.get("humanities", 0)
+        if humanities_score < threshold / 2:
+            return True
+
+    # Social science-focused sources should be skipped for non-social science topics
+    if capabilities.social_science_focus:
+        social_score = scores.get("social_science", 0)
+        if social_score < threshold / 2:
             return True
 
     return False
