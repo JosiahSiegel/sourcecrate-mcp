@@ -19,7 +19,7 @@
 
 # Version and basic settings
 version: "1.0"
-default_category: null  # Use intelligent default routing
+default_category: medical  # Fallback category when no smart routing applies
 max_concurrent_searches: 15  # Higher concurrency for comprehensive setup
 global_cache_enabled: true
 global_cache_expire: 7200  # Longer cache for comprehensive setup
@@ -72,7 +72,7 @@ routing:
     physics: preprints
     historical: historical
     business: business
-    general: null  # Use intelligent default routing
+    general: medical  # Fallback category for general queries
 
 # Complete source configurations including all built-in and enhanced sources
 sources:
