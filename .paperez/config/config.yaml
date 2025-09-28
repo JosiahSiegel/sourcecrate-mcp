@@ -3,6 +3,20 @@
 # Includes all built-in sources and enhanced settings
 # Users can override these settings by placing their own config.yaml in their .paperez directory
 
+# TERMS OF SERVICE COMPLIANCE NOTES:
+# - All sources use legitimate public APIs designed for academic research
+# - CrossRef: Requires email in requests (configured via mailto param)
+# - Semantic Scholar: 1 RPS rate limit, attribution required for publications
+# - arXiv: 1 request per 3 seconds, CC0 metadata license
+# - PubMed/PMC: NCBI rate limits (3 RPS without API key), email registration recommended
+# - Europe PMC: Privacy notice agreement, ~10 request limit
+# - ClinicalTrials.gov: US Government database, ~50 requests/minute, public domain
+# - DOAJ: 2 requests/second, CC BY-SA for journals, CC0 for articles
+# - HathiTrust: Small-scale queries only, not for bulk retrieval
+# - Internet Archive: ~1 RPS, non-commercial use only
+# - Google Scholar: Disabled (no official API)
+# - SSRN: Disabled (ToS reserves data mining rights, restricted API access)
+
 # Version and basic settings
 version: "1.0"
 default_category: comprehensive
@@ -314,7 +328,7 @@ sources:
   ssrn:
     name: ssrn
     type: http_api
-    enabled: true
+    enabled: false  # Disabled: SSRN ToS reserves rights for data mining, no public API
     timeout: 30
     max_retries: 3
     cache_expire: 3600
@@ -359,7 +373,6 @@ categories:
       - doaj
       - hathitrust
       - internet_archive
-      - ssrn
       - clinicaltrials
     max_results_per_source: 6
     parallel_search: true
@@ -440,7 +453,6 @@ categories:
     description: Business, economics, finance, and management research
     type: standard
     sources:
-      - ssrn
       - crossref
       - semantic_scholar
     max_results_per_source: 8

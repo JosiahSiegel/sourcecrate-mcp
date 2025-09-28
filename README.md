@@ -74,23 +74,24 @@ Use `get_help` tool for complete configuration guidance.
 
 **All default sources use legitimate public APIs designed for academic research:**
 
-- **CrossRef** - Official API from non-profit organization, encourages research use
-- **Semantic Scholar** - Microsoft/Allen Institute official API for academic research
-- **arXiv** - Cornell University preprint repository with official API
-- **PubMed/PMC** - NIH/NCBI government databases with public APIs
-- **Europe PMC** - European biomedical database with official research API
-- **DOAJ** - Open access directory specifically promoting programmatic access
-- **HathiTrust** - Academic library consortium with official catalog API
-- **Internet Archive** - Non-profit digital library with official API
-- **SSRN** - Elsevier's official research platform API
-- **ClinicalTrials.gov** - US government database with mandated public access
+- **CrossRef** - Official API from non-profit organization, requires email contact (configured)
+- **Semantic Scholar** - Microsoft/Allen Institute official API, 1 RPS rate limit respected
+- **arXiv** - Cornell University preprint repository, 1 request per 3 seconds
+- **PubMed/PMC** - NIH/NCBI government databases, 3 RPS default rate limit
+- **Europe PMC** - European biomedical database, ~10 requests/time period limit
+- **DOAJ** - Open access directory, 2 requests/second limit respected
+- **HathiTrust** - Academic library consortium, small-scale queries only
+- **Internet Archive** - Non-profit digital library, ~1 RPS for non-commercial use
+- **ClinicalTrials.gov** - US government database, ~50 requests/minute, public domain
 
 **Compliance measures:**
-- ✅ Respects rate limits and terms of service for all sources
-- ✅ Only accesses publicly available metadata and open access content
-- ✅ Includes proper attribution and email contacts where required
-- ✅ No paywalled content accessed without permission
+- ✅ Strict rate limiting per each source's ToS requirements
+- ✅ Email contact information included where required (CrossRef)
+- ✅ Only small-scale queries, no bulk data harvesting
+- ✅ Non-commercial academic research use only
+- ✅ Proper attribution included in documentation and citations
 - ✅ Google Scholar disabled by default (no official API)
+- ✅ SSRN disabled by default (ToS reserves data mining rights)
 
 **User responsibility:** Custom configurations and additional sources are under user control and responsibility.
 
