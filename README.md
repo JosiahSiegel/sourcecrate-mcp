@@ -98,7 +98,7 @@ Use `get_help` tool for complete configuration schemas and examples.
 
 ## 🌟 Features
 
-- 🔍 **Multi-Source Search** - CrossRef, Semantic Scholar, arXiv, PubMed, Google Scholar
+- 🔍 **Multi-Source Search** - 13 legitimate academic APIs across all disciplines
 - 🔧 **Fully Extensible** - Add custom sources via YAML configuration
 - 📖 **Unlimited PDF Processing** - No page or character limits
 - 🔄 **Zero-Token Conversion** - PDF to markdown without AI usage
@@ -118,27 +118,27 @@ Use `get_help` tool for complete configuration schemas and examples.
 **All default sources use legitimate public APIs designed for academic research:**
 
 ### Scientific & General Sources
-- **CrossRef** - Official API from non-profit organization, requires email contact (configured)
-- **Semantic Scholar** - Microsoft/Allen Institute official API, 1 RPS rate limit respected
-- **arXiv** - Cornell University preprint repository, 1 request per 3 seconds
-- **DOAJ** - Directory of Open Access Journals, 2 requests/second limit respected
+- **[CrossRef](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)** - Official API from non-profit organization, requires email contact (configured)
+- **[Semantic Scholar](https://www.semanticscholar.org/product/api#Terms-of-Service)** - Microsoft/Allen Institute official API, 1 RPS rate limit respected
+- **[arXiv](https://info.arxiv.org/help/api/user-manual.html)** - Cornell University preprint repository, 1 request per 3 seconds
+- **[DOAJ](https://doaj.org/api/docs/)** - Directory of Open Access Journals, 2 requests/second limit respected
 
 ### Medical & Biomedical Sources
-- **PubMed/PMC** - NIH/NCBI government databases, 3 RPS default rate limit
-- **Europe PMC** - European biomedical database, ~10 requests/time period limit
-- **ClinicalTrials.gov** - US government database, ~50 requests/minute, public domain
+- **[PubMed/PMC](https://www.ncbi.nlm.nih.gov/home/about/policies/)** - NIH/NCBI government databases, 3 RPS default rate limit
+- **[Europe PMC](https://europepmc.org/privacy)** - European biomedical database, ~10 requests/time period limit
+- **[ClinicalTrials.gov](https://clinicaltrials.gov/data-about-studies/learn-about-this-site/terms-and-conditions)** - US government database, ~50 requests/minute, public domain
 
 ### Specialized Domain Sources
-- **Internet Archive** - Non-profit digital library, ~1 RPS for non-commercial use
-- **Open Library** - Internet Archive's book database, humanities focus
-- **CORE Repository** - Open access research aggregator, demo API key
-- **Federal Register** - US government regulations database, public domain
-- **CourtListener** - Free Legal opinions database, 5 requests/second
+- **[Internet Archive](https://help.archive.org/help/archive-org-api/)** - Non-profit digital library, ~1 RPS for non-commercial use
+- **[Open Library](https://openlibrary.org/developers/api)** - Internet Archive's book database, humanities focus
+- **[CORE Repository](https://core.ac.uk/services/api/)** - Open access research aggregator, demo API key
+- **[Federal Register](https://www.federalregister.gov/learn/developers)** - US government regulations database, public domain
+- **[CourtListener](https://www.courtlistener.com/api/rest-info/)** - Free Legal opinions database, 5 requests/second
 
 ### Disabled Sources (Compliance Issues)
-- **HathiTrust** - Disabled: No keyword search API available, only item lookup
-- **Google Scholar** - Disabled: No official API, potential ToS violations
-- **SSRN** - Disabled: ToS reserves data mining rights, restricted access
+- **[HathiTrust](https://www.hathitrust.org/data_api)** - Disabled: No keyword search API available, only item lookup
+- **[Google Scholar](https://scholar.google.com/intl/en/scholar/help.html#overview)** - Disabled: No official API, potential ToS violations
+- **[SSRN](https://www.ssrn.com/index.cfm/en/terms-of-use/)** - Disabled: ToS reserves data mining rights, restricted access
 
 **Compliance measures:**
 - ✅ **Strict rate limiting** per each source's ToS requirements (0.1s to 3s delays)
