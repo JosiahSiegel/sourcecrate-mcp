@@ -2,13 +2,16 @@
 Comprehensive search engine that queries multiple academic databases.
 """
 
+import asyncio
 import logging
 from typing import Any
 
 from ..api_clients.arxiv_client import search_arxiv
 from ..api_clients.pubmed_client import search_pubmed, search_pubmed_central
 from ..config import api_status, get_search_service
+from ..config.settings import config
 from .pdf_processor import extract_pdf_text
+from .query_cache import query_cache
 from .source_health_monitor import health_monitor
 
 logger = logging.getLogger(__name__)
@@ -32,6 +35,7 @@ async def comprehensive_search_internal(
 ) -> dict[str, Any]:
     """
     Comprehensive search across multiple academic databases with intelligent routing and fallback support.
+    Now includes intelligent caching for improved performance.
 
     Args:
         query: Search query for publications
@@ -41,6 +45,18 @@ async def comprehensive_search_internal(
     Returns:
         Dictionary with search results and metadata from multiple sources
     """
+
+    # Check cache first for quick results
+    cache_params = {"include_full_text": include_full_text}
+    cached_result = query_cache.get_cached_result(query, limit, cache_params)
+
+    if cached_result:
+        logger.info(f"🎯 Returning cached result for query: '{query}'")
+        return cached_result
+
+    # Cache miss - perform actual search
+    logger.info(f"🔍 Performing fresh search for query: '{query}' (limit: {limit})")
+
     all_results = []
     remaining_limit = limit
 
@@ -96,82 +112,186 @@ async def comprehensive_search_internal(
     # Sort sources by preference score (highest first)
     available_sources.sort(key=lambda x: x[2], reverse=True)
 
-    # Search through sources in priority order with minimum search threshold
+    # Search implementation with optional parallel execution
     sources_used = []
-    sources_attempted = 0
     min_sources_to_try = min(
         3, len(available_sources)
     )  # Always try at least top 3 sources
 
-    for source_name, search_func, preference_score in available_sources:
-        # Always search the minimum number of sources for diversity, regardless of remaining_limit
-        # Only stop if we've tried minimum sources AND either have enough results or no more sources
-        if sources_attempted >= min_sources_to_try and remaining_limit <= 0:
-            break
+    # Check if parallel search is enabled, otherwise fall back to sequential
+    if config.enable_parallel_search and len(available_sources) > 1:
+        # Parallel search implementation for improved performance
+        max_concurrent = min(config.max_concurrent_sources, len(available_sources))
+        logger.info(
+            f"🚀 Using parallel search with max {max_concurrent} concurrent sources"
+        )
+    else:
+        # Fall back to sequential search if parallel is disabled or only one source
+        logger.info("🔄 Using sequential search (parallel disabled or single source)")
+        max_concurrent = 1
 
-        try:
-            logger.info(
-                f"Searching {source_name} (preference: {preference_score:.3f}, remaining: {remaining_limit})"
-            )
+    if max_concurrent > 1:
+        # Parallel search implementation
+        async def search_source_with_isolation(
+            source_info: tuple, source_index: int
+        ) -> tuple[str, list, bool]:
+            """Search a single source with proper error isolation"""
+            source_name, search_func, preference_score = source_info
 
-            # Determine appropriate limit for this source - ensure fair distribution for diversity
-            if sources_attempted < min_sources_to_try:
-                # For minimum sources, ensure fair distribution while respecting preferences
-                # Reserve some quota for subsequent sources within the minimum threshold
-                sources_remaining = min_sources_to_try - sources_attempted
-                base_quota = max(2, remaining_limit // sources_remaining)
-                preference_bonus = max(0, int(base_quota * preference_score * 0.5))
-                source_limit = min(remaining_limit, base_quota + preference_bonus)
-            else:
-                # For additional sources beyond minimum, use standard calculation
-                source_limit = min(
-                    remaining_limit, max(1, int(remaining_limit * preference_score * 2))
+            try:
+                logger.info(
+                    f"🔍 Searching {source_name} (preference: {preference_score:.3f}, parallel)"
                 )
 
-            # Handle special cases for legacy function signatures
-            if source_name in ["pubmed", "pubmed_central"]:
-                # These functions might need different handling
-                if source_name == "pubmed":
-                    results = await health_monitor.monitor_request(
-                        source_name, search_pubmed, query, source_limit
-                    )
-                elif source_name == "pubmed_central":
-                    results = await health_monitor.monitor_request(
-                        source_name, search_pubmed_central, query, source_limit
-                    )
+                # Calculate fair quota distribution for parallel execution
+                if source_index < min_sources_to_try:
+                    # For top sources, ensure reasonable allocation
+                    base_quota = max(3, limit // min_sources_to_try)
+                    preference_bonus = max(0, int(base_quota * preference_score * 0.3))
+                    source_limit = min(limit, base_quota + preference_bonus)
                 else:
+                    # For additional sources, use preference-based allocation
+                    source_limit = max(2, int(limit * preference_score * 0.4))
+
+                # Execute search with proper function routing
+                if source_name in ["pubmed", "pubmed_central"]:
+                    if source_name == "pubmed":
+                        results = await health_monitor.monitor_request(
+                            source_name, search_pubmed, query, source_limit
+                        )
+                    elif source_name == "pubmed_central":
+                        results = await health_monitor.monitor_request(
+                            source_name, search_pubmed_central, query, source_limit
+                        )
+                    else:
+                        results = await health_monitor.monitor_request(
+                            source_name, search_func, query, source_limit
+                        )
+                elif source_name == "arxiv":
+                    results = await health_monitor.monitor_request(
+                        source_name, search_arxiv, query, source_limit
+                    )
+                elif callable(search_func):
                     results = await health_monitor.monitor_request(
                         source_name, search_func, query, source_limit
                     )
-            elif source_name == "arxiv":
-                results = await health_monitor.monitor_request(
-                    source_name, search_arxiv, query, source_limit
-                )
-            elif callable(search_func):
-                # Generic search function call
-                results = await health_monitor.monitor_request(
-                    source_name, search_func, query, source_limit
-                )
-            else:
-                logger.warning(f"Skipping {source_name}: not callable")
+                else:
+                    logger.warning(f"⚠️ Skipping {source_name}: not callable")
+                    return source_name, [], False
+
+                # Return results with source metadata
+                if results:
+                    logger.info(f"✅ {source_name}: {len(results)} results (parallel)")
+                    return source_name, results, True
+                else:
+                    logger.info(f"⚪ {source_name}: No results (parallel)")
+                    return source_name, [], True
+
+            except Exception as e:
+                logger.warning(f"❌ {source_name} failed: {e}")
+                return source_name, [], False
+
+        # Execute searches in parallel with concurrency control
+        search_tasks = []
+        for i, source_info in enumerate(available_sources[:max_concurrent]):
+            task = search_source_with_isolation(source_info, i)
+            search_tasks.append(task)
+
+        logger.info(f"🚀 Starting parallel search across {len(search_tasks)} sources")
+
+        # Gather all results concurrently
+        parallel_results = await asyncio.gather(*search_tasks, return_exceptions=True)
+
+        # Process results and maintain source priority order
+        successful_sources = 0
+        for result in parallel_results:
+            if isinstance(result, Exception):
+                logger.warning(f"🔥 Parallel search exception: {result}")
                 continue
 
-            # Increment sources attempted counter after each attempt
-            sources_attempted += 1
-
-            if results:
-                all_results.extend(results)
-                sources_used.append(source_name)
-                remaining_limit = max(0, limit - len(all_results))
-                logger.info(
-                    f"✅ {source_name}: {len(results)} results (total: {len(all_results)})"
-                )
+            if isinstance(result, tuple) and len(result) == 3:
+                source_name, results, success = result
             else:
-                logger.info(f"⚪ {source_name}: No results")
+                logger.warning(f"Invalid result format: {result}")
+                continue
+            if success:
+                successful_sources += 1
+                if results:
+                    all_results.extend(results)
+                    sources_used.append(source_name)
 
-        except Exception as e:
-            logger.warning(f"❌ {source_name} failed: {e}")
-            continue
+        logger.info(
+            f"🎯 Parallel search complete: {successful_sources} sources, {len(all_results)} total results"
+        )
+
+    else:
+        # Sequential search fallback implementation
+        sources_attempted = 0
+        remaining_limit = limit
+
+        for source_name, search_func, preference_score in available_sources:
+            # Stop if we've tried minimum sources and have enough results
+            if sources_attempted >= min_sources_to_try and remaining_limit <= 0:
+                break
+
+            try:
+                logger.info(
+                    f"🔍 Searching {source_name} (preference: {preference_score:.3f}, sequential)"
+                )
+
+                # Calculate quota for sequential execution
+                if sources_attempted < min_sources_to_try:
+                    sources_remaining = min_sources_to_try - sources_attempted
+                    base_quota = max(2, remaining_limit // sources_remaining)
+                    preference_bonus = max(0, int(base_quota * preference_score * 0.5))
+                    source_limit = min(remaining_limit, base_quota + preference_bonus)
+                else:
+                    source_limit = min(
+                        remaining_limit,
+                        max(1, int(remaining_limit * preference_score * 2)),
+                    )
+
+                # Execute search with proper function routing
+                if source_name in ["pubmed", "pubmed_central"]:
+                    if source_name == "pubmed":
+                        results = await health_monitor.monitor_request(
+                            source_name, search_pubmed, query, source_limit
+                        )
+                    elif source_name == "pubmed_central":
+                        results = await health_monitor.monitor_request(
+                            source_name, search_pubmed_central, query, source_limit
+                        )
+                    else:
+                        results = await health_monitor.monitor_request(
+                            source_name, search_func, query, source_limit
+                        )
+                elif source_name == "arxiv":
+                    results = await health_monitor.monitor_request(
+                        source_name, search_arxiv, query, source_limit
+                    )
+                elif callable(search_func):
+                    results = await health_monitor.monitor_request(
+                        source_name, search_func, query, source_limit
+                    )
+                else:
+                    logger.warning(f"⚠️ Skipping {source_name}: not callable")
+                    continue
+
+                sources_attempted += 1
+
+                if results:
+                    all_results.extend(results)
+                    sources_used.append(source_name)
+                    remaining_limit = max(0, limit - len(all_results))
+                    logger.info(
+                        f"✅ {source_name}: {len(results)} results (total: {len(all_results)})"
+                    )
+                else:
+                    logger.info(f"⚪ {source_name}: No results")
+
+            except Exception as e:
+                logger.warning(f"❌ {source_name} failed: {e}")
+                continue
 
     # Fallback: If we still haven't reached the limit, try additional sources with default category
     if remaining_limit > 0:
@@ -283,4 +403,23 @@ async def comprehensive_search_internal(
     logger.info(
         f"Search completed: {len(all_results)} total results from {len(sources_used)} sources"
     )
+
+    # Cache the result for future requests (smart TTL based on query complexity)
+    cache_ttl = 3600  # 1 hour default
+
+    # Adjust TTL based on result quality and complexity
+    if len(sources_used) >= 3 and len(all_results) >= limit:
+        # High-quality multi-source results get longer cache time
+        cache_ttl = 7200  # 2 hours
+    elif len(all_results) == 0:
+        # Empty results get shorter cache time (might be temporary API issues)
+        cache_ttl = 600  # 10 minutes
+
+    # Store in cache for future requests
+    cache_success = query_cache.cache_result(
+        query, limit, result_summary, cache_params, cache_ttl
+    )
+    if cache_success:
+        logger.info(f"💾 Cached search result (TTL: {cache_ttl}s)")
+
     return result_summary

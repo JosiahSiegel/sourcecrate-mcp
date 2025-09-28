@@ -32,6 +32,10 @@ class APIConfig:
     enable_query_reformulation: bool = True
     enable_enhanced_logging: bool = True
 
+    # Performance settings
+    max_concurrent_sources: int = 5  # Maximum sources to search in parallel
+    enable_parallel_search: bool = True  # Enable/disable parallel search
+
     def __post_init__(self) -> None:
         # Load from environment
         self.semantic_scholar_api_key = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
@@ -53,6 +57,12 @@ class APIConfig:
         )
         self.enable_enhanced_logging = (
             os.getenv("ENABLE_ENHANCED_LOGGING", "true").lower() == "true"
+        )
+
+        # Performance settings from environment
+        self.max_concurrent_sources = int(os.getenv("MAX_CONCURRENT_SOURCES", "5"))
+        self.enable_parallel_search = (
+            os.getenv("ENABLE_PARALLEL_SEARCH", "true").lower() == "true"
         )
 
 
