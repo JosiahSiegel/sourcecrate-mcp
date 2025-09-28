@@ -4,14 +4,48 @@
 # Currently minimal government sources - need major expansion
 # This file exists to highlight gaps and future additions
 
-sources: {}
-  # Future government sources will go here
+sources:
+  federal_register:
+    name: federal_register
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Federal Register - US government documents and regulations
+      coverage: federal regulations, executive orders, public notices, government policy
+      base_url: https://www.federalregister.gov/api/v1
+      search_path: /articles
+      query_param: conditions[term]
+      limit_param: per_page
+      response_format: json
+      results_path: results
+      extra_params:
+        fields[]: title,abstract,html_url,publication_date,agencies
+      field_mappings:
+        title: title
+        authors: agencies
+        abstract: abstract
+        journal: publication_date
+        year: publication_date
+        url: html_url
+        citation_count: "0"
+      rate_limit_delay: 0.1
 
-categories: {}
-  # Future government categories will go here
+categories:
+  government_policy:
+    name: government_policy
+    display_name: Government & Policy Research
+    description: Federal regulations, policy documents, and government publications
+    type: standard
+    sources:
+      - federal_register
+      - crossref  # From scientific.yaml for policy research papers
+    max_results_per_source: 8
+    parallel_search: true
 
 # MAJOR GAPS IDENTIFIED - NEED MORE SOURCES:
-# - Federal Register (US federal regulations)
 # - GovInfo (US government publishing office)
 # - Congressional Research Service reports
 # - Government Accountability Office reports

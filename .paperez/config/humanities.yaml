@@ -1,18 +1,51 @@
 # Humanities Research Configuration
 # Sources and categories for literature, philosophy, arts, languages, and cultural studies
 
-# Currently no dedicated humanities sources - all rely on general sources
-# This file exists to highlight the gap and future additions
+# Currently minimal humanities sources - needs expansion with specialized databases
+# This file provides initial sources and highlights remaining gaps
 
-sources: {}
-  # No dedicated humanities sources yet - using general sources from other files
-  # Future additions will go here
+sources:
+  openlibrary:
+    name: openlibrary
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Open Library - Internet Archive's book database with humanities focus
+      coverage: literature, philosophy, history, cultural studies, language, arts
+      base_url: https://openlibrary.org
+      search_path: /search.json
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: docs
+      extra_params:
+        fields: title,author_name,first_publish_year,publisher,subject,isbn
+      field_mappings:
+        title: title
+        authors: author_name
+        abstract: subject
+        journal: publisher
+        year: first_publish_year
+        url: key
+        citation_count: "0"
+      rate_limit_delay: 1.0
 
-categories: {}
-  # No dedicated humanities categories yet - this is a major gap
-  # Future categories will go here
+categories:
+  humanities:
+    name: humanities
+    display_name: Humanities Research
+    description: Literature, philosophy, arts, cultural studies, and languages
+    type: standard
+    sources:
+      - openlibrary
+      - core_repository  # From social-sciences.yaml - also has humanities content
+    max_results_per_source: 8
+    parallel_search: true
 
-# MASSIVE GAPS IDENTIFIED - NO DEDICATED SOURCES:
+# MAJOR GAPS IDENTIFIED - NEED MORE SPECIALIZED SOURCES:
 # - JSTOR (major humanities database)
 # - Project MUSE (humanities and social sciences)
 # - MLA International Bibliography (literature and language)
@@ -33,6 +66,6 @@ categories: {}
 # - Theater and performance studies
 # - Creative writing repositories
 #
-# CRITICAL ISSUE: Humanities completely missing from PaperezMCP
-# Priority: CRITICAL - Major academic discipline with zero dedicated sources
-# Users researching literature, philosophy, arts, etc. have no appropriate sources
+# ISSUE: Humanities under-resourced with only 2 sources (Open Library + CORE Repository)
+# Priority: HIGH - Major academic discipline needs more specialized sources
+# Users researching literature, philosophy, arts, etc. need more dedicated resources

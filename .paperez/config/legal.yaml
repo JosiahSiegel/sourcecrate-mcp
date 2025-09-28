@@ -1,24 +1,57 @@
 # Legal Research Configuration
 # Sources and categories for legal research, case law, statutes, and legal scholarship
 
-# Currently no dedicated legal sources - all rely on general sources
-# This file exists to highlight the gap and future additions
+# Currently minimal legal sources - needs expansion with specialized databases
+# This file provides initial sources and highlights remaining gaps
 
-sources: {}
-  # No dedicated legal sources yet - using general sources from other files
-  # Future additions will go here
+sources:
+  courtlistener:
+    name: courtlistener
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: CourtListener - Free legal opinions and court documents
+      coverage: federal and state court opinions, legal documents, case law
+      base_url: https://www.courtlistener.com/api/rest/v3
+      search_path: /search/
+      query_param: q
+      limit_param: page_size
+      response_format: json
+      results_path: results
+      extra_params:
+        type: o  # opinions
+        format: json
+      field_mappings:
+        title: caseName
+        authors: court
+        abstract: snippet
+        journal: court
+        year: dateFiled
+        url: absolute_url
+        citation_count: citeCount
+      rate_limit_delay: 0.2
 
-categories: {}
-  # No dedicated legal categories yet - this is a major gap
-  # Future categories will go here
+categories:
+  legal_research:
+    name: legal_research
+    display_name: Legal Research
+    description: Case law, court opinions, and legal scholarship
+    type: standard
+    sources:
+      - courtlistener
+      - crossref  # From scientific.yaml for legal scholarship
+    max_results_per_source: 8
+    parallel_search: true
 
-# MASSIVE GAPS IDENTIFIED - NO DEDICATED SOURCES:
+# MAJOR GAPS IDENTIFIED - NEED MORE SPECIALIZED SOURCES:
 # - HeinOnline (legal research database)
 # - Westlaw (legal database - commercial)
 # - LexisNexis (legal database - commercial)
 # - Google Scholar (case law section)
 # - Justia (free legal resources)
-# - CourtListener (federal and state court opinions)
 # - Legal Information Institute (Cornell Law)
 # - FindLaw (legal resources)
 # - Law review databases
@@ -32,6 +65,6 @@ categories: {}
 # - Legal commentary sources
 # - Legal news and analysis
 #
-# CRITICAL ISSUE: Legal research completely missing from PaperezMCP
-# Priority: HIGH - Legal professionals and researchers have zero appropriate sources
+# ISSUE: Legal research under-resourced with only 2 sources (CourtListener + CrossRef)
+# Priority: HIGH - Legal professionals need more dedicated sources
 # Note: Many legal sources are commercial, need to focus on open/academic sources

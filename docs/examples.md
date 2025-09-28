@@ -38,6 +38,11 @@
 Medical: "Download COVID-19 treatment papers"
 Physics: "Get quantum computing papers from arXiv"
 Business: "Browse economics papers about AI adoption"
+Social Sciences: "Find psychology research on memory"
+Humanities: "Get literature papers about Shakespeare"
+Legal: "Search court cases about privacy rights"
+Government: "Find federal regulations on AI"
+Historical: "Browse government archives from 1950s"
 ```
 
 ## Configuration Examples
@@ -48,12 +53,35 @@ export SEMANTIC_SCHOLAR_API_KEY="your_key"
 export CROSSREF_EMAIL="researcher@university.edu"
 ```
 
-### Custom Config
+### Custom Config (Any YAML file in .paperez/config/)
 ```yaml
-# .paperez/config/config.yaml
+# .paperez/config/my_university.yaml
 version: "1.0"
-default_category: medical
-max_concurrent_searches: 20
+use_default_sources: true
+sources:
+  university_repository:
+    name: university_repository
+    type: http_api
+    enabled: true
+    config:
+      base_url: https://repository.myuni.edu/api
+      search_path: /search
+      field_mappings:
+        title: title
+        authors: creators
+categories:
+  university_research:
+    name: university_research
+    sources:
+      - university_repository
+      - crossref
+```
+
+### Domain-Specific Organization
+```yaml
+# .paperez/config/chemistry.yaml - Chemistry-specific sources
+# .paperez/config/engineering.yaml - Engineering databases
+# .paperez/config/local.yaml - Institution-specific APIs
 ```
 
 ## Troubleshooting Workflow

@@ -95,7 +95,7 @@ logs/
 # FastMCP specific
 .fastmcp/
 
-test_*/
+test_*.json
 .paperez/*.md
 .paperez/*.txt
 .paperez/*.pdf

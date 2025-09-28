@@ -109,9 +109,9 @@ routing:
     physics: preprints
     historical: historical
     business: business
-    social_sciences: null  # No dedicated category yet - major gap
-    humanities: null  # No dedicated category yet - major gap
-    legal: null  # No dedicated category yet - major gap
+    social_sciences: social_sciences  # Social sciences research category
+    humanities: humanities  # Humanities research category
+    legal: legal_research  # Legal research category
     general: null  # Use intelligent BM25 routing for general queries
 
 # Initialize empty collections for sources and categories (populated by domain files)

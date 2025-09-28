@@ -82,5 +82,5 @@ categories:
 # - Local government archives
 # - International organization archives (UN, etc.)
 #
-# NOTE: Only 2 working sources (HathiTrust disabled), heavily dependent on CrossRef
+# NOTE: Currently 2 working sources (HathiTrust disabled due to no keyword search API)
 # Priority: HIGH - Need more dedicated historical/archival sources

@@ -1,52 +1,191 @@
 # Configuration Guide
 
+## Overview
+
+PaperezMCP uses a **flexible multi-file configuration system** where you can create any number of YAML files in the `.paperez/config/` directory. All files are automatically loaded and merged.
+
 ## Quick Setup
 
-Create `.paperez/config/config.yaml`:
+### Basic Configuration
 ```bash
 mkdir -p .paperez/config/
 ```
 
+Create any YAML file (name doesn't matter):
 ```yaml
+# .paperez/config/my_config.yaml
 version: "1.0"
 use_default_sources: true
-default_category: comprehensive
+default_category: null  # Uses intelligent BM25 routing
 max_concurrent_searches: 15
 global_cache_enabled: true
 ```
 
-## Key Settings
-
-- `use_default_sources`: Include built-in sources (default: true)
-- `default_category`: Search category - comprehensive, medical, preprints, etc.
-- `max_concurrent_searches`: Parallel searches (default: 15)
-- `global_cache_enabled`: Enable caching (default: true)
+### Domain-Specific Organization
+```bash
+# Organize by research domain
+.paperez/config/medical_sources.yaml      # Medical databases
+.paperez/config/engineering_apis.yaml     # Engineering sources
+.paperez/config/institution_db.yaml       # University databases
+```
 
 ## Available Categories
 
-- **comprehensive**: All sources (default)
-- **medical**: PubMed, clinical trials
-- **preprints**: arXiv, latest research
-- **open_access**: Free full-text articles
-- **business**: Economics, finance research
+### Built-in Categories
+- **medical**: PubMed, PMC, ClinicalTrials, Europe PMC (4 sources)
+- **academic_premium**: CrossRef, Semantic Scholar, DOAJ (3 sources)
+- **preprints**: arXiv, Semantic Scholar (2 sources)
+- **open_access**: arXiv, Semantic Scholar, DOAJ (3 sources)
+- **business**: CrossRef, Semantic Scholar (2 sources)
+- **social_sciences**: CORE Repository, Semantic Scholar (2 sources)
+- **humanities**: Open Library, CORE Repository (2 sources)
+- **legal_research**: CourtListener, CrossRef (2 sources)
+- **government_policy**: Federal Register, CrossRef (2 sources)
+- **historical**: Internet Archive, CrossRef (2 sources)
 
-## Custom Sources
+### Default Behavior
+- `default_category: null` uses **intelligent BM25 routing** across all sources
+- Queries are automatically routed to relevant categories based on keywords
+- No category specified = comprehensive search across all enabled sources
 
-Add to config.yaml:
+## Custom Sources Configuration
+
+### HTTP API Source Template
 ```yaml
 sources:
-  my_api:
-    name: my_api
+  my_institution_api:
+    name: my_institution_api
     type: http_api
     enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
     config:
-      base_url: https://api.example.com
-      search_path: /search
+      description: My University Research Database
+      coverage: university research, theses, local studies
+      base_url: https://api.myuni.edu
+      search_path: /api/search
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: results
+      extra_params:
+        api_key: "your_api_key"
+        format: json
       field_mappings:
         title: title
         authors: authors
+        abstract: abstract
+        journal: source
+        year: publication_year
+        doi: doi
+        url: url
+        pdf_url: pdf_link
+        citation_count: citation_count
+      rate_limit_delay: 0.5  # Seconds between requests
+```
+
+### Custom Categories
+```yaml
+categories:
+  my_specialty:
+    name: my_specialty
+    display_name: My Research Specialty
+    description: Custom category for specialized research
+    type: standard
+    sources:
+      - my_institution_api
+      - crossref         # Reference built-in sources
+      - semantic_scholar # Mix custom + built-in
+    max_results_per_source: 10
+    parallel_search: true
+```
+
+## Configuration Validation
+
+### Automatic Validation
+- All configuration files are validated on startup
+- Invalid configurations will show detailed error messages
+- Use the test script to verify: `python tests/test_all_categories_dynamic.py`
+
+### Required Fields
+- **sources.name**: Unique identifier
+- **sources.type**: Must be 'http_api' for custom sources
+- **sources.config.base_url**: API endpoint
+- **field_mappings**: At minimum title, authors, year
+
+### Optional but Recommended
+- **description**: Human-readable source description
+- **rate_limit_delay**: Respect API rate limits
+- **timeout**: Prevent hanging requests
+- **cache_expire**: Cache duration in seconds
+
+## Legal and Ethical Guidelines
+
+### For Custom Sources
+1. **Verify Terms of Service** compliance before adding any source
+2. **Respect rate limits** - set appropriate `rate_limit_delay`
+3. **Use legitimate APIs** only - no web scraping
+4. **Academic use only** - ensure non-commercial compliance
+5. **Attribution required** - include proper source credits
+
+### Best Practices
+```yaml
+# Good: Respects ToS, includes delays, proper attribution
+my_database:
+  config:
+    description: "University XYZ Research Repository (used with permission)"
+    rate_limit_delay: 1.0  # Conservative rate limiting
+
+# Avoid: No rate limiting, unclear source
+fast_api:
+  config:
+    rate_limit_delay: 0.0  # Too aggressive
+```
+
+## Environment Variables
+
+### Enhanced Performance
+```bash
+# API keys for better rate limits
+export SEMANTIC_SCHOLAR_API_KEY="your_key_here"
+export CROSSREF_EMAIL="your_email@university.edu"
+
+# Custom source authentication
+export MY_API_KEY="university_database_key"
+```
+
+### Using in Configuration
+```yaml
+sources:
+  my_source:
+    config:
+      extra_params:
+        api_key: "${MY_API_KEY}"  # Environment variable substitution
+```
+
+## Troubleshooting
+
+### Common Issues
+1. **"Category references disabled source"** - Check source `enabled: true`
+2. **"No results found"** - Verify API endpoints and field mappings
+3. **"Rate limit exceeded"** - Increase `rate_limit_delay`
+4. **"Invalid configuration"** - Check YAML syntax and required fields
+
+### Testing Configuration
+```bash
+# Test all categories and sources
+python tests/test_all_categories_dynamic.py
+
+# Check specific source
+python -c "from paperez_mcp.config.manager import ConfigManager; print(ConfigManager().get_config().sources)"
 ```
 
 ## Get Help
 
-Use the built-in tool: "Help me configure paperez-mcp"
+Use the built-in tool for comprehensive help:
+```
+"Help me configure paperez-mcp"
+```
+
+This provides complete schemas, examples, and troubleshooting guidance.
