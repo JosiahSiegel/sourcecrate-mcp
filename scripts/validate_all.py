@@ -49,12 +49,31 @@ def main() -> int:
     if not run_validation_script("validate_code_quality.py", "CODE QUALITY VALIDATION"):
         all_passed = False
 
+    # Run configuration validation
+    if not run_validation_script(
+        "validate_configuration.py", "CONFIGURATION VALIDATION"
+    ):
+        all_passed = False
+
+    # Run PDF processing validation
+    if not run_validation_script(
+        "validate_pdf_processing.py", "PDF PROCESSING VALIDATION"
+    ):
+        all_passed = False
+
+    # Run MCP server validation
+    if not run_validation_script("validate_mcp_server.py", "MCP SERVER VALIDATION"):
+        all_passed = False
+
     print(f"\n{'='*60}")
     if all_passed:
         print("🎉 ALL VALIDATION CHECKS PASSED! ✅")
         print("✅ Dependencies: GOOD")
         print("✅ Imports & Functionality: GOOD")
         print("✅ Code Quality: GOOD")
+        print("✅ Configuration: GOOD")
+        print("✅ PDF Processing: GOOD")
+        print("✅ MCP Server: GOOD")
         print("🚀 Ready for commit/deployment!")
         return 0
     else:
