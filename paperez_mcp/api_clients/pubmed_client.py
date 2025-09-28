@@ -202,10 +202,11 @@ async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
                     "title": article.title,
                     "authors": [str(author) for author in (article.authors or [])],
                     "abstract": article.abstract,
-                    "journal": article.journal,
+                    "journal": getattr(article, "journal", None),
                     "year": (
                         article.publication_date.year
                         if article.publication_date
+                        and hasattr(article.publication_date, "year")
                         else None
                     ),
                     "pubmed_id": article.pubmed_id,

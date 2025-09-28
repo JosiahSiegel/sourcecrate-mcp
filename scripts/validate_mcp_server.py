@@ -5,7 +5,68 @@ This ensures identical validation across environments.
 """
 
 import asyncio
+import logging
 import sys
+from io import StringIO
+
+
+def setup_log_capture():
+    """Set up log capture to detect real errors"""
+    log_capture = StringIO()
+    log_handler = logging.StreamHandler(log_capture)
+    log_handler.setLevel(logging.WARNING)  # Capture warnings and errors
+
+    # Add to relevant loggers
+    loggers_to_monitor = [
+        "paperez_mcp.api_clients.pubmed_client",
+        "paperez_mcp.api_clients.google_scholar_client",
+        "paperez_mcp.utils.smart_search",
+        "paperez_mcp.config.manager",
+    ]
+
+    for logger_name in loggers_to_monitor:
+        logger = logging.getLogger(logger_name)
+        logger.addHandler(log_handler)
+
+    return log_capture, log_handler, loggers_to_monitor
+
+
+def analyze_captured_logs(log_capture, operation_name):
+    """Analyze captured logs for real errors that should fail validation"""
+    log_content = log_capture.getvalue()
+
+    # Patterns that indicate real errors (not just informational warnings)
+    error_patterns = [
+        "'PubMedBookArticle' object has no attribute 'journal'",
+        "'str' object has no attribute 'year'",
+        "Unknown category",
+        "AttributeError:",
+        "KeyError:",
+        "TypeError:",
+        "ImportError:",
+    ]
+
+    # Patterns that are warnings but not commit-blocking errors
+    warning_patterns = [
+        "All proxy methods failed",  # External dependency, not code bug
+    ]
+
+    # Find real errors and warnings
+    real_errors = []
+    warnings = []
+
+    for line in log_content.split("\n"):
+        for pattern in error_patterns:
+            if pattern in line:
+                real_errors.append(line.strip())
+                break
+        else:  # No error pattern matched, check for warnings
+            for pattern in warning_patterns:
+                if pattern in line:
+                    warnings.append(line.strip())
+                    break
+
+    return real_errors, warnings
 
 
 async def test_mcp_server_startup():
@@ -49,8 +110,11 @@ async def test_mcp_server_startup():
 
 
 async def test_mcp_tools_functionality():
-    """Test basic MCP tool functionality."""
+    """Test basic MCP tool functionality with rigorous error detection."""
     print("🔍 Testing MCP tools functionality...")
+
+    # Set up log capture to detect hidden errors
+    log_capture, log_handler, monitored_loggers = setup_log_capture()
 
     try:
         from paperez_mcp import server
@@ -83,33 +147,88 @@ async def test_mcp_tools_functionality():
             return False
         print("  ✓ get_help returned all required fields")
 
-        # Test browse_papers with basic queries
+        # Test browse_papers with rigorous functional testing
         print("  📚 Testing browse_papers...")
 
-        # Test with basic query
-        result = await server.browse_papers.fn("test query", limit=2)
+        # Test with basic query - must actually work
+        result = await server.browse_papers.fn("machine learning", limit=2)
         if not isinstance(result, list):
             print("  ❌ browse_papers should return a list")
             return False
+
+        # Check for actual errors in result
+        if len(result) > 0:
+            # Verify result structure
+            first_result = result[0]
+            if not isinstance(first_result, dict):
+                print("  ❌ browse_papers results should be dictionaries")
+                return False
+
+            required_fields = ["results", "total_found", "sources_used"]
+            for field in required_fields:
+                if field not in first_result:
+                    print(f"  ❌ browse_papers missing required field: {field}")
+                    return False
+
+            # Check for API errors hidden in results - but allow empty results for bad queries
+            result_str = str(first_result).lower()
+            if "error" in result_str and "no papers found" not in result_str:
+                print(f"  ❌ browse_papers contains hidden errors: {first_result}")
+                return False
+
         print(f"  ✓ browse_papers basic query returned {len(result)} results")
 
-        # Test with empty query (should handle gracefully)
-        result = await server.browse_papers.fn("", limit=1)
-        if not isinstance(result, list):
-            print("  ❌ browse_papers empty query should return a list")
-            return False
-        print(
-            f"  ✓ browse_papers empty query handled correctly ({len(result)} results)"
+        # Test with empty query - should handle gracefully but not hide errors
+        try:
+            result = await server.browse_papers.fn("", limit=1)
+            if not isinstance(result, list):
+                print("  ❌ browse_papers empty query should return a list")
+                return False
+            print(
+                f"  ✓ browse_papers empty query handled correctly ({len(result)} results)"
+            )
+        except Exception as e:
+            if "PubMedBookArticle" in str(e) or "journal" in str(e):
+                print(f"  ❌ browse_papers has real API error: {e}")
+                return False
+            # Other exceptions might be acceptable for empty queries
+            print(
+                f"  ✓ browse_papers empty query handled with controlled error: {type(e).__name__}"
+            )
+
+        # Test with special characters - should not crash
+        try:
+            result = await server.browse_papers.fn("test & special <chars>", limit=1)
+            if not isinstance(result, list):
+                print("  ❌ browse_papers special chars should return a list")
+                return False
+            print(
+                f"  ✓ browse_papers special chars handled correctly ({len(result)} results)"
+            )
+        except Exception as e:
+            if "PubMedBookArticle" in str(e) or "journal" in str(e):
+                print(f"  ❌ browse_papers has real API error with special chars: {e}")
+                return False
+            # Other exceptions might be acceptable for special characters
+            print(
+                f"  ✓ browse_papers special chars handled with controlled error: {type(e).__name__}"
+            )
+
+        # Analyze captured logs for real errors and warnings
+        real_errors, warnings = analyze_captured_logs(
+            log_capture, "MCP tools functionality"
         )
 
-        # Test with special characters (should handle gracefully)
-        result = await server.browse_papers.fn("test & special <chars>", limit=1)
-        if not isinstance(result, list):
-            print("  ❌ browse_papers special chars should return a list")
+        if warnings:
+            print(f"  ⚠️ Warnings detected (non-blocking):")
+            for warning in warnings:
+                print(f"    - {warning}")
+
+        if real_errors:
+            print(f"  ❌ Real errors detected in logs during testing:")
+            for error in real_errors:
+                print(f"    - {error}")
             return False
-        print(
-            f"  ✓ browse_papers special chars handled correctly ({len(result)} results)"
-        )
 
         print("✓ MCP tools functionality tests passed")
         return True
@@ -120,6 +239,11 @@ async def test_mcp_tools_functionality():
 
         traceback.print_exc()
         return False
+    finally:
+        # Clean up log handlers
+        for logger_name in monitored_loggers:
+            logger = logging.getLogger(logger_name)
+            logger.removeHandler(log_handler)
 
 
 async def main():

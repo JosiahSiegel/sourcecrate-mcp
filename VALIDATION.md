@@ -40,6 +40,8 @@ pip install --user black ruff mypy pytest pytest-asyncio
 pip install fastmcp scholarly httpx aiohttp requests tenacity diskcache asyncio-throttle fake-useragent arxiv pymed semanticscholar free-proxy PyMuPDF pymupdf4llm pdfplumber lxml beautifulsoup4
 ```
 
+**Note**: PyMuPDF is imported as `fitz` in Python code, not as `PyMuPDF`.
+
 ### Type Stubs
 ```bash
 pip install types-PyYAML types-requests types-beautifulsoup4

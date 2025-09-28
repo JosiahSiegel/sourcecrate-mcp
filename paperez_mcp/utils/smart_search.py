@@ -493,30 +493,30 @@ async def smart_downloadable_search(
         else "0/0"
     )
 
-    # Intelligent Fallback Strategy: If no results found, try comprehensive sources
-    if len(downloadable_papers) == 0 and force_category != "comprehensive":
+    # Intelligent Fallback Strategy: If no results found, try all sources without category restriction
+    if len(downloadable_papers) == 0 and force_category is not None:
         logger.info(
-            "🔄 INTELLIGENT FALLBACK: No papers found, retrying with comprehensive sources..."
+            "🔄 INTELLIGENT FALLBACK: No papers found, retrying with all available sources..."
         )
         search_log["fallback_triggered"] = True
         search_log["fallback_reason"] = "Primary search returned 0 results"
 
         try:
-            # Recursive call with comprehensive fallback
+            # Recursive call without category restriction (fallback to all sources)
             fallback_results, fallback_log = await smart_downloadable_search(
                 query=query,
                 limit=limit,
                 search_funcs=search_funcs,
                 utils=utils,
                 api_status=api_status,
-                force_category="comprehensive",
+                force_category=None,
             )
 
             if len(fallback_results) > 0:
                 search_log["fallback_success"] = True
                 search_log["fallback_results_count"] = len(fallback_results)
                 logger.info(
-                    f"✅ FALLBACK SUCCESS: Found {len(fallback_results)} papers using comprehensive sources"
+                    f"✅ FALLBACK SUCCESS: Found {len(fallback_results)} papers using all available sources"
                 )
 
                 # Add fallback metadata to each result
@@ -528,7 +528,7 @@ async def smart_downloadable_search(
             else:
                 search_log["fallback_success"] = False
                 logger.info(
-                    "❌ FALLBACK FAILED: No papers found even with comprehensive sources"
+                    "❌ FALLBACK FAILED: No papers found even with all available sources"
                 )
 
                 # Generate intelligent error suggestions when even fallback fails
