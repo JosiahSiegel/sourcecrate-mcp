@@ -3,15 +3,14 @@ Source health monitoring system for proactive detection of source degradation.
 Tracks API response times, success rates, and content quality.
 """
 
-import asyncio
 import logging
 import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, field
 from collections import deque
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
 
-from ..config import cache, api_status
+from ..config import api_status, cache
 
 logger = logging.getLogger(__name__)
 
@@ -24,8 +23,8 @@ class SourceMetrics:
     successful_requests: int = 0
     failed_requests: int = 0
     average_response_time: float = 0.0
-    last_success_time: Optional[datetime] = None
-    last_failure_time: Optional[datetime] = None
+    last_success_time: datetime | None = None
+    last_failure_time: datetime | None = None
     recent_response_times: deque = field(default_factory=lambda: deque(maxlen=10))
     recent_result_counts: deque = field(default_factory=lambda: deque(maxlen=10))
     consecutive_failures: int = 0
@@ -90,7 +89,7 @@ class SourceMetrics:
                 (self.last_success_time is None or
                  (datetime.now() - self.last_success_time).total_seconds() < 3600))  # Success within last hour
 
-    def get_status_summary(self) -> Dict[str, Any]:
+    def get_status_summary(self) -> dict[str, Any]:
         """Get a summary of source status"""
         return {
             "source": self.source_name,
@@ -109,7 +108,7 @@ class SourceHealthMonitor:
     """Monitors health of all academic database sources"""
 
     def __init__(self):
-        self.metrics: Dict[str, SourceMetrics] = {}
+        self.metrics: dict[str, SourceMetrics] = {}
         self.monitoring_enabled = True
 
         # Initialize metrics for all known sources
@@ -163,7 +162,7 @@ class SourceHealthMonitor:
             # Re-raise the exception to maintain normal error handling
             raise
 
-    def get_health_report(self) -> Dict[str, Any]:
+    def get_health_report(self) -> dict[str, Any]:
         """Generate comprehensive health report"""
         report = {
             "timestamp": datetime.now().isoformat(),
@@ -197,7 +196,7 @@ class SourceHealthMonitor:
 
         return report
 
-    def get_source_recommendations(self) -> List[Dict[str, Any]]:
+    def get_source_recommendations(self) -> list[dict[str, Any]]:
         """Get recommendations for improving source health"""
         recommendations = []
 
@@ -230,7 +229,7 @@ class SourceHealthMonitor:
 
         return recommendations
 
-    async def perform_health_check(self) -> Dict[str, Any]:
+    async def perform_health_check(self) -> dict[str, Any]:
         """Perform active health check on all sources"""
         logger.info("🔍 Performing active health check on all sources...")
 

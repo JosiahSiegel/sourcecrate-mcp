@@ -3,9 +3,10 @@ Configuration schemas for PaperezMCP - Type-safe configuration validation.
 Supports custom categories, source providers, and meta-categories.
 """
 
-from typing import Any, Dict, List, Optional, Union, Literal
-from pydantic import BaseModel, Field
 import logging
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field
 
 # Temporarily disable validators for testing - will fix with proper Pydantic V2 syntax
 # from pydantic import validator
@@ -21,14 +22,14 @@ class SourceProviderConfig(BaseModel):
     enabled: bool = Field(True, description="Whether source is enabled")
 
     # For builtin sources
-    function_name: Optional[str] = Field(None, description="Function name for builtin sources")
+    function_name: str | None = Field(None, description="Function name for builtin sources")
 
     # For plugin sources
-    module_path: Optional[str] = Field(None, description="Python module path for plugin")
-    class_name: Optional[str] = Field(None, description="Class name for plugin")
+    module_path: str | None = Field(None, description="Python module path for plugin")
+    class_name: str | None = Field(None, description="Class name for plugin")
 
     # Source configuration
-    config: Dict[str, Any] = Field(default_factory=dict, description="Source-specific configuration")
+    config: dict[str, Any] = Field(default_factory=dict, description="Source-specific configuration")
 
     # Performance settings
     timeout: int = Field(30, description="Request timeout in seconds")
@@ -66,12 +67,12 @@ class CategoryConfig(BaseModel):
     type: Literal["standard", "meta"] = Field("standard", description="Category type")
 
     # For standard categories
-    sources: List[str] = Field(default_factory=list, description="Source names to search")
+    sources: list[str] = Field(default_factory=list, description="Source names to search")
 
     # For meta categories
-    includes: List[str] = Field(default_factory=list, description="Categories to include in meta search")
+    includes: list[str] = Field(default_factory=list, description="Categories to include in meta search")
     merge_strategy: Literal["union", "weighted_union", "intersection"] = Field("union", description="How to merge results")
-    weights: Dict[str, float] = Field(default_factory=dict, description="Category weights for weighted merge")
+    weights: dict[str, float] = Field(default_factory=dict, description="Category weights for weighted merge")
 
     # Search behavior
     max_results_per_source: int = Field(5, description="Max results per source")
@@ -98,7 +99,7 @@ class QueryRoutingConfig(BaseModel):
     fallback_enabled: bool = Field(True, description="Enable fallback to comprehensive sources")
 
     # Domain detection
-    domain_keywords: Dict[str, List[str]] = Field(
+    domain_keywords: dict[str, list[str]] = Field(
         default_factory=lambda: {
             "medical": ["medical", "clinical", "patient", "treatment", "therapy", "disease", "diagnosis", "health"],
             "computer_science": ["algorithm", "machine learning", "artificial intelligence", "neural", "deep learning"],
@@ -108,7 +109,7 @@ class QueryRoutingConfig(BaseModel):
     )
 
     # Category mapping for domains
-    domain_categories: Dict[str, Optional[str]] = Field(
+    domain_categories: dict[str, str | None] = Field(
         default_factory=lambda: {
             "medical": "medical",
             "computer_science": "preprints",
@@ -125,13 +126,13 @@ class PaperezConfig(BaseModel):
     version: str = Field("1.0", description="Configuration schema version")
 
     # Source providers
-    sources: Dict[str, SourceProviderConfig] = Field(
+    sources: dict[str, SourceProviderConfig] = Field(
         default_factory=dict,
         description="Available source providers"
     )
 
     # Categories
-    categories: Dict[str, CategoryConfig] = Field(
+    categories: dict[str, CategoryConfig] = Field(
         default_factory=dict,
         description="Search categories"
     )
@@ -143,7 +144,7 @@ class PaperezConfig(BaseModel):
     )
 
     # Global settings
-    default_category: Optional[str] = Field(None, description="Default category when none specified (null = intelligent routing)")
+    default_category: str | None = Field(None, description="Default category when none specified (null = intelligent routing)")
     max_concurrent_searches: int = Field(10, description="Maximum concurrent source searches")
 
     # Cache settings
@@ -165,7 +166,7 @@ class PaperezConfig(BaseModel):
     #         logger.warning(f"Default category '{v}' not found in categories")
     #     return v
 
-    def get_category_sources(self, category_name: str) -> List[str]:
+    def get_category_sources(self, category_name: str) -> list[str]:
         """Get source names for a category, resolving meta-categories."""
         if category_name not in self.categories:
             logger.warning(f"Category '{category_name}' not found")
@@ -184,11 +185,11 @@ class PaperezConfig(BaseModel):
 
         return []
 
-    def get_enabled_sources(self) -> List[str]:
+    def get_enabled_sources(self) -> list[str]:
         """Get list of enabled source names."""
         return [name for name, config in self.sources.items() if config.enabled]
 
-    def validate_configuration(self) -> List[str]:
+    def validate_configuration(self) -> list[str]:
         """Validate the complete configuration and return any warnings."""
         warnings = []
 

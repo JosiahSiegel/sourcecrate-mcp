@@ -2,10 +2,9 @@
 Topic classification system for academic queries.
 """
 
-from typing import Dict, List
 
 
-def classify_query_topic(query: str) -> Dict[str, float]:
+def classify_query_topic(query: str) -> dict[str, float]:
     """
     Classify query into topic categories.
 
@@ -102,7 +101,7 @@ def get_primary_topic(query: str) -> str:
     return max(scores, key=scores.get)
 
 
-def get_recommended_sources(query: str) -> List[str]:
+def get_recommended_sources(query: str) -> list[str]:
     """
     Recommend sources based on query topic.
 
@@ -112,7 +111,7 @@ def get_recommended_sources(query: str) -> List[str]:
     Returns:
         List of recommended source names in priority order
     """
-    scores = classify_query_topic(query)
+    classify_query_topic(query)
     primary_topic = get_primary_topic(query)
 
     # Determine sources based on primary topic and scores
@@ -173,7 +172,7 @@ def should_skip_source_for_topic(source: str, query: str, threshold: float = 0.0
     return False
 
 
-def get_topic_explanation(query: str) -> Dict[str, any]:
+def get_topic_explanation(query: str) -> dict[str, any]:
     """
     Get detailed topic analysis for debugging/logging.
 

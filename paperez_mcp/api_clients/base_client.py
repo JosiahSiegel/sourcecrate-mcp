@@ -5,11 +5,11 @@ Standardizes retry logic, caching, error handling, and status tracking.
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ..config import cache, api_status
+from ..config import api_status, cache
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class BaseAPIClient(ABC):
         base_key = f"{self.source_name.lower()}:{query}:{limit}"
         return f"{base_key}_{extra_params}" if extra_params else base_key
 
-    def _get_cached_result(self, cache_key: str) -> Optional[List[Dict[str, Any]]]:
+    def _get_cached_result(self, cache_key: str) -> list[dict[str, Any]] | None:
         """Retrieve cached result if available."""
         cached = cache.get(cache_key)
         if cached:
@@ -51,7 +51,7 @@ class BaseAPIClient(ABC):
             return cached
         return None
 
-    def _cache_result(self, cache_key: str, result: List[Dict[str, Any]]) -> None:
+    def _cache_result(self, cache_key: str, result: list[dict[str, Any]]) -> None:
         """Cache the search result."""
         cache.set(cache_key, result, expire=self.cache_expire)
         self.logger.debug(f"Cached {len(result)} results for {cache_key}")
@@ -72,7 +72,7 @@ class BaseAPIClient(ABC):
         self.logger.info(f"🔍 {self.source_name}: No results found for '{query}'")
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-    async def search(self, query: str, limit: int = 5, **kwargs) -> List[Dict[str, Any]]:
+    async def search(self, query: str, limit: int = 5, **kwargs) -> list[dict[str, Any]]:
         """
         Main search method with caching and error handling.
 
@@ -108,7 +108,7 @@ class BaseAPIClient(ABC):
             return []
 
     @abstractmethod
-    async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[str, Any]]:
+    async def _perform_search(self, query: str, limit: int, **kwargs) -> list[dict[str, Any]]:
         """
         Perform the actual search implementation.
 
@@ -117,7 +117,7 @@ class BaseAPIClient(ABC):
         """
         pass
 
-    def _standardize_paper(self, paper_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _standardize_paper(self, paper_data: dict[str, Any]) -> dict[str, Any]:
         """
         Standardize paper data format across all sources.
 

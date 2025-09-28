@@ -6,7 +6,7 @@ import logging
 import os
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import fitz  # PyMuPDF
 import requests
@@ -17,7 +17,7 @@ from ..config import cache
 logger = logging.getLogger(__name__)
 
 
-async def extract_pdf_text(pdf_url: str) -> Dict[str, Any]:
+async def extract_pdf_text(pdf_url: str) -> dict[str, Any]:
     """Extract text from PDF with redirect handling and fallback methods"""
     cache_key = f"pdf_text:{pdf_url}"
     cached = cache.get(cache_key)
@@ -71,7 +71,7 @@ async def extract_pdf_text(pdf_url: str) -> Dict[str, Any]:
                     cache.set(cache_key, result, expire=86400 * 30)
                     return result
 
-        except Exception as e:
+        except Exception:
             pass  # Fall back to other methods
 
     # Try simple PDF text extraction
@@ -108,7 +108,7 @@ async def extract_pdf_text(pdf_url: str) -> Dict[str, Any]:
                 cache.set(cache_key, result, expire=86400 * 30)
                 return result
 
-    except Exception as e:
+    except Exception:
         pass
 
     # If all methods failed
@@ -119,7 +119,7 @@ async def extract_pdf_text(pdf_url: str) -> Dict[str, Any]:
     }
 
 
-def extract_pdf_text_from_local_file(file_path: str) -> Dict[str, Any]:
+def extract_pdf_text_from_local_file(file_path: str) -> dict[str, Any]:
     """Extract text from a local PDF file with unlimited pages and characters"""
     if not os.path.exists(file_path):
         return {
@@ -172,7 +172,7 @@ def extract_pdf_text_from_local_file(file_path: str) -> Dict[str, Any]:
         }
 
 
-def convert_pdf_to_markdown_content(file_path: str, title: str = "", authors: list = None) -> Dict[str, Any]:
+def convert_pdf_to_markdown_content(file_path: str, title: str = "", authors: list = None) -> dict[str, Any]:
     """Convert a local PDF file to formatted markdown content"""
 
     # First extract the PDF text
@@ -220,7 +220,7 @@ def convert_pdf_to_markdown_content(file_path: str, title: str = "", authors: li
         text_content = pdf_result["text"]
         pages = text_content.split("--- Page ")
 
-        for i, page_content in enumerate(pages[1:], 1):  # Skip first empty split
+        for _i, page_content in enumerate(pages[1:], 1):  # Skip first empty split
             page_number = page_content.split(" ---")[0]
             page_text = page_content.split(" ---", 1)[1] if " ---" in page_content else page_content
 

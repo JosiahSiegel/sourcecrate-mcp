@@ -3,17 +3,16 @@ Comprehensive search engine that queries multiple academic databases.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
-from ..config import get_search_service
-from ..config import api_status
+from ..config import api_status, get_search_service
 from .pdf_processor import extract_pdf_text
 from .source_health_monitor import health_monitor
 
 logger = logging.getLogger(__name__)
 
 
-async def comprehensive_search_internal(query: str, limit: int = 5, include_full_text: bool = False) -> Dict[str, Any]:
+async def comprehensive_search_internal(query: str, limit: int = 5, include_full_text: bool = False) -> dict[str, Any]:
     """
     Comprehensive search across multiple academic databases with fallback support.
 

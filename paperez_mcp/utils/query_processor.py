@@ -3,10 +3,9 @@ Query processing and reformulation for better search coverage.
 """
 
 import re
-from typing import List, Set
 
 
-def generate_alternative_queries(query: str) -> List[str]:
+def generate_alternative_queries(query: str) -> list[str]:
     """
     Generate alternative queries for better coverage.
 
@@ -138,7 +137,7 @@ def generate_alternative_queries(query: str) -> List[str]:
     return unique_alternatives
 
 
-def _generate_structural_variations(query: str) -> List[str]:
+def _generate_structural_variations(query: str) -> list[str]:
     """
     Generate structural variations of the query.
 
@@ -192,7 +191,7 @@ def _generate_structural_variations(query: str) -> List[str]:
     return variations
 
 
-def expand_historical_query(query: str) -> List[str]:
+def expand_historical_query(query: str) -> list[str]:
     """
     Specialized expansion for historical queries.
 
@@ -210,7 +209,7 @@ def expand_historical_query(query: str) -> List[str]:
 
     # Extract potential names (capitalized words)
     name_pattern = r'\b[A-Z][a-z]+\b'
-    names = re.findall(name_pattern, query)
+    re.findall(name_pattern, query)
 
     # Add period context
     historical_periods = {

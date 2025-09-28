@@ -3,10 +3,9 @@ Enhanced topic classification using statistical similarity methods.
 No external APIs or ML models required - uses Jaccard similarity, n-grams, and TF-IDF.
 """
 
-import re
 import math
-from typing import Dict, List, Set, Tuple
-from collections import Counter, defaultdict
+import re
+from collections import Counter
 
 
 class EnhancedTopicClassifier:
@@ -17,7 +16,7 @@ class EnhancedTopicClassifier:
         self.synonym_dictionary = self._build_synonym_dictionary()
         self.stopwords = self._get_stopwords()
 
-    def _get_stopwords(self) -> Set[str]:
+    def _get_stopwords(self) -> set[str]:
         """Common English stopwords for filtering."""
         return {
             'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from',
@@ -30,7 +29,7 @@ class EnhancedTopicClassifier:
             'must', 'shall', 'should', 'would', 'could'
         }
 
-    def _build_hierarchical_taxonomy(self) -> Dict:
+    def _build_hierarchical_taxonomy(self) -> dict:
         """Build hierarchical keyword taxonomy for better classification."""
         return {
             "stem": {
@@ -193,7 +192,7 @@ class EnhancedTopicClassifier:
             }
         }
 
-    def _build_synonym_dictionary(self) -> Dict[str, List[str]]:
+    def _build_synonym_dictionary(self) -> dict[str, list[str]]:
         """Build synonym dictionary for query expansion."""
         return {
             # Academic terms
@@ -244,14 +243,14 @@ class EnhancedTopicClassifier:
             "impact": ["effect", "influence", "consequence", "result", "significance"]
         }
 
-    def _extract_ngrams(self, text: str, n: int = 2) -> List[str]:
+    def _extract_ngrams(self, text: str, n: int = 2) -> list[str]:
         """Extract n-grams from text."""
         words = self._tokenize_and_normalize(text)
         if len(words) < n:
             return words
         return [' '.join(words[i:i+n]) for i in range(len(words) - n + 1)]
 
-    def _tokenize_and_normalize(self, text: str) -> List[str]:
+    def _tokenize_and_normalize(self, text: str) -> list[str]:
         """Tokenize and normalize text."""
         # Convert to lowercase and extract words
         text = text.lower()
@@ -260,7 +259,7 @@ class EnhancedTopicClassifier:
         words = [word for word in words if word not in self.stopwords and len(word) > 2]
         return words
 
-    def _expand_query_with_synonyms(self, query: str) -> Set[str]:
+    def _expand_query_with_synonyms(self, query: str) -> set[str]:
         """Expand query with synonyms."""
         expanded_terms = set()
         query_lower = query.lower()
@@ -282,7 +281,7 @@ class EnhancedTopicClassifier:
 
         return expanded_terms
 
-    def _flatten_taxonomy(self, taxonomy: Dict, prefix: str = "") -> List[str]:
+    def _flatten_taxonomy(self, taxonomy: dict, prefix: str = "") -> list[str]:
         """Flatten hierarchical taxonomy to get all keywords."""
         keywords = []
 
@@ -298,7 +297,7 @@ class EnhancedTopicClassifier:
 
         return keywords
 
-    def _jaccard_similarity(self, set1: Set[str], set2: Set[str]) -> float:
+    def _jaccard_similarity(self, set1: set[str], set2: set[str]) -> float:
         """Calculate Jaccard similarity between two sets."""
         if not set1 and not set2:
             return 0.0
@@ -308,7 +307,7 @@ class EnhancedTopicClassifier:
 
         return intersection / union if union > 0 else 0.0
 
-    def _tf_idf_score(self, query_terms: List[str], domain_keywords: List[str]) -> float:
+    def _tf_idf_score(self, query_terms: list[str], domain_keywords: list[str]) -> float:
         """Calculate TF-IDF style score for query-domain matching."""
         query_counter = Counter(query_terms)
         domain_counter = Counter(domain_keywords)
@@ -330,7 +329,7 @@ class EnhancedTopicClassifier:
 
         return score
 
-    def classify_query_enhanced(self, query: str) -> Dict[str, float]:
+    def classify_query_enhanced(self, query: str) -> dict[str, float]:
         """
         Enhanced query classification using multiple statistical methods.
 
@@ -393,7 +392,7 @@ class EnhancedTopicClassifier:
 
         return max(scores, key=scores.get)
 
-    def get_subcategory_analysis(self, query: str, primary_domain: str) -> Dict[str, float]:
+    def get_subcategory_analysis(self, query: str, primary_domain: str) -> dict[str, float]:
         """Analyze subcategories within the primary domain."""
         if primary_domain not in self.hierarchical_taxonomy:
             return {}
@@ -417,7 +416,7 @@ class EnhancedTopicClassifier:
         return subcategory_scores
 
 # Convenience functions for backward compatibility
-def classify_query_topic_enhanced(query: str) -> Dict[str, float]:
+def classify_query_topic_enhanced(query: str) -> dict[str, float]:
     """Enhanced version of classify_query_topic using statistical methods."""
     classifier = EnhancedTopicClassifier()
     return classifier.classify_query_enhanced(query)

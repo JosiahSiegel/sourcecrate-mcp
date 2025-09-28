@@ -4,7 +4,7 @@ Extracts complex search logic from the main server file.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class SearchOrchestrationService:
     - Search result aggregation and deduplication
     """
 
-    def __init__(self, search_funcs: Dict[str, Any], utils: Dict[str, Any]):
+    def __init__(self, search_funcs: dict[str, Any], utils: dict[str, Any]):
         """
         Initialize search service.
 
@@ -36,9 +36,9 @@ class SearchOrchestrationService:
         self,
         query: str,
         limit: int,
-        api_status: Dict[str, bool],
-        force_category: Optional[str] = None
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        api_status: dict[str, bool],
+        force_category: str | None = None
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """
         Perform smart search with downloadable papers prioritization.
 
@@ -60,10 +60,10 @@ class SearchOrchestrationService:
         self,
         query: str,
         limit: int,
-        api_status: Dict[str, bool],
-        force_category: Optional[str] = None,
+        api_status: dict[str, bool],
+        force_category: str | None = None,
         metadata_only: bool = False
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """
         Perform comprehensive search across all available sources.
 
@@ -135,9 +135,9 @@ class SearchOrchestrationService:
 
     def _get_sources_for_category(
         self,
-        force_category: Optional[str],
-        api_status: Dict[str, bool]
-    ) -> List[str]:
+        force_category: str | None,
+        api_status: dict[str, bool]
+    ) -> list[str]:
         """Get list of sources to search based on category."""
         if force_category == "preprints":
             return ["search_arxiv", "search_biorxiv"]
@@ -157,7 +157,7 @@ class SearchOrchestrationService:
             ]
             return [f"search_{name}" for name in available_sources]
 
-    def _deduplicate_papers(self, papers: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _deduplicate_papers(self, papers: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Remove duplicate papers based on DOI and title similarity.
 
@@ -167,8 +167,8 @@ class SearchOrchestrationService:
         Returns:
             Deduplicated list of papers
         """
-        seen_dois: Set[str] = set()
-        seen_titles: Set[str] = set()
+        seen_dois: set[str] = set()
+        seen_titles: set[str] = set()
         deduplicated = []
 
         for paper in papers:
@@ -194,7 +194,7 @@ class SearchOrchestrationService:
 
         return deduplicated
 
-    def analyze_query_domain(self, query: str) -> Dict[str, Any]:
+    def analyze_query_domain(self, query: str) -> dict[str, Any]:
         """
         Analyze query to determine likely domain and suggest optimal sources.
 

@@ -6,19 +6,18 @@ Enhanced with PMC full-text access and improved medical research capabilities.
 import asyncio
 import logging
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, List
+from typing import Any
 
 import aiohttp
-
 from pymed import PubMed
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ..config import cache, config, api_status
+from ..config import api_status, cache, config
 
 logger = logging.getLogger(__name__)
 
 
-def _parse_pmc_xml(xml_content: str) -> List[Dict[str, Any]]:
+def _parse_pmc_xml(xml_content: str) -> list[dict[str, Any]]:
     """Parse PMC XML response to extract article metadata"""
     results = []
 
@@ -130,14 +129,14 @@ def _parse_pmc_xml(xml_content: str) -> List[Dict[str, Any]]:
     return results
 
 
-async def _check_pmc_availability(pmid: str) -> Dict[str, str]:
+async def _check_pmc_availability(pmid: str) -> dict[str, str]:
     """Check if a PubMed article is available in PMC with full text"""
     if not pmid:
         return {}
 
     try:
         # Use NCBI elink to find PMC ID
-        elink_url = f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi"
+        elink_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi"
         params = {
             "dbfrom": "pubmed",
             "db": "pmc",
@@ -170,7 +169,7 @@ async def _check_pmc_availability(pmid: str) -> Dict[str, str]:
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-async def search_pubmed(query: str, limit: int = 5) -> List[Dict[str, Any]]:
+async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
     """Search PubMed for biomedical literature with PMC integration"""
     cache_key = f"pubmed_enhanced:{query}:{limit}"
     cached = cache.get(cache_key)
@@ -224,7 +223,7 @@ async def search_pubmed(query: str, limit: int = 5) -> List[Dict[str, Any]]:
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-async def search_pubmed_central(query: str, limit: int = 5) -> List[Dict[str, Any]]:
+async def search_pubmed_central(query: str, limit: int = 5) -> list[dict[str, Any]]:
     """Search PubMed Central directly for open access full-text articles"""
     cache_key = f"pmc:{query}:{limit}"
     cached = cache.get(cache_key)

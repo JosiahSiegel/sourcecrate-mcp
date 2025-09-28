@@ -6,7 +6,7 @@ Provides comprehensive monitoring and diagnostic capabilities.
 import asyncio
 import logging
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class HealthMonitoringService:
     - Health recommendations and alerts
     """
 
-    def __init__(self, search_funcs: Dict[str, Any], api_status: Dict[str, bool]):
+    def __init__(self, search_funcs: dict[str, Any], api_status: dict[str, bool]):
         """
         Initialize health monitoring service.
 
@@ -35,7 +35,7 @@ class HealthMonitoringService:
         self.health_metrics = {}
         self.logger = logging.getLogger(f"{__name__}.HealthMonitoring")
 
-    async def get_comprehensive_status(self) -> Dict[str, Any]:
+    async def get_comprehensive_status(self) -> dict[str, Any]:
         """
         Get comprehensive system status including API health and cache statistics.
 
@@ -63,7 +63,7 @@ class HealthMonitoringService:
             "health_checks": health_check_results
         }
 
-    async def get_source_health_report(self) -> Dict[str, Any]:
+    async def get_source_health_report(self) -> dict[str, Any]:
         """
         Generate comprehensive health monitoring report with recommendations.
 
@@ -103,7 +103,7 @@ class HealthMonitoringService:
             "monitoring_enabled": True
         }
 
-    async def _perform_health_checks(self) -> Dict[str, Dict[str, Any]]:
+    async def _perform_health_checks(self) -> dict[str, dict[str, Any]]:
         """
         Perform active health checks on all available sources.
 
@@ -148,7 +148,7 @@ class HealthMonitoringService:
         source_name: str,
         search_func: Any,
         test_query: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Check health of a specific source.
 
@@ -190,8 +190,8 @@ class HealthMonitoringService:
 
     def _generate_health_recommendations(
         self,
-        health_results: Dict[str, Dict[str, Any]]
-    ) -> List[Dict[str, str]]:
+        health_results: dict[str, dict[str, Any]]
+    ) -> list[dict[str, str]]:
         """
         Generate actionable health recommendations based on health check results.
 
@@ -265,7 +265,7 @@ class HealthMonitoringService:
         self.api_status[source_name] = status
         self.logger.info(f"API status updated: {source_name} = {'healthy' if status else 'unhealthy'}")
 
-    def get_source_availability_summary(self) -> Dict[str, Any]:
+    def get_source_availability_summary(self) -> dict[str, Any]:
         """
         Get summary of source availability.
 

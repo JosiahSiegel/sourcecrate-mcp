@@ -5,13 +5,13 @@ File utilities for downloading PDFs and saving markdown files.
 import os
 import re
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any
 from urllib.parse import urlparse
 
 import httpx
 
 
-async def download_pdf(pdf_url: str, output_dir: str = ".paperez", title: str = None) -> Dict[str, Any]:
+async def download_pdf(pdf_url: str, output_dir: str = ".paperez", title: str = None) -> dict[str, Any]:
     """
     Download a PDF from URL to local directory.
 
@@ -86,7 +86,7 @@ async def download_pdf(pdf_url: str, output_dir: str = ".paperez", title: str = 
         }
 
 
-def save_markdown_file(markdown_content: str, file_path: str) -> Dict[str, Any]:
+def save_markdown_file(markdown_content: str, file_path: str) -> dict[str, Any]:
     """
     Save markdown content to file.
 

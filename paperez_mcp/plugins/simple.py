@@ -9,10 +9,9 @@ This provides the absolute simplest way to add new academic sources:
 That's it! The source is now available in all searches.
 """
 
-import os
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -209,24 +208,24 @@ if __name__ == "__main__":
         f.write(template)
 
     print(f"✅ Created plugin template: {output_path}")
-    print(f"")
-    print(f"Next steps:")
+    print("")
+    print("Next steps:")
     print(f"1. Edit {output_path} and implement your API logic in _perform_search()")
     print(f"2. Test it: python {output_path}")
     print(f"3. Register it: python -c 'from paperez_mcp.plugins.simple import register_plugin; register_plugin(\"{output_path}\")'")
-    print(f"")
-    print(f"Example configuration for your config file:")
-    print(f"```yaml")
-    print(f"sources:")
+    print("")
+    print("Example configuration for your config file:")
+    print("```yaml")
+    print("sources:")
     print(f"  {module_name}:")
     print(f"    name: {source_name}")
-    print(f"    type: plugin")
-    print(f"    enabled: true")
+    print("    type: plugin")
+    print("    enabled: true")
     print(f"    module_path: {module_name}_plugin")
     print(f"    class_name: {class_name}Client")
-    print(f"    config:")
-    print(f"      api_key: your-api-key-here")
-    print(f"```")
+    print("    config:")
+    print("      api_key: your-api-key-here")
+    print("```")
 
     return str(output_path)
 
@@ -282,7 +281,7 @@ def register_plugin(plugin_file: str) -> bool:
 
         if config_file.exists():
             import yaml
-            with open(config_file, 'r') as f:
+            with open(config_file) as f:
                 config = yaml.safe_load(f) or {}
         else:
             config = {"sources": {}}
@@ -310,10 +309,10 @@ def register_plugin(plugin_file: str) -> bool:
         print(f"✅ Plugin registered: {source_name}")
         print(f"   Plugin file: {plugin_dest}")
         print(f"   Configuration updated: {config_file}")
-        print(f"")
-        print(f"⚠️  Don't forget to:")
+        print("")
+        print("⚠️  Don't forget to:")
         print(f"   1. Add your API credentials to {config_file}")
-        print(f"   2. Restart PaperezMCP to load the new plugin")
+        print("   2. Restart PaperezMCP to load the new plugin")
 
         return True
 
@@ -322,7 +321,7 @@ def register_plugin(plugin_file: str) -> bool:
         return False
 
 
-def list_plugins() -> Dict[str, Dict[str, Any]]:
+def list_plugins() -> dict[str, dict[str, Any]]:
     """
     List all registered plugins.
 

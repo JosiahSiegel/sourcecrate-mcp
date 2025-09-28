@@ -7,9 +7,9 @@ without needing to write any Python code.
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 import httpx
-from urllib.parse import urlencode
 
 from .base_client import BaseAPIClient
 
@@ -90,7 +90,7 @@ class GenericHTTPClient(BaseAPIClient):
         # Rate limiting
         self.rate_limit_delay = config.get('rate_limit_delay', 0.1)
 
-    def _get_nested_value(self, data: Dict[str, Any], path: str) -> Any:
+    def _get_nested_value(self, data: dict[str, Any], path: str) -> Any:
         """Get value from nested dictionary using dot notation path."""
         try:
             keys = path.split('.')
@@ -106,7 +106,7 @@ class GenericHTTPClient(BaseAPIClient):
         except (KeyError, IndexError, AttributeError):
             return None
 
-    def _build_headers(self) -> Dict[str, str]:
+    def _build_headers(self) -> dict[str, str]:
         """Build request headers including authentication."""
         headers = self.headers.copy()
         headers['User-Agent'] = 'PaperezMCP Academic Research Tool'
@@ -123,7 +123,7 @@ class GenericHTTPClient(BaseAPIClient):
 
         return headers
 
-    def _build_params(self, query: str, limit: int, **kwargs) -> Dict[str, Any]:
+    def _build_params(self, query: str, limit: int, **kwargs) -> dict[str, Any]:
         """Build query parameters."""
         params = self.extra_params.copy()
 
@@ -144,7 +144,7 @@ class GenericHTTPClient(BaseAPIClient):
 
         return params
 
-    def _parse_authors(self, authors_data: Any) -> List[str]:
+    def _parse_authors(self, authors_data: Any) -> list[str]:
         """Parse authors from various formats."""
         if not authors_data:
             return []
@@ -180,7 +180,7 @@ class GenericHTTPClient(BaseAPIClient):
         else:
             return [str(authors_data)]
 
-    def _standardize_paper(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    def _standardize_paper(self, item: dict[str, Any]) -> dict[str, Any]:
         """Convert API response item to standard paper format."""
         paper = {}
 
@@ -226,7 +226,7 @@ class GenericHTTPClient(BaseAPIClient):
 
         return super()._standardize_paper(paper)
 
-    async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[str, Any]]:
+    async def _perform_search(self, query: str, limit: int, **kwargs) -> list[dict[str, Any]]:
         """
         Perform search using generic HTTP API configuration.
 

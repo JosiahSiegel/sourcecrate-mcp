@@ -4,8 +4,7 @@ Uses BM25 algorithm to rank academic sources based on query relevance.
 """
 
 import math
-from typing import Dict, List, Tuple, Set
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass
 
 
@@ -13,12 +12,12 @@ from dataclasses import dataclass
 class SourceProfile:
     """Profile of an academic source with its specialty terms and characteristics."""
     name: str
-    specialty_terms: List[str]
-    domain_focus: List[str]
+    specialty_terms: list[str]
+    domain_focus: list[str]
     content_type: str  # "journal", "preprint", "repository", "aggregator"
     temporal_coverage: str  # "recent", "comprehensive", "historical"
     access_type: str  # "open", "mixed", "subscription"
-    quality_indicators: Dict[str, float]
+    quality_indicators: dict[str, float]
 
 
 class BM25SourceRanker:
@@ -31,7 +30,7 @@ class BM25SourceRanker:
         self.b = 0.75  # Document length normalization parameter
         self._compute_idf_scores()
 
-    def _build_source_profiles(self) -> Dict[str, SourceProfile]:
+    def _build_source_profiles(self) -> dict[str, SourceProfile]:
         """Build profiles for each academic source."""
         return {
             "arxiv": SourceProfile(
@@ -415,7 +414,7 @@ class BM25SourceRanker:
             idf = math.log((total_sources - sources_with_term + 0.5) / (sources_with_term + 0.5))
             self.idf_cache[term] = max(0.0, idf)  # Ensure non-negative
 
-    def _tokenize_query(self, query: str) -> List[str]:
+    def _tokenize_query(self, query: str) -> list[str]:
         """Tokenize and normalize query."""
         import re
         # Convert to lowercase and extract words
@@ -423,7 +422,7 @@ class BM25SourceRanker:
         words = re.findall(r'\b[a-zA-Z]+\b', query)
         return [word for word in words if len(word) > 2]  # Filter short words
 
-    def _calculate_bm25_score(self, query_terms: List[str], source_profile: SourceProfile) -> float:
+    def _calculate_bm25_score(self, query_terms: list[str], source_profile: SourceProfile) -> float:
         """Calculate BM25 score for a query against a source profile."""
         source_terms = [term.lower() for term in source_profile.specialty_terms]
         source_length = len(source_terms)
@@ -434,7 +433,7 @@ class BM25SourceRanker:
         score = 0.0
         query_term_counts = Counter(query_terms)
 
-        for term, query_tf in query_term_counts.items():
+        for term, _query_tf in query_term_counts.items():
             # Calculate term frequency in source (count occurrences in all specialty terms)
             source_tf = sum(source_term.count(term) for source_term in source_terms)
 
@@ -451,7 +450,7 @@ class BM25SourceRanker:
 
         return score
 
-    def _apply_domain_boost(self, base_score: float, query_terms: List[str], source_profile: SourceProfile) -> float:
+    def _apply_domain_boost(self, base_score: float, query_terms: list[str], source_profile: SourceProfile) -> float:
         """Apply domain-specific boosts to the base BM25 score."""
         boost_factor = 1.0
 
@@ -490,7 +489,7 @@ class BM25SourceRanker:
 
         return base_score * boost_factor
 
-    def _apply_temporal_adjustment(self, score: float, query_terms: List[str], source_profile: SourceProfile) -> float:
+    def _apply_temporal_adjustment(self, score: float, query_terms: list[str], source_profile: SourceProfile) -> float:
         """Apply temporal preference adjustments."""
         query_str = " ".join(query_terms)
 
@@ -510,7 +509,7 @@ class BM25SourceRanker:
 
         return score
 
-    def rank_sources(self, query: str, available_sources: List[str] = None) -> List[Tuple[str, float]]:
+    def rank_sources(self, query: str, available_sources: list[str] = None) -> list[tuple[str, float]]:
         """
         Rank sources based on BM25 relevance to the query.
 
@@ -559,7 +558,7 @@ class BM25SourceRanker:
 
         return scored_sources
 
-    def get_source_recommendations(self, query: str, max_sources: int = 5) -> Dict[str, any]:
+    def get_source_recommendations(self, query: str, max_sources: int = 5) -> dict[str, any]:
         """
         Get comprehensive source recommendations with explanations.
 
@@ -594,12 +593,12 @@ class BM25SourceRanker:
 
         return recommendations
 
-    def _explain_ranking(self, query: str, top_sources: List[Tuple[str, float]]) -> Dict[str, str]:
+    def _explain_ranking(self, query: str, top_sources: list[tuple[str, float]]) -> dict[str, str]:
         """Explain why sources were ranked as they were."""
         explanations = {}
         query_terms = self._tokenize_query(query)
 
-        for source_name, score in top_sources:
+        for source_name, _score in top_sources:
             profile = self.source_profiles[source_name]
 
             explanation_parts = []
@@ -624,7 +623,7 @@ class BM25SourceRanker:
 
         return explanations
 
-    def _suggest_alternatives(self, query: str, all_ranked: List[Tuple[str, float]]) -> List[Dict[str, str]]:
+    def _suggest_alternatives(self, query: str, all_ranked: list[tuple[str, float]]) -> list[dict[str, str]]:
         """Suggest alternative search strategies."""
         alternatives = []
 
@@ -656,13 +655,13 @@ class BM25SourceRanker:
         return alternatives
 
 # Convenience functions
-def rank_sources_bm25(query: str, available_sources: List[str] = None) -> List[Tuple[str, float]]:
+def rank_sources_bm25(query: str, available_sources: list[str] = None) -> list[tuple[str, float]]:
     """Rank sources using BM25 algorithm."""
     ranker = BM25SourceRanker()
     return ranker.rank_sources(query, available_sources)
 
 
-def get_bm25_recommendations(query: str, max_sources: int = 5) -> Dict[str, any]:
+def get_bm25_recommendations(query: str, max_sources: int = 5) -> dict[str, any]:
     """Get BM25-based source recommendations."""
     ranker = BM25SourceRanker()
     return ranker.get_source_recommendations(query, max_sources)

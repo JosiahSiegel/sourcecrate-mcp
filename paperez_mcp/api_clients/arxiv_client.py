@@ -4,17 +4,17 @@ arXiv API client for academic paper search.
 
 import asyncio
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import arxiv
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ..config import cache, api_status
+from ..config import api_status, cache
 
 logger = logging.getLogger(__name__)
 
 
-async def _search_with_strategy(query: str, limit: int, use_phrase: bool = True) -> List[Dict[str, Any]]:
+async def _search_with_strategy(query: str, limit: int, use_phrase: bool = True) -> list[dict[str, Any]]:
     """Internal search function with configurable phrase/keyword strategy"""
     def _search_arxiv():
         # Format query based on strategy
@@ -56,7 +56,7 @@ async def _search_with_strategy(query: str, limit: int, use_phrase: bool = True)
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-async def search_arxiv(query: str, limit: int = 5) -> List[Dict[str, Any]]:
+async def search_arxiv(query: str, limit: int = 5) -> list[dict[str, Any]]:
     """Search arXiv with fallback from phrase to keyword search"""
     cache_key = f"arxiv:{query}:{limit}"
     cached = cache.get(cache_key)

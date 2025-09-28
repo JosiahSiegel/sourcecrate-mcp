@@ -5,7 +5,6 @@ Provides helpful suggestions when searches fail to find results.
 
 import logging
 import re
-from typing import Dict, List, Optional
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -16,7 +15,7 @@ class SearchSuggestion:
     """A single search suggestion with reasoning"""
     suggestion: str
     reason: str
-    suggested_category: Optional[str] = None
+    suggested_category: str | None = None
     confidence: float = 0.8
 
 
@@ -136,7 +135,7 @@ class IntelligentErrorHandler:
             }
         ]
 
-    def detect_domain(self, query: str) -> Optional[str]:
+    def detect_domain(self, query: str) -> str | None:
         """Detect the likely domain of a search query"""
         query_lower = query.lower()
 
@@ -150,7 +149,7 @@ class IntelligentErrorHandler:
             return max(domain_scores, key=domain_scores.get)
         return None
 
-    def suggest_query_refinements(self, query: str) -> List[str]:
+    def suggest_query_refinements(self, query: str) -> list[str]:
         """Suggest refined versions of the query"""
         refinements = []
 
@@ -182,8 +181,8 @@ class IntelligentErrorHandler:
 
     def generate_error_message(self,
                               query: str,
-                              sources_searched: List[str],
-                              fallback_used: bool = False) -> Dict[str, any]:
+                              sources_searched: list[str],
+                              fallback_used: bool = False) -> dict[str, any]:
         """Generate an intelligent error message with suggestions"""
 
         domain = self.detect_domain(query)
@@ -268,7 +267,7 @@ class IntelligentErrorHandler:
             'help_text': self._generate_help_text(domain)
         }
 
-    def _generate_help_text(self, domain: Optional[str]) -> str:
+    def _generate_help_text(self, domain: str | None) -> str:
         """Generate helpful context based on domain"""
         if domain == 'medical':
             return ("Medical research tip: PubMed and PMC contain the most comprehensive "

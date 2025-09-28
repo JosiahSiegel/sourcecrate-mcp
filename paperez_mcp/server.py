@@ -6,16 +6,15 @@ A comprehensive academic research server with multi-source fallback,
 robust caching, and graceful error handling. Built with modular architecture.
 """
 
-import asyncio
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastmcp import FastMCP
 
 # Core imports only - heavy dependencies loaded lazily
-from paperez_mcp.config import config, api_status, cache
+from paperez_mcp.config import api_status, cache, config
 
 # Lazy import flags
 _PYMUPDF4LLM_AVAILABLE = None
@@ -53,7 +52,7 @@ def _ensure_pymupdf4llm() -> Any:
         return pymupdf4llm
     return None
 
-def _lazy_import_search_functions() -> Dict[str, Any]:
+def _lazy_import_search_functions() -> dict[str, Any]:
     """Get search functions from unified config system"""
     from paperez_mcp.config import get_search_service
 
@@ -61,7 +60,7 @@ def _lazy_import_search_functions() -> Dict[str, Any]:
     search_service = get_search_service()
     return search_service.get_search_functions()
 
-def _lazy_import_utils() -> Dict[str, Any]:
+def _lazy_import_utils() -> dict[str, Any]:
     """Lazy import of utility functions"""
     from paperez_mcp.utils import (
         convert_pdf_to_markdown_content,
@@ -145,7 +144,7 @@ async def browse_papers(
     query: str,
     limit: int = 10,
     force_category: str = None
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     🔍 BROWSE: Find and explore papers (metadata/abstracts only)
 
@@ -278,7 +277,7 @@ async def download_papers(
     output_dir: str = ".paperez",
     force_category: str = None,
     convert_to_markdown: bool = True
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     📄 GET FULL PAPERS: Download academic papers as files (PDF or Markdown)
 
@@ -350,7 +349,7 @@ async def download_papers(
 
 
 @mcp.tool
-async def convert_pdf_to_text(file_path: str, output_path: Optional[str] = None, title: str = "", authors: Optional[List[str]] = None) -> Dict[str, Any]:
+async def convert_pdf_to_text(file_path: str, output_path: str | None = None, title: str = "", authors: list[str] | None = None) -> dict[str, Any]:
     """
     Convert a local PDF file to plain text and save to a text file.
 
@@ -458,7 +457,7 @@ async def convert_pdf_to_text(file_path: str, output_path: Optional[str] = None,
         return {"success": False, "error": str(e), "text_path": None, "original_file": file_path}
 
 
-async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", authors: Optional[List[str]] = None, output_path: Optional[str] = None) -> Dict[str, Any]:
+async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", authors: list[str] | None = None, output_path: str | None = None) -> dict[str, Any]:
     """
     Internal function to convert a local PDF file to formatted markdown.
     Duplicates PDF extraction logic to avoid MCP tool calling MCP tool.
@@ -495,9 +494,9 @@ async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", aut
 async def convert_pdf_to_markdown(
     file_path: str,
     title: str = "",
-    authors: Optional[List[str]] = None,
-    output_path: Optional[str] = None
-) -> Dict[str, Any]:
+    authors: list[str] | None = None,
+    output_path: str | None = None
+) -> dict[str, Any]:
     """
     Convert a local PDF file to formatted markdown.
 
@@ -557,8 +556,8 @@ async def convert_pdf_to_markdown(
 async def download_and_convert_paper(
     pdf_url: str,
     convert_to_markdown: bool = True,
-    output_dir: Optional[str] = None
-) -> Dict[str, Any]:
+    output_dir: str | None = None
+) -> dict[str, Any]:
     """
     Download a PDF and optionally convert it to markdown (default behavior).
 
@@ -640,8 +639,8 @@ async def download_and_convert_paper(
 @mcp.tool
 async def batch_convert_pdfs(
     directory: str = "articles",
-    output_dir: Optional[str] = None
-) -> Dict[str, Any]:
+    output_dir: str | None = None
+) -> dict[str, Any]:
     """
     Convert all PDFs in a directory to markdown format.
 
@@ -780,7 +779,7 @@ async def batch_convert_pdfs(
 
 
 @mcp.tool
-async def get_status() -> Dict[str, Any]:
+async def get_status() -> dict[str, Any]:
     """
     Get comprehensive system status including API health, source monitoring, and configuration details.
 
@@ -866,7 +865,7 @@ async def get_status() -> Dict[str, Any]:
 
 
 @mcp.tool
-async def get_help() -> Dict[str, Any]:
+async def get_help() -> dict[str, Any]:
     """
     Get comprehensive configuration guidance and help for PaperezMCP.
 

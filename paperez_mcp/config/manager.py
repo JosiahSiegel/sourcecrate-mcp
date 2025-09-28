@@ -3,18 +3,20 @@ Configuration manager for PaperezMCP - Multi-tier config loading with hot-reload
 Handles default configs, user configs, and environment overrides.
 """
 
-import os
 import logging
-import yaml
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Callable
+import os
 import threading
 import time
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+import yaml
 
 # Optional watchdog dependency for hot-reloading
 try:
-    from watchdog.observers import Observer
     from watchdog.events import FileSystemEventHandler
+    from watchdog.observers import Observer
     WATCHDOG_AVAILABLE = True
 except ImportError:
     WATCHDOG_AVAILABLE = False
@@ -73,10 +75,10 @@ class ConfigManager:
             enable_hot_reload = False
 
         self.enable_hot_reload = enable_hot_reload
-        self._config: Optional[PaperezConfig] = None
+        self._config: PaperezConfig | None = None
         self._config_lock = threading.RLock()
-        self._observers: List = []  # List[Observer] when watchdog available
-        self._reload_callbacks: List[Callable[[PaperezConfig], None]] = []
+        self._observers: list = []  # List[Observer] when watchdog available
+        self._reload_callbacks: list[Callable[[PaperezConfig], None]] = []
 
         # Configuration directory paths (load ALL YAML files from these directories)
         # Get the root directory of the paperez-mcp package
@@ -96,7 +98,7 @@ class ConfigManager:
         if self.enable_hot_reload and WATCHDOG_AVAILABLE:
             self._setup_file_watching()
 
-    def _get_env_config_path(self) -> Optional[Path]:
+    def _get_env_config_path(self) -> Path | None:
         """Get configuration path from environment variable."""
         env_path = os.getenv('PAPEREZ_CONFIG_PATH')
         return Path(env_path) if env_path else None
@@ -213,12 +215,12 @@ class ConfigManager:
                 }
                 self._config = PaperezConfig(**fallback_config)
 
-    def _load_yaml_file(self, file_path: Path) -> Dict[str, Any]:
+    def _load_yaml_file(self, file_path: Path) -> dict[str, Any]:
         """Load YAML configuration file."""
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, encoding='utf-8') as f:
             return yaml.safe_load(f) or {}
 
-    def _load_yaml_directory(self, directory_path: Path) -> Dict[str, Any]:
+    def _load_yaml_directory(self, directory_path: Path) -> dict[str, Any]:
         """Load and merge all YAML files from a directory."""
         if not directory_path.exists() or not directory_path.is_dir():
             return {}
@@ -250,7 +252,7 @@ class ConfigManager:
 
         return merged_config
 
-    def _deep_merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    def _deep_merge(self, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
         """Deep merge configuration dictionaries."""
         result = base.copy()
 
@@ -268,11 +270,11 @@ class ConfigManager:
 
         return result
 
-    def _smart_merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
+    def _smart_merge(self, base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
         """Smart merge that applies normal deep merge (same names override, new names merge)."""
         return self._deep_merge(base, override)
 
-    def _get_env_overrides(self) -> Dict[str, Any]:
+    def _get_env_overrides(self) -> dict[str, Any]:
         """Get configuration overrides from environment variables."""
         overrides = {}
 
@@ -340,7 +342,6 @@ class ConfigManager:
     def _reload_config(self):
         """Reload configuration and notify callbacks."""
         logger.info("Reloading configuration...")
-        old_config = self._config
         self._load_config()
 
         # Notify callbacks of config change
@@ -366,7 +367,7 @@ class ConfigManager:
         if callback in self._reload_callbacks:
             self._reload_callbacks.remove(callback)
 
-    def save_user_config(self, config: Dict[str, Any]):
+    def save_user_config(self, config: dict[str, Any]):
         """Save configuration to user home directory."""
         user_config_path = self.config_paths['user_home']
         user_config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -444,7 +445,7 @@ class ConfigManager:
 
 
 # Global configuration manager instance
-_config_manager: Optional[ConfigManager] = None
+_config_manager: ConfigManager | None = None
 
 
 def get_config_manager(enable_hot_reload: bool = True) -> ConfigManager:

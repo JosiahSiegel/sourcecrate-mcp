@@ -24,30 +24,24 @@ Usage:
 """
 
 # Legacy configuration system (backward compatibility)
-from .settings import APIConfig, config, api_status, cache
+from .manager import ConfigManager, get_config_manager, get_current_config
+
+# Default config now loaded from YAML - no utility functions needed
+from .registry import (
+    CategoryResolver,
+    ConfigurableSearchService,
+    SourceRegistry,
+    get_search_service,
+)
 
 # New configurable system
 from .schemas import (
-    PaperezConfig,
-    SourceProviderConfig,
     CategoryConfig,
-    QueryRoutingConfig
+    PaperezConfig,
+    QueryRoutingConfig,
+    SourceProviderConfig,
 )
-
-from .manager import (
-    ConfigManager,
-    get_config_manager,
-    get_current_config
-)
-
-# Default config now loaded from YAML - no utility functions needed
-
-from .registry import (
-    SourceRegistry,
-    CategoryResolver,
-    ConfigurableSearchService,
-    get_search_service
-)
+from .settings import APIConfig, api_status, cache, config
 
 __all__ = [
     # Legacy exports (backward compatibility)
@@ -93,7 +87,7 @@ def initialize_configuration_system(enable_hot_reload: bool = True) -> Configura
         Configured search service ready for use
     """
     # Initialize configuration manager
-    config_manager = get_config_manager(enable_hot_reload=enable_hot_reload)
+    get_config_manager(enable_hot_reload=enable_hot_reload)
 
     # Initialize search service (automatically registers with config manager)
     search_service = get_search_service()

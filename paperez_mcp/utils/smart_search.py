@@ -5,14 +5,12 @@ Smart search functionality that prioritizes downloadable papers.
 import json
 import logging
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Any
 
-from ..config import config
-from .query_processor import generate_alternative_queries, optimize_query_for_source
-from .enhanced_classifier import EnhancedTopicClassifier
-from .query_intent import QueryIntentDetector
 from .bm25_ranker import BM25SourceRanker
+from .enhanced_classifier import EnhancedTopicClassifier
 from .intelligent_error_handler import error_handler
+from .query_intent import QueryIntentDetector
 
 logger = logging.getLogger(__name__)
 
@@ -20,12 +18,12 @@ logger = logging.getLogger(__name__)
 async def smart_downloadable_search(
     query: str,
     limit: int,
-    search_funcs: Dict[str, Any],
-    utils: Dict[str, Any],
-    api_status: Dict[str, bool],
+    search_funcs: dict[str, Any],
+    utils: dict[str, Any],
+    api_status: dict[str, bool],
     force_category: str = None,
     metadata_only: bool = False
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Smart search that prioritizes sources with downloadable PDFs and only counts
     successfully downloadable papers toward the limit.

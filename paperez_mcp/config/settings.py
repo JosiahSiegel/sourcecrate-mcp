@@ -4,7 +4,7 @@ Configuration and settings for the Scholarly MCP server.
 
 import os
 from dataclasses import dataclass
-from typing import Optional
+
 from diskcache import Cache
 
 # Global cache instance
@@ -13,14 +13,14 @@ cache = Cache('/tmp/scholarly-mcp-cache', size_limit=1e9)  # 1GB cache
 @dataclass
 class APIConfig:
     """Configuration loaded from environment variables"""
-    semantic_scholar_api_key: Optional[str] = None
-    scraperapi_key: Optional[str] = None
+    semantic_scholar_api_key: str | None = None
+    scraperapi_key: str | None = None
     crossref_email: str = "research@example.com"
     max_retries: int = 3
     base_delay: float = 1.0
 
     # New API keys for additional sources
-    core_api_key: Optional[str] = None
+    core_api_key: str | None = None
 
     # Feature flags
     enable_fallback_search: bool = True

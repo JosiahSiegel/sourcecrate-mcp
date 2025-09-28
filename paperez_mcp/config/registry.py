@@ -5,9 +5,11 @@ Manages both built-in and plugin sources with configuration-driven registration.
 
 import importlib
 import logging
-from typing import Any, Dict, List, Optional, Callable, Set
-from .schemas import PaperezConfig, SourceProviderConfig, CategoryConfig
+from collections.abc import Callable
+from typing import Any
+
 from .manager import get_current_config
+from .schemas import CategoryConfig, PaperezConfig, SourceProviderConfig
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +18,17 @@ class SourceRegistry:
     """Registry for managing search source providers."""
 
     def __init__(self):
-        self._sources: Dict[str, Callable] = {}
-        self._source_configs: Dict[str, SourceProviderConfig] = {}
-        self._plugin_instances: Dict[str, Any] = {}
+        self._sources: dict[str, Callable] = {}
+        self._source_configs: dict[str, SourceProviderConfig] = {}
+        self._plugin_instances: dict[str, Any] = {}
 
     def register_builtin_sources(self):
         """Register all built-in search sources."""
         from ..api_clients import (
-            search_arxiv, search_pubmed, search_pubmed_central,
-            search_google_scholar_fallback
+            search_arxiv,
+            search_google_scholar_fallback,
+            search_pubmed,
+            search_pubmed_central,
         )
 
         # Built-in source function mapping (only for sources not yet converted to config)
@@ -104,15 +108,15 @@ class SourceRegistry:
             elif source_config.type == 'http_api' and source_config.enabled:
                 self.register_http_api_source(source_name, source_config)
 
-    def get_source_function(self, source_name: str) -> Optional[Callable]:
+    def get_source_function(self, source_name: str) -> Callable | None:
         """Get search function for a source."""
         return self._sources.get(source_name)
 
-    def get_source_config(self, source_name: str) -> Optional[SourceProviderConfig]:
+    def get_source_config(self, source_name: str) -> SourceProviderConfig | None:
         """Get configuration for a source."""
         return self._source_configs.get(source_name)
 
-    def get_enabled_sources(self) -> List[str]:
+    def get_enabled_sources(self) -> list[str]:
         """Get list of enabled source names."""
         return list(self._sources.keys())
 
@@ -133,7 +137,7 @@ class CategoryResolver:
     def __init__(self, source_registry: SourceRegistry):
         self.source_registry = source_registry
 
-    def resolve_category(self, category_name: str, visited: Optional[Set[str]] = None) -> List[str]:
+    def resolve_category(self, category_name: str, visited: set[str] | None = None) -> list[str]:
         """
         Resolve a category to a list of source names.
         Handles meta-categories recursively with circular reference detection.
@@ -180,17 +184,17 @@ class CategoryResolver:
 
         return []
 
-    def get_category_config(self, category_name: str) -> Optional[CategoryConfig]:
+    def get_category_config(self, category_name: str) -> CategoryConfig | None:
         """Get configuration for a category."""
         config = get_current_config()
         return config.categories.get(category_name)
 
-    def get_available_categories(self) -> List[str]:
+    def get_available_categories(self) -> list[str]:
         """Get list of available category names."""
         config = get_current_config()
         return list(config.categories.keys())
 
-    def get_category_info(self, category_name: str) -> Dict[str, Any]:
+    def get_category_info(self, category_name: str) -> dict[str, Any]:
         """Get detailed information about a category."""
         category_config = self.get_category_config(category_name)
         if not category_config:
@@ -235,7 +239,7 @@ class ConfigurableSearchService:
         self.source_registry.register_all_sources()
         logger.info("Search service configuration reloaded")
 
-    def get_search_functions(self) -> Dict[str, Callable]:
+    def get_search_functions(self) -> dict[str, Callable]:
         """Get dictionary of search functions for compatibility with existing code."""
         search_funcs = {}
         for source_name in self.source_registry.get_enabled_sources():
@@ -246,7 +250,7 @@ class ConfigurableSearchService:
                 search_funcs[source_name] = search_func
         return search_funcs
 
-    def resolve_category_sources(self, category_name: str) -> List[str]:
+    def resolve_category_sources(self, category_name: str) -> list[str]:
         """Resolve category to list of available source names."""
         return self.category_resolver.resolve_category(category_name)
 
@@ -267,7 +271,7 @@ class ConfigurableSearchService:
 
         return config.default_category
 
-    def get_service_status(self) -> Dict[str, Any]:
+    def get_service_status(self) -> dict[str, Any]:
         """Get comprehensive service status."""
         config = get_current_config()
         enabled_sources = self.source_registry.get_enabled_sources()
@@ -284,7 +288,7 @@ class ConfigurableSearchService:
             'fallback_enabled': config.routing.fallback_enabled
         }
 
-    def validate_category(self, category_name: str) -> Dict[str, Any]:
+    def validate_category(self, category_name: str) -> dict[str, Any]:
         """Validate a category and return detailed status."""
         if category_name not in get_current_config().categories:
             return {
@@ -304,7 +308,7 @@ class ConfigurableSearchService:
 
 
 # Global service instance
-_search_service: Optional[ConfigurableSearchService] = None
+_search_service: ConfigurableSearchService | None = None
 
 
 def get_search_service() -> ConfigurableSearchService:

@@ -17,7 +17,7 @@ Or use the CLI:
     ./scripts/paperez-plugin install my_source_plugin.py
 """
 
-from .simple import create_plugin, register_plugin, list_plugins
+from .simple import create_plugin, list_plugins, register_plugin
 
 __all__ = [
     'create_plugin',

@@ -4,13 +4,13 @@ Google Scholar API client with proxy support.
 
 import asyncio
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from fake_useragent import UserAgent
 from scholarly import ProxyGenerator, scholarly
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ..config import cache, config, api_status
+from ..config import api_status, cache, config
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def setup_no_proxy():
         # Clear any existing proxy
         scholarly.use_proxy(None)
         # Setup user agent rotation
-        ua = UserAgent()
+        UserAgent()
         # Skip test query for direct connection - it should work
         return True
     except:
@@ -106,7 +106,7 @@ def setup_scholarly_proxy():
     return False
 
 
-async def _search_google_scholar(query: str, limit: int) -> List[Dict[str, Any]]:
+async def _search_google_scholar(query: str, limit: int) -> list[dict[str, Any]]:
     """Internal Google Scholar search function"""
     def _search_scholar():
         search_query = scholarly.search_pubs(query)
@@ -134,7 +134,7 @@ async def _search_google_scholar(query: str, limit: int) -> List[Dict[str, Any]]
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=5, max=30))
-async def search_google_scholar_with_retry(query: str, limit: int = 5) -> List[Dict[str, Any]]:
+async def search_google_scholar_with_retry(query: str, limit: int = 5) -> list[dict[str, Any]]:
     """Search with automatic proxy rotation on failure"""
     try:
         return await _search_google_scholar(query, limit)
@@ -144,7 +144,7 @@ async def search_google_scholar_with_retry(query: str, limit: int = 5) -> List[D
         raise  # Trigger retry
 
 
-async def search_google_scholar_fallback(query: str, limit: int = 5) -> List[Dict[str, Any]]:
+async def search_google_scholar_fallback(query: str, limit: int = 5) -> list[dict[str, Any]]:
     """Google Scholar as final fallback with enhanced proxy support"""
     # Initialize proxy if not already done
     if not api_status.get("google_scholar", False):

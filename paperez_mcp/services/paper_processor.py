@@ -4,9 +4,8 @@ Eliminates duplication between download_papers and get_papers functions.
 """
 
 import logging
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -15,12 +14,12 @@ async def process_papers(
     query: str,
     limit: int,
     output_dir: str,
-    search_funcs: Dict[str, Any],
-    utils: Dict[str, Any],
-    api_status: Dict[str, bool],
-    force_category: Optional[str] = None,
+    search_funcs: dict[str, Any],
+    utils: dict[str, Any],
+    api_status: dict[str, bool],
+    force_category: str | None = None,
     convert_to_markdown: bool = True
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Core paper processing logic used by both download_papers and get_papers.
 

@@ -4,7 +4,6 @@ Uses pattern matching and statistical analysis to understand user intent.
 """
 
 import re
-from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -37,10 +36,10 @@ class QueryAnalysis:
     temporal_preference: TemporalPreference
     confidence: float
     complexity: str  # simple, phrase, complex, boolean
-    keywords: List[str]
-    phrases: List[str]
-    academic_indicators: List[str]
-    source_preferences: Dict[str, float]
+    keywords: list[str]
+    phrases: list[str]
+    academic_indicators: list[str]
+    source_preferences: dict[str, float]
 
 
 class QueryIntentDetector:
@@ -57,7 +56,7 @@ class QueryIntentDetector:
             'boolean': 100    # >15 words or boolean operators
         }
 
-    def _build_intent_patterns(self) -> Dict[QueryIntent, Dict[str, List[str]]]:
+    def _build_intent_patterns(self) -> dict[QueryIntent, dict[str, list[str]]]:
         """Build patterns for intent detection."""
         return {
             QueryIntent.SURVEY_REVIEW: {
@@ -171,7 +170,7 @@ class QueryIntentDetector:
             }
         }
 
-    def _build_temporal_patterns(self) -> Dict[TemporalPreference, Dict[str, List[str]]]:
+    def _build_temporal_patterns(self) -> dict[TemporalPreference, dict[str, list[str]]]:
         """Build patterns for temporal preference detection."""
         return {
             TemporalPreference.RECENT: {
@@ -235,7 +234,7 @@ class QueryIntentDetector:
             }
         }
 
-    def _build_academic_indicators(self) -> Dict[str, List[str]]:
+    def _build_academic_indicators(self) -> dict[str, list[str]]:
         """Build academic language indicators."""
         return {
             'methodology': [
@@ -276,7 +275,7 @@ class QueryIntentDetector:
         else:
             return 'boolean'  # Very long queries treated as boolean
 
-    def _extract_patterns(self, query: str, patterns: List[str]) -> int:
+    def _extract_patterns(self, query: str, patterns: list[str]) -> int:
         """Count pattern matches in query."""
         query_lower = query.lower()
         matches = 0
@@ -287,7 +286,7 @@ class QueryIntentDetector:
 
         return matches
 
-    def _extract_keywords(self, query: str, keywords: List[str]) -> int:
+    def _extract_keywords(self, query: str, keywords: list[str]) -> int:
         """Count keyword matches in query."""
         query_lower = query.lower()
         matches = 0
@@ -298,7 +297,7 @@ class QueryIntentDetector:
 
         return matches
 
-    def _calculate_intent_scores(self, query: str) -> Dict[QueryIntent, float]:
+    def _calculate_intent_scores(self, query: str) -> dict[QueryIntent, float]:
         """Calculate confidence scores for each intent."""
         scores = {}
 
@@ -312,7 +311,7 @@ class QueryIntentDetector:
 
         return scores
 
-    def _calculate_temporal_scores(self, query: str) -> Dict[TemporalPreference, float]:
+    def _calculate_temporal_scores(self, query: str) -> dict[TemporalPreference, float]:
         """Calculate confidence scores for temporal preferences."""
         scores = {}
 
@@ -325,7 +324,7 @@ class QueryIntentDetector:
 
         return scores
 
-    def _get_source_preferences(self, intent: QueryIntent, temporal: TemporalPreference) -> Dict[str, float]:
+    def _get_source_preferences(self, intent: QueryIntent, temporal: TemporalPreference) -> dict[str, float]:
         """Get source preferences based on intent and temporal preference."""
         preferences = {
             'arxiv': 0.5,
@@ -410,7 +409,7 @@ class QueryIntentDetector:
 
         return preferences
 
-    def _get_temporal_source_adjustments(self, temporal: TemporalPreference) -> Dict[str, float]:
+    def _get_temporal_source_adjustments(self, temporal: TemporalPreference) -> dict[str, float]:
         """Get temporal-specific adjustments based on source characteristics."""
         # Define source characteristics for temporal routing
         source_temporal_profiles = {
@@ -513,7 +512,7 @@ class QueryIntentDetector:
             source_preferences=source_preferences
         )
 
-    def get_routing_recommendations(self, query: str) -> Dict[str, any]:
+    def get_routing_recommendations(self, query: str) -> dict[str, any]:
         """
         Get routing recommendations based on query analysis.
 
@@ -541,7 +540,7 @@ class QueryIntentDetector:
 
         return recommendations
 
-    def _get_search_strategy(self, analysis: QueryAnalysis) -> Dict[str, str]:
+    def _get_search_strategy(self, analysis: QueryAnalysis) -> dict[str, str]:
         """Suggest search strategy based on analysis."""
         strategy = {
             'primary_approach': 'standard',
@@ -607,7 +606,7 @@ class QueryIntentDetector:
 
         return strategy
 
-    def _suggest_query_expansions(self, query: str, analysis: QueryAnalysis) -> List[str]:
+    def _suggest_query_expansions(self, query: str, analysis: QueryAnalysis) -> list[str]:
         """Suggest query expansions based on analysis."""
         expansions = []
 
@@ -650,7 +649,7 @@ def analyze_query_intent(query: str) -> QueryAnalysis:
     return detector.analyze_query(query)
 
 
-def get_routing_recommendations(query: str) -> Dict[str, any]:
+def get_routing_recommendations(query: str) -> dict[str, any]:
     """Get routing recommendations for a query."""
     detector = QueryIntentDetector()
     return detector.get_routing_recommendations(query)
