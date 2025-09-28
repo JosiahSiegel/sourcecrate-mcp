@@ -8,6 +8,7 @@ robust caching, and graceful error handling. Built with modular architecture.
 
 import logging
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -205,16 +206,78 @@ async def browse_papers(
     utils = _lazy_import_utils()
     search_funcs = _lazy_import_search_functions()
 
-    # Use enhanced routing for metadata search (no downloads)
-    papers, search_log = await utils["smart_downloadable_search"](
-        query,
-        limit,
-        search_funcs,
-        utils,
-        api_status.copy(),
-        force_category,
-        metadata_only=True,
+    # Import performance optimization
+    from paperez_mcp.utils.search_analytics import record_search_performance
+    from paperez_mcp.utils.search_performance_optimizer import (
+        optimize_search_performance,
     )
+
+    start_time = time.time()
+    session_id = f"browse_{int(time.time() * 1000)}"
+
+    # Try optimized search first
+    try:
+        optimized_results, performance_metrics = await optimize_search_performance(
+            search_funcs,
+            query,
+            limit,
+            api_status.copy(),
+            user_preferences={
+                "prefer_recent": True
+            },  # Prefer recent papers for browsing
+        )
+
+        if optimized_results:
+            # Record performance analytics
+            search_time = time.time() - start_time
+            record_search_performance(
+                session_id=session_id,
+                query=query,
+                total_time=search_time,
+                sources_used=list(performance_metrics.source_response_times.keys()),
+                results_found=len(optimized_results),
+                cache_hit=performance_metrics.cache_hit_rate > 0,
+                quality_score=performance_metrics.result_quality_score,
+            )
+
+            # Create search log for compatibility
+            search_log = {
+                "query": query,
+                "sources_searched": list(
+                    performance_metrics.source_response_times.keys()
+                ),
+                "total_found": len(optimized_results),
+                "performance_optimized": True,
+                "cache_hit_rate": performance_metrics.cache_hit_rate,
+                "total_search_time": search_time,
+            }
+
+            papers = optimized_results
+        else:
+            # Fallback to traditional search
+            papers, search_log = await utils["smart_downloadable_search"](
+                query,
+                limit,
+                search_funcs,
+                utils,
+                api_status.copy(),
+                force_category,
+                metadata_only=True,
+            )
+    except Exception as e:
+        logger.warning(
+            f"Performance optimization failed, using traditional search: {e}"
+        )
+        # Fallback to traditional search
+        papers, search_log = await utils["smart_downloadable_search"](
+            query,
+            limit,
+            search_funcs,
+            utils,
+            api_status.copy(),
+            force_category,
+            metadata_only=True,
+        )
 
     # Convert to browse format (metadata only, remove download info)
     browse_results = []
@@ -260,30 +323,44 @@ async def browse_papers(
         }
 
     # Add intelligent error suggestions if no results found
-    if len(browse_results) == 0 and search_log.get("intelligent_error_suggestions"):
-        error_info = search_log["intelligent_error_suggestions"]
+    if len(browse_results) == 0:
+        # Use enhanced search error handling
+        from paperez_mcp.utils.user_friendly_errors import enhance_search_error
 
-        # Safely extract suggestions and refinements with type checking
-        suggestions = error_info.get("suggestions", [])
-        if isinstance(suggestions, list):
-            safe_suggestions = suggestions[:3]  # Top 3 suggestions
+        if search_log.get("intelligent_error_suggestions"):
+            # Use existing error info
+            error_info = search_log["intelligent_error_suggestions"]
+
+            # Type check error_info before using it
+            if not isinstance(error_info, dict):
+                error_info = {}
+
+            # Safely extract suggestions and refinements with type checking
+            suggestions = error_info.get("suggestions", [])
+            if isinstance(suggestions, list):
+                safe_suggestions = suggestions[:3]  # Top 3 suggestions
+            else:
+                safe_suggestions = []
+
+            refinements = error_info.get("query_refinements", [])
+            if isinstance(refinements, list):
+                safe_refinements = refinements[:2]  # Top 2 refinements
+            else:
+                safe_refinements = []
+
+            result["error_suggestions"] = {
+                "message": error_info.get("message", "No results found"),
+                "domain_detected": error_info.get("domain_detected"),
+                "suggestions": safe_suggestions,
+                "suggested_categories": error_info.get("suggested_categories", []),
+                "help_text": error_info.get("help_text"),
+                "query_refinements": safe_refinements,
+            }
         else:
-            safe_suggestions = []
-
-        refinements = error_info.get("query_refinements", [])
-        if isinstance(refinements, list):
-            safe_refinements = refinements[:2]  # Top 2 refinements
-        else:
-            safe_refinements = []
-
-        result["error_suggestions"] = {
-            "message": error_info.get("message", "No results found"),
-            "domain_detected": error_info.get("domain_detected"),
-            "suggestions": safe_suggestions,
-            "suggested_categories": error_info.get("suggested_categories", []),
-            "help_text": error_info.get("help_text"),
-            "query_refinements": safe_refinements,
-        }
+            # Generate enhanced search error suggestions
+            enhanced_search_error = enhance_search_error(query, search_log)
+            result["error_suggestions"] = enhanced_search_error
+            result["enhanced_no_results"] = True
 
     return [result]
 
@@ -489,6 +566,20 @@ async def browse_papers_streaming(
         error_messages.append(f"Streaming search failed: {str(e)}")
         logger.error(f"❌ Streaming search error: {e}")
 
+        # Add enhanced error for streaming failures
+        from paperez_mcp.utils.user_friendly_errors import enhance_error
+
+        enhanced_streaming_error = enhance_error(
+            str(e),
+            operation="streaming search",
+            context={
+                "query": query,
+                "available_sources": list(available_search_funcs.keys()),
+                "timestamp": time.time(),
+            },
+            user_input=query,
+        )
+
     # Prepare streaming summary
     streaming_summary = {
         "query": query,
@@ -503,6 +594,10 @@ async def browse_papers_streaming(
         "final_result_count": len(final_results),
         "streaming_enabled": True,
     }
+
+    # Add enhanced error information if streaming failed
+    if "enhanced_streaming_error" in locals():
+        streaming_summary["enhanced_error"] = enhanced_streaming_error["error"]
 
     # Use final results if available, otherwise use streaming results
     main_results = final_results if final_results else streaming_results
@@ -712,11 +807,24 @@ async def convert_pdf_to_text(
 
     except Exception as e:
         logger.error(f"Error in convert_pdf_to_text: {e}")
+
+        # Import enhanced error handling
+        from paperez_mcp.utils.user_friendly_errors import enhance_error
+
+        enhanced_error = enhance_error(
+            str(e),
+            operation="PDF to text conversion",
+            context={"file_path": file_path, "timestamp": time.time()},
+            user_input=file_path,
+        )
+
+        # Return both original format and enhanced error info
         return {
             "success": False,
             "error": str(e),
             "text_path": None,
             "original_file": file_path,
+            "enhanced_error": enhanced_error["error"],
         }
 
 
@@ -899,7 +1007,20 @@ async def download_and_convert_paper(
         }
 
     except Exception as e:
-        return {"success": False, "error": f"Download/conversion failed: {str(e)}"}
+        from paperez_mcp.utils.user_friendly_errors import enhance_error
+
+        enhanced_error = enhance_error(
+            str(e),
+            operation="PDF download and conversion",
+            context={"pdf_url": pdf_url, "timestamp": time.time()},
+            user_input=pdf_url,
+        )
+
+        return {
+            "success": False,
+            "error": f"Download/conversion failed: {str(e)}",
+            "enhanced_error": enhanced_error["error"],
+        }
 
 
 @mcp.tool
@@ -952,14 +1073,37 @@ async def batch_convert_pdfs(
         utils = _lazy_import_utils()
 
         if not os.path.isdir(directory):
-            return {"success": False, "error": f"Directory not found: {directory}"}
+            from paperez_mcp.utils.user_friendly_errors import enhance_error
+
+            enhanced_error = enhance_error(
+                f"Directory not found: {directory}",
+                operation="batch PDF conversion",
+                context={"directory": directory, "timestamp": time.time()},
+                user_input=directory,
+            )
+
+            return {
+                "success": False,
+                "error": f"Directory not found: {directory}",
+                "enhanced_error": enhanced_error["error"],
+            }
 
         # Find all PDF files
         pdf_files = list(Path(directory).glob("*.pdf"))
         if not pdf_files:
+            from paperez_mcp.utils.user_friendly_errors import enhance_error
+
+            enhanced_error = enhance_error(
+                f"No PDF files found in directory: {directory}",
+                operation="batch PDF conversion",
+                context={"directory": directory, "timestamp": time.time()},
+                user_input=directory,
+            )
+
             return {
                 "success": False,
                 "error": f"No PDF files found in directory: {directory}",
+                "enhanced_error": enhanced_error["error"],
             }
 
         if output_dir is None:
@@ -1156,6 +1300,8 @@ async def get_status() -> dict[str, Any]:
 
     # Add comprehensive health monitoring
     try:
+        from paperez_mcp.utils.search_analytics import get_performance_dashboard
+        from paperez_mcp.utils.search_performance_optimizer import intelligent_cache
         from paperez_mcp.utils.source_health_monitor import health_monitor
 
         # Perform active health check
@@ -1164,7 +1310,13 @@ async def get_status() -> dict[str, Any]:
         # Save metrics to cache for persistence
         health_monitor.save_metrics_to_cache()
 
-        # Add health data to basic status
+        # Get performance analytics
+        performance_dashboard = get_performance_dashboard()
+
+        # Get cache statistics
+        cache_stats = intelligent_cache.get_stats()
+
+        # Add health data and performance analytics to basic status
         basic_status.update(
             {
                 "health_report": health_monitor.get_health_report(),
@@ -1172,6 +1324,9 @@ async def get_status() -> dict[str, Any]:
                 "health_check_results": health_check["health_check_results"],
                 "monitoring_enabled": health_monitor.monitoring_enabled,
                 "timestamp": health_check["overall_report"]["timestamp"],
+                "performance_analytics": performance_dashboard,
+                "cache_performance": cache_stats,
+                "optimization_enabled": True,
             }
         )
 

@@ -21,12 +21,13 @@ Ask Claude naturally:
 - "Convert this PDF to markdown: /path/to/paper.pdf"
 - "Help me configure paperez-mcp"
 
-### Available Tools (7 Functions)
+### Available Tools (8 Functions)
 
 | Tool | Description |
 |------|-------------|
 | **`download_papers`** | 📄 **MAIN TOOL** - Get/download full papers as files |
 | **`browse_papers`** | 🔍 Quick metadata overview (titles/abstracts only) |
+| **`browse_papers_streaming`** | 🌊 **NEW** - Real-time streaming search with faster response times |
 | **`convert_pdf_to_text`** | Convert PDF to plain text files |
 | **`convert_pdf_to_markdown`** | Convert single PDF to markdown |
 | **`batch_convert_pdfs`** | Convert entire directories of PDFs |

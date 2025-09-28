@@ -6,11 +6,11 @@ Tests configuration loading without external API calls.
 
 import sys
 from pathlib import Path
-from typing import Dict, Any
 
 # Add the project root to Python path for local imports
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
 
 def test_configuration_loading():
     """Test that all configuration files load successfully."""
@@ -25,8 +25,8 @@ def test_configuration_loading():
 
         # Basic validation
         assert config is not None, "Configuration is None"
-        assert hasattr(config, 'sources'), "Configuration missing sources"
-        assert hasattr(config, 'categories'), "Configuration missing categories"
+        assert hasattr(config, "sources"), "Configuration missing sources"
+        assert hasattr(config, "categories"), "Configuration missing categories"
 
         sources_count = len(config.sources)
         categories_count = len(config.categories)
@@ -36,67 +36,83 @@ def test_configuration_loading():
 
         # Validate minimum expected counts
         assert sources_count >= 10, f"Expected at least 10 sources, got {sources_count}"
-        assert categories_count >= 8, f"Expected at least 8 categories, got {categories_count}"
+        assert (
+            categories_count >= 8
+        ), f"Expected at least 8 categories, got {categories_count}"
 
         # Validate that all categories have at least one enabled source
         for category_name, category in config.categories.items():
-            category_sources = getattr(category, 'sources', [])
-            assert len(category_sources) > 0, f"Category '{category_name}' has no sources"
+            category_sources = getattr(category, "sources", [])
+            assert (
+                len(category_sources) > 0
+            ), f"Category '{category_name}' has no sources"
 
             # Count enabled sources for this category
             enabled_sources_for_category = 0
             for source_name in category_sources:
-                assert source_name in config.sources, f"Category '{category_name}' references unknown source '{source_name}'"
+                assert (
+                    source_name in config.sources
+                ), f"Category '{category_name}' references unknown source '{source_name}'"
 
                 source = config.sources[source_name]
-                if getattr(source, 'enabled', True):
+                if getattr(source, "enabled", True):
                     enabled_sources_for_category += 1
 
             # Warn if category has no enabled sources but don't fail (some may be intentionally disabled)
             if enabled_sources_for_category == 0:
                 print(f"⚠️  Category '{category_name}' has no enabled sources")
             else:
-                print(f"✓ Category '{category_name}' has {enabled_sources_for_category} enabled sources")
+                print(
+                    f"✓ Category '{category_name}' has {enabled_sources_for_category} enabled sources"
+                )
 
         print(f"✓ All {categories_count} categories have valid source references")
 
         # Validate source configurations
         enabled_sources = 0
         for source_name, source in config.sources.items():
-            if getattr(source, 'enabled', True):
+            if getattr(source, "enabled", True):
                 enabled_sources += 1
 
                 # Validate required fields for enabled sources
-                assert hasattr(source, 'type'), f"Source '{source_name}' missing type"
-                source_type = getattr(source, 'type')
+                assert hasattr(source, "type"), f"Source '{source_name}' missing type"
+                source_type = source.type
 
-                if source_type == 'http_api':
-                    config_obj = getattr(source, 'config', None)
-                    assert config_obj is not None, f"HTTP API source '{source_name}' missing config"
+                if source_type == "http_api":
+                    config_obj = getattr(source, "config", None)
+                    assert (
+                        config_obj is not None
+                    ), f"HTTP API source '{source_name}' missing config"
 
                     # Check for required HTTP API fields
-                    required_fields = ['base_url', 'search_path']
+                    required_fields = ["base_url", "search_path"]
                     for field in required_fields:
                         # Handle both dict and object access patterns
                         if hasattr(config_obj, field):
                             field_value = getattr(config_obj, field, None)
-                        elif hasattr(config_obj, '__getitem__'):
+                        elif hasattr(config_obj, "__getitem__"):
                             field_value = config_obj.get(field)
                         else:
                             field_value = None
 
                         if field_value is None or field_value == "":
-                            print(f"⚠️  Source '{source_name}' missing or empty field '{field}' - skipping validation")
+                            print(
+                                f"⚠️  Source '{source_name}' missing or empty field '{field}' - skipping validation"
+                            )
                         else:
-                            print(f"✓ Source '{source_name}' has valid '{field}': {field_value[:50]}...")
+                            print(
+                                f"✓ Source '{source_name}' has valid '{field}': {field_value[:50]}..."
+                            )
 
         print(f"✓ Validated {enabled_sources} enabled sources")
 
     except Exception as e:
         print(f"❌ Configuration validation failed: {e}")
         import traceback
+
         traceback.print_exc()
         raise AssertionError(f"Configuration validation failed: {e}") from e
+
 
 def test_yaml_file_discovery():
     """Test that YAML files are discovered correctly."""
@@ -106,21 +122,22 @@ def test_yaml_file_discovery():
         print("📁 Testing YAML file discovery...")
 
         # Check that config directory exists
-        config_manager = ConfigManager()
-        config_dirs = [
-            Path(".paperez/config"),
-            Path.home() / ".paperez/config"
-        ]
+        ConfigManager()
+        config_dirs = [Path(".paperez/config"), Path.home() / ".paperez/config"]
 
         found_files = False
         for config_dir in config_dirs:
             if config_dir.exists():
-                yaml_files = list(config_dir.glob("*.yaml")) + list(config_dir.glob("*.yml"))
-                excluded_files = {'config.yaml', 'minimal_config.yaml'}
+                yaml_files = list(config_dir.glob("*.yaml")) + list(
+                    config_dir.glob("*.yml")
+                )
+                excluded_files = {"config.yaml", "minimal_config.yaml"}
                 valid_files = [f for f in yaml_files if f.name not in excluded_files]
 
                 if valid_files:
-                    print(f"✓ Found {len(valid_files)} YAML config files in {config_dir}")
+                    print(
+                        f"✓ Found {len(valid_files)} YAML config files in {config_dir}"
+                    )
                     for file in valid_files:
                         print(f"  - {file.name}")
                     found_files = True
@@ -132,11 +149,12 @@ def test_yaml_file_discovery():
         print(f"❌ YAML file discovery failed: {e}")
         raise AssertionError(f"YAML file discovery failed: {e}") from e
 
+
 def test_search_analyzer():
     """Test search analysis functionality."""
     try:
-        from paperez_mcp.utils.query_intent import QueryIntentDetector
         from paperez_mcp.utils.enhanced_classifier import EnhancedTopicClassifier
+        from paperez_mcp.utils.query_intent import QueryIntentDetector
 
         print("🔍 Testing search analysis tools...")
 
@@ -150,7 +168,7 @@ def test_search_analyzer():
             "diabetes treatment clinical trial",
             "quantum computing algorithms",
             "federal regulation policy",
-            "shakespeare literature analysis"
+            "shakespeare literature analysis",
         ]
 
         for query in test_queries:
@@ -159,25 +177,31 @@ def test_search_analyzer():
             print(f"✓ Query '{query}' → Intent: {analysis.intent}")
 
             # Validate analysis structure
-            assert hasattr(analysis, 'intent'), "Analysis missing intent"
-            assert hasattr(analysis, 'confidence'), "Analysis missing confidence"
+            assert hasattr(analysis, "intent"), "Analysis missing intent"
+            assert hasattr(analysis, "confidence"), "Analysis missing confidence"
 
             # Confidence should be reasonable
-            assert 0 <= analysis.confidence <= 1, f"Invalid confidence score: {analysis.confidence}"
+            assert (
+                0 <= analysis.confidence <= 1
+            ), f"Invalid confidence score: {analysis.confidence}"
 
             # Test topic classification
             classification_scores = classifier.classify_query_enhanced(query)
             primary_topic = classifier.get_primary_topic_enhanced(query)
             print(f"✓ Query '{query}' → Primary Topic: {primary_topic}")
-            print(f"  Classification scores: {list(classification_scores.keys())[:3]}")  # Show top 3
+            print(
+                f"  Classification scores: {list(classification_scores.keys())[:3]}"
+            )  # Show top 3
 
-        print(f"✓ Search analysis tools working correctly")
+        print("✓ Search analysis tools working correctly")
 
     except Exception as e:
         print(f"❌ Search analysis test failed: {e}")
         import traceback
+
         traceback.print_exc()
         raise AssertionError(f"Search analysis test failed: {e}") from e
+
 
 def main():
     """Run all CI configuration tests."""
@@ -188,7 +212,7 @@ def main():
     tests = [
         ("Configuration Loading", test_configuration_loading),
         ("YAML File Discovery", test_yaml_file_discovery),
-        ("Search Analyzer", test_search_analyzer)
+        ("Search Analyzer", test_search_analyzer),
     ]
 
     passed = 0
@@ -219,6 +243,7 @@ def main():
     else:
         print(f"\n💥 {failed} TESTS FAILED!")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
