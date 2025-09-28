@@ -27,14 +27,14 @@ class TestIntelligentResultCache:
     def setup_method(self):
         """Set up test fixtures."""
         self.cache = IntelligentResultCache(
-            max_size=100, default_ttl=60.0, quality_threshold=0.5
+            max_size=100, default_ttl=60.0, quality_threshold=0.6
         )
 
     def test_cache_initialization(self):
         """Test cache initialization with parameters."""
         assert self.cache.max_size == 100
         assert self.cache.default_ttl == 60.0
-        assert self.cache.quality_threshold == 0.5
+        assert self.cache.quality_threshold == 0.6
         assert len(self.cache.cache) == 0
         assert self.cache.hits == 0
         assert self.cache.misses == 0

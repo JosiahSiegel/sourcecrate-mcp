@@ -35,6 +35,7 @@ class SearchCacheEntry:
     timestamp: float
     source: str
     query_hash: str
+    original_query: str  # Store original query for similarity comparison
     quality_score: float
     access_count: int = 0
     last_accessed: float = 0.0
@@ -95,7 +96,7 @@ class IntelligentResultCache:
 
     def _calculate_query_similarity(self, query1: str, query2: str) -> float:
         """Calculate similarity between two queries."""
-        # Simple word-based similarity (can be enhanced with semantic similarity)
+        # Enhanced similarity with stemming for singular/plural forms
         words1 = set(query1.lower().split())
         words2 = set(query2.lower().split())
 
@@ -104,8 +105,18 @@ class IntelligentResultCache:
         if not words1 or not words2:
             return 0.0
 
-        intersection = words1.intersection(words2)
-        union = words1.union(words2)
+        # Basic stemming for common plural forms
+        def simple_stem(word):
+            if word.endswith('s') and len(word) > 3 and not word.endswith('ss'):
+                return word[:-1]
+            return word
+
+        # Apply stemming to both sets
+        stemmed1 = {simple_stem(word) for word in words1}
+        stemmed2 = {simple_stem(word) for word in words2}
+
+        intersection = stemmed1.intersection(stemmed2)
+        union = stemmed1.union(stemmed2)
 
         return len(intersection) / len(union)
 
@@ -174,8 +185,8 @@ class IntelligentResultCache:
             if time.time() - entry.timestamp >= self.default_ttl:
                 continue
 
-            # Extract original query from cache (simplified approach)
-            similarity = self._calculate_query_similarity(query, entry.query_hash)
+            # Calculate similarity with original cached query
+            similarity = self._calculate_query_similarity(query, entry.original_query)
 
             if similarity > 0.8 and entry.quality_score > self.quality_threshold:
                 entry.access_count += 1
@@ -232,7 +243,8 @@ class IntelligentResultCache:
             results=compressed_results,
             timestamp=time.time(),
             source=source,
-            query_hash=query,  # Store original query for similarity
+            query_hash=query_hash,
+            original_query=query,  # Store original query for similarity
             quality_score=quality_score,
         )
 

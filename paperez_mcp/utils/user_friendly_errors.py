@@ -70,6 +70,17 @@ class UserFriendlyErrorHandler:
                 "category": "network",
                 "severity": "medium",
             },
+            "configuration_errors": {
+                "patterns": [
+                    r"Configuration.*error",
+                    r"Invalid.*config",
+                    r"Missing.*configuration",
+                    r"Configuration.*file.*not.*found",
+                    r"Config.*file.*not.*found",
+                ],
+                "category": "configuration",
+                "severity": "high",
+            },
             "file_errors": {
                 "patterns": [
                     r"File.*not.*found",
@@ -117,16 +128,6 @@ class UserFriendlyErrorHandler:
                 ],
                 "category": "search_query",
                 "severity": "low",
-            },
-            "configuration_errors": {
-                "patterns": [
-                    r"Configuration.*error",
-                    r"Invalid.*config",
-                    r"Missing.*configuration",
-                    r"Config.*file.*not.*found",
-                ],
-                "category": "configuration",
-                "severity": "high",
             },
         }
 
@@ -403,6 +404,10 @@ class SearchErrorEnhancer:
                 "neural",
                 "computing",
                 "software",
+                "artificial intelligence",
+                "programming",
+                "data science",
+                "algorithms",
             ],
             "physics": [
                 "quantum",
@@ -419,6 +424,12 @@ class SearchErrorEnhancer:
                 "cell",
                 "organism",
                 "genetic",
+                "gene",
+                "expression",
+                "dna",
+                "rna",
+                "molecular biology",
+                "biochemistry",
             ],
         }
 

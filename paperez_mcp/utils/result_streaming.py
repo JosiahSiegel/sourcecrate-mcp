@@ -187,11 +187,14 @@ class ResultStreamer:
             for task, source_name in zip(search_tasks, source_names, strict=False)
         ]
 
-        # Launch all searches concurrently (don't await here)
-        # Note: MyPy has issues with asyncio.gather typing, using type ignore
-        search_task: Any = asyncio.create_task(
-            asyncio.gather(*search_coroutines, return_exceptions=True)  # type: ignore
-        )
+        # Launch all searches concurrently as individual tasks
+        individual_tasks = [asyncio.create_task(coro) for coro in search_coroutines]
+
+        # Create a task that gathers all individual tasks
+        async def gather_all():
+            return await asyncio.gather(*individual_tasks, return_exceptions=True)
+
+        search_task: Any = asyncio.create_task(gather_all())
 
         # Stream results as they become available
         try:
