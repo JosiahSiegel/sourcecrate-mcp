@@ -70,6 +70,30 @@ Use `get_help` tool for complete configuration guidance.
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
 - [Examples](docs/examples.md) - Usage examples and workflows
 
+## ⚖️ Legal & Ethical Usage
+
+**All default sources use legitimate public APIs designed for academic research:**
+
+- **CrossRef** - Official API from non-profit organization, encourages research use
+- **Semantic Scholar** - Microsoft/Allen Institute official API for academic research
+- **arXiv** - Cornell University preprint repository with official API
+- **PubMed/PMC** - NIH/NCBI government databases with public APIs
+- **Europe PMC** - European biomedical database with official research API
+- **DOAJ** - Open access directory specifically promoting programmatic access
+- **HathiTrust** - Academic library consortium with official catalog API
+- **Internet Archive** - Non-profit digital library with official API
+- **SSRN** - Elsevier's official research platform API
+- **ClinicalTrials.gov** - US government database with mandated public access
+
+**Compliance measures:**
+- ✅ Respects rate limits and terms of service for all sources
+- ✅ Only accesses publicly available metadata and open access content
+- ✅ Includes proper attribution and email contacts where required
+- ✅ No paywalled content accessed without permission
+- ✅ Google Scholar disabled by default (no official API)
+
+**User responsibility:** Custom configurations and additional sources are under user control and responsibility.
+
 ## 🤝 Contributing
 
 1. Fork the repository
