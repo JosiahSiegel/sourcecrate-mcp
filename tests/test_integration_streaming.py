@@ -19,12 +19,20 @@ from paperez_mcp.utils.result_streaming import (
     create_streaming_search,
 )
 
+# Import global instances for cleanup
+from paperez_mcp.utils.enhanced_error_recovery import global_error_recovery
+from paperez_mcp.utils.search_analytics import search_analytics
+
 
 class TestStreamingSearchIntegration:
     """Integration tests for the complete streaming search workflow."""
 
     def setup_method(self):
         """Set up test fixtures with realistic mock sources."""
+        # Reset global state for test isolation
+        global_error_recovery.reset_all_error_states()
+        search_analytics.reset_analytics_state()
+
         self.streamer = ResultStreamer(
             enable_early_results=True,
             min_results_for_early_delivery=2,
@@ -425,6 +433,12 @@ class TestStreamingSearchIntegration:
 class TestStreamingWithMockMCPServer:
     """Test streaming functionality in the context of MCP server operations."""
 
+    def setup_method(self):
+        """Set up test fixtures with global state reset."""
+        # Reset global state for test isolation
+        global_error_recovery.reset_all_error_states()
+        search_analytics.reset_analytics_state()
+
     @pytest.mark.asyncio
     async def test_browse_papers_streaming_simulation(self):
         """Simulate the browse_papers_streaming MCP tool workflow."""
@@ -653,6 +667,12 @@ class TestStreamingWithMockMCPServer:
 
 class TestStreamingPerformanceIntegration:
     """Integration tests focusing on streaming performance characteristics."""
+
+    def setup_method(self):
+        """Set up test fixtures with global state reset."""
+        # Reset global state for test isolation
+        global_error_recovery.reset_all_error_states()
+        search_analytics.reset_analytics_state()
 
     @pytest.mark.asyncio
     async def test_streaming_early_delivery_timing(self):

@@ -532,6 +532,18 @@ class SearchAnalyticsCollector:
 
         return export_data
 
+    def reset_analytics_state(self) -> None:
+        """Reset all analytics state for testing isolation."""
+        self.search_history.clear()
+        self.source_metrics.clear()
+        self.query_patterns.clear()
+        self.domain_distribution.clear()
+        self.temporal_patterns.clear()
+        self.result_quality_scores.clear()
+        self.concurrent_searches = 0
+        self.peak_concurrent_searches = 0
+        self.cache_statistics = {"hits": 0, "misses": 0, "evictions": 0}
+
 
 # Global analytics collector instance
 search_analytics = SearchAnalyticsCollector()
