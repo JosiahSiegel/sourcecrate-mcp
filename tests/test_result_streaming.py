@@ -94,6 +94,9 @@ class TestResultStreamer:
 
     def setup_method(self):
         """Set up test fixtures."""
+        # Reset global state for test isolation
+        result_streamer.reset_streaming_state()
+
         self.streamer = ResultStreamer(
             enable_early_results=True,
             min_results_for_early_delivery=2,
@@ -553,6 +556,9 @@ class TestResultStreamingEdgeCases:
 
     def setup_method(self):
         """Set up test fixtures."""
+        # Reset global state for test isolation
+        result_streamer.reset_streaming_state()
+
         self.streamer = ResultStreamer(
             enable_early_results=False,  # Disable for simpler testing
             max_wait_time=1.0,  # Short timeout

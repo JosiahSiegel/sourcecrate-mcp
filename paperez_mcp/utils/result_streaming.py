@@ -283,6 +283,39 @@ class ResultStreamer:
                             },
                         )
 
+            # Drain any remaining items from completion queue
+            # (handles race condition where multiple errors arrive simultaneously)
+            try:
+                while True:
+                    completion_type, source_name, error = completion_queue.get_nowait()
+
+                    if completion_type == "error":
+                        yield StreamingUpdate(
+                            type="error",
+                            source=source_name,
+                            error=error,
+                            progress={
+                                "completed_sources": len(self.completed_sources),
+                                "error_sources": len(self.error_sources),
+                                "total_sources": total_sources,
+                            },
+                        )
+                    elif completion_type == "completed":
+                        yield StreamingUpdate(
+                            type="source_complete",
+                            source=source_name,
+                            progress={
+                                "completed_sources": len(self.completed_sources),
+                                "total_sources": total_sources,
+                                "elapsed_time": time.time() - self.start_time,
+                            },
+                            completed_sources=len(self.completed_sources),
+                            total_sources=total_sources,
+                        )
+            except asyncio.QueueEmpty:
+                # No more items in queue, continue to final results
+                pass
+
             # All sources completed - deliver final results
             final_results = self._get_final_results(delivered_results)
 
