@@ -35,9 +35,9 @@ if WATCHDOG_AVAILABLE:
         def __init__(self, config_manager: 'ConfigManager'):
             self.config_manager = config_manager
             self.debounce_time = 1.0  # seconds
-            self.last_reload = 0
+            self.last_reload = 0.0
 
-        def on_modified(self, event) -> None:
+        def on_modified(self, event: Any) -> None:
             if not event.is_directory and event.src_path.endswith(('.yaml', '.yml')):
                 # Debounce rapid file changes
                 current_time = time.time()
@@ -48,7 +48,7 @@ if WATCHDOG_AVAILABLE:
 else:
     # Dummy handler when watchdog is not available
     class ConfigFileHandler:
-        def __init__(self, config_manager) -> None:
+        def __init__(self, config_manager: Any) -> None:
             pass
 
 
@@ -378,6 +378,7 @@ class ConfigManager:
     def save_user_config(self, config: dict[str, Any]) -> None:
         """Save configuration to user home directory."""
         user_config_path = self.config_paths['user_home']
+        assert user_config_path is not None  # We explicitly set this in __init__
         user_config_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(user_config_path, 'w', encoding='utf-8') as f:
@@ -448,7 +449,7 @@ class ConfigManager:
     def __enter__(self) -> 'ConfigManager':
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.shutdown()
 
 

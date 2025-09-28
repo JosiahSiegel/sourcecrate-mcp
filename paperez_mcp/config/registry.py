@@ -22,7 +22,7 @@ class SourceRegistry:
         self._source_configs: dict[str, SourceProviderConfig] = {}
         self._plugin_instances: dict[str, Any] = {}
 
-    def register_builtin_sources(self):
+    def register_builtin_sources(self) -> None:
         """Register all built-in search sources."""
         from ..api_clients import (
             search_arxiv,
@@ -50,10 +50,12 @@ class SourceRegistry:
                 else:
                     logger.warning(f"Built-in function not found: {function_name}")
 
-    def register_plugin_source(self, source_name: str, source_config: SourceProviderConfig):
+    def register_plugin_source(self, source_name: str, source_config: SourceProviderConfig) -> None:
         """Register a plugin-based search source."""
         try:
             # Import the plugin module
+            if source_config.module_path is None or source_config.class_name is None:
+                raise ValueError(f"Plugin {source_name} missing module_path or class_name")
             module = importlib.import_module(source_config.module_path)
             plugin_class = getattr(module, source_config.class_name)
 
@@ -66,7 +68,7 @@ class SourceRegistry:
             self._plugin_instances[source_name] = plugin_instance
 
             # Create wrapper function for compatibility (fix closure bug)
-            async def plugin_wrapper(query: str, limit: int = 5, instance=plugin_instance, **kwargs):
+            async def plugin_wrapper(query: str, limit: int = 5, instance=plugin_instance, **kwargs) -> list[dict[str, Any]]:
                 return await instance.search(query, limit, **kwargs)
 
             self._sources[source_name] = plugin_wrapper
@@ -76,7 +78,7 @@ class SourceRegistry:
         except Exception as e:
             logger.error(f"Failed to register plugin source {source_name}: {e}")
 
-    def register_http_api_source(self, source_name: str, source_config: SourceProviderConfig):
+    def register_http_api_source(self, source_name: str, source_config: SourceProviderConfig) -> None:
         """Register an HTTP API-based search source using configuration only."""
         try:
             from ..api_clients.generic_http_client import GenericHTTPClient
@@ -86,7 +88,7 @@ class SourceRegistry:
             self._plugin_instances[source_name] = api_instance
 
             # Create wrapper function for compatibility (fix closure bug)
-            async def api_wrapper(query: str, limit: int = 5, instance=api_instance, **kwargs):
+            async def api_wrapper(query: str, limit: int = 5, instance=api_instance, **kwargs) -> list[dict[str, Any]]:
                 return await instance.search(query, limit, **kwargs)
 
             self._sources[source_name] = api_wrapper
