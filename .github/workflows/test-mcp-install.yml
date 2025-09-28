@@ -106,7 +106,7 @@ jobs:
         python -m pip install fastmcp scholarly httpx aiohttp requests PyMuPDF pymupdf4llm pdfplumber lxml beautifulsoup4 asyncio-throttle fake-useragent arxiv pymed semanticscholar tenacity diskcache free-proxy
 
         # Test direct module import
-        python -c "import sys; sys.path.insert(0, '.'); import paperez_mcp_server; print('✓ Direct server import successful')"
+        python -c "import sys; sys.path.insert(0, '.'); from paperez_mcp import server; print('✓ Direct server import successful')"
 
     - name: Install development dependencies
       run: |
@@ -233,7 +233,7 @@ jobs:
         async def test_server_startup():
             try:
                 # Import and test basic MCP server setup
-                from paperez_mcp_server import mcp
+                from paperez_mcp.server import mcp
                 print('✓ MCP server module loaded successfully')
 
                 # Test that tools are properly registered
@@ -280,7 +280,7 @@ jobs:
         async def test_server_startup():
             try:
                 # Import and test basic MCP server setup
-                from paperez_mcp_server import mcp
+                from paperez_mcp.server import mcp
                 print('✓ MCP server module loaded successfully')
 
                 # Test that tools are properly registered
@@ -318,7 +318,7 @@ jobs:
         import asyncio
         import sys
         sys.path.insert(0, '.')
-        from paperez_mcp_server import get_status_impl, get_help_impl
+        from paperez_mcp.server import get_status_impl, get_help_impl
 
         async def test_tools():
             # Test get_status (should work offline)
