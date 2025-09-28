@@ -89,7 +89,7 @@ def check_dev_dependencies():
         ("black", "black"),
         ("ruff", "ruff"),
         ("mypy", "mypy"),
-        ("types-PyYAML", None),  # Type stubs don't have importable modules
+        ("types-pyyaml", None),  # Type stubs don't have importable modules
         ("types-requests", None),
         ("types-beautifulsoup4", None),
     ]
