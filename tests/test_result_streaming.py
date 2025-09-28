@@ -424,6 +424,11 @@ class TestResultStreamer:
 class TestGlobalResultStreamer:
     """Test suite for global result streamer instance."""
 
+    def setup_method(self):
+        """Set up test fixtures."""
+        # Reset global state for test isolation
+        result_streamer.reset_streaming_state()
+
     def test_global_instance_exists(self):
         """Test that global instance exists and is properly configured."""
         assert result_streamer is not None
@@ -457,6 +462,11 @@ class TestGlobalResultStreamer:
 
 class TestCreateStreamingSearch:
     """Test suite for create_streaming_search function."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        # Reset global state for test isolation
+        result_streamer.reset_streaming_state()
 
     @pytest.mark.asyncio
     async def test_create_streaming_search_basic(self):
