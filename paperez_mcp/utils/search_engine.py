@@ -2,13 +2,13 @@
 Comprehensive search engine that queries multiple academic databases.
 """
 
-import asyncio
 import logging
 from typing import Any
 
 # Note: Source functions are now handled by the registry system
 from ..config import api_status, get_search_service
 from ..config.settings import config
+from .adaptive_concurrency import adaptive_concurrency_manager
 from .pdf_processor import extract_pdf_text
 from .query_cache import query_cache
 from .source_health_monitor import health_monitor
@@ -130,83 +130,84 @@ async def comprehensive_search_internal(
         max_concurrent = 1
 
     if max_concurrent > 1:
-        # Parallel search implementation
-        async def search_source_with_isolation(
-            source_info: tuple, source_index: int
-        ) -> tuple[str, list, bool]:
-            """Search a single source with proper error isolation"""
-            source_name, search_func, preference_score = source_info
+        # Enhanced parallel search using adaptive concurrency
+        logger.info(
+            f"🚀 Using adaptive parallel search with up to {max_concurrent} concurrent sources"
+        )
 
-            try:
-                logger.info(
-                    f"🔍 Searching {source_name} (preference: {preference_score:.3f}, parallel)"
-                )
-
-                # Calculate fair quota distribution for parallel execution
-                if source_index < min_sources_to_try:
-                    # For top sources, ensure reasonable allocation
-                    base_quota = max(3, limit // min_sources_to_try)
-                    preference_bonus = max(0, int(base_quota * preference_score * 0.3))
-                    source_limit = min(limit, base_quota + preference_bonus)
-                else:
-                    # For additional sources, use preference-based allocation
-                    source_limit = max(2, int(limit * preference_score * 0.4))
-
-                # Execute search using registry-based function routing
-                if callable(search_func):
-                    results = await health_monitor.monitor_request(
-                        source_name, search_func, query, source_limit
-                    )
-                else:
-                    logger.warning(
-                        f"⚠️ Skipping {source_name}: search function not available"
-                    )
-                    return source_name, [], False
-
-                # Return results with source metadata
-                if results:
-                    logger.info(f"✅ {source_name}: {len(results)} results (parallel)")
-                    return source_name, results, True
-                else:
-                    logger.info(f"⚪ {source_name}: No results (parallel)")
-                    return source_name, [], True
-
-            except Exception as e:
-                logger.warning(f"❌ {source_name} failed: {e}")
-                return source_name, [], False
-
-        # Execute searches in parallel with concurrency control
+        # Prepare search tasks for adaptive concurrency manager
         search_tasks = []
         for i, source_info in enumerate(available_sources[:max_concurrent]):
-            task = search_source_with_isolation(source_info, i)
-            search_tasks.append(task)
+            source_name, search_func, preference_score = source_info
 
-        logger.info(f"🚀 Starting parallel search across {len(search_tasks)} sources")
-
-        # Gather all results concurrently
-        parallel_results = await asyncio.gather(*search_tasks, return_exceptions=True)
-
-        # Process results and maintain source priority order
-        successful_sources = 0
-        for result in parallel_results:
-            if isinstance(result, Exception):
-                logger.warning(f"🔥 Parallel search exception: {result}")
-                continue
-
-            if isinstance(result, tuple) and len(result) == 3:
-                source_name, results, success = result
+            # Calculate fair quota distribution for parallel execution
+            if i < min_sources_to_try:
+                # For top sources, ensure reasonable allocation
+                base_quota = max(3, limit // min_sources_to_try)
+                preference_bonus = max(0, int(base_quota * preference_score * 0.3))
+                source_limit = min(limit, base_quota + preference_bonus)
             else:
-                logger.warning(f"Invalid result format: {result}")
-                continue
-            if success:
-                successful_sources += 1
-                if results:
-                    all_results.extend(results)
-                    sources_used.append(source_name)
+                # For additional sources, use preference-based allocation
+                source_limit = max(2, int(limit * preference_score * 0.4))
 
-        logger.info(
-            f"🎯 Parallel search complete: {successful_sources} sources, {len(all_results)} total results"
-        )
+            if callable(search_func):
+                # Create enhanced search function that integrates with health monitoring
+                async def enhanced_search_func(
+                    q: str,
+                    lim: int,
+                    src_name: str = source_name,
+                    func: Any = search_func,
+                ) -> Any:
+                    return await health_monitor.monitor_request(src_name, func, q, lim)
+
+                search_tasks.append(
+                    (source_name, enhanced_search_func, (query, source_limit))
+                )
+            else:
+                logger.warning(
+                    f"⚠️ Skipping {source_name}: search function not available"
+                )
+
+        # Progress callback for real-time updates
+        async def search_progress_callback(
+            source_name: str, result_count: int, success: bool
+        ) -> None:
+            status = "✅" if success else "❌"
+            logger.info(
+                f"{status} {source_name}: {result_count} results (adaptive parallel)"
+            )
+
+        # Execute with adaptive concurrency management
+        if search_tasks:
+            parallel_results = (
+                await adaptive_concurrency_manager.execute_parallel_search(
+                    search_tasks, progress_callback=search_progress_callback
+                )
+            )
+
+            # Process results
+            successful_sources = 0
+            for source_name, results, success in parallel_results:
+                if success:
+                    successful_sources += 1
+                    if results:
+                        all_results.extend(results)
+                        sources_used.append(source_name)
+
+            # Log performance summary
+            perf_summary = adaptive_concurrency_manager.get_performance_summary()
+            logger.info(
+                f"🎯 Adaptive parallel search complete: {successful_sources} sources successful, "
+                f"{len(all_results)} total results, current concurrency: {perf_summary['current_concurrency']}"
+            )
+
+            # Log circuit breaker status if any sources are blocked
+            if perf_summary["circuit_breaker_sources"]:
+                logger.warning(
+                    f"🚨 Circuit breakers active for: {', '.join(perf_summary['circuit_breaker_sources'])}"
+                )
+        else:
+            logger.warning("No valid search tasks prepared for parallel execution")
 
     else:
         # Sequential search fallback implementation
