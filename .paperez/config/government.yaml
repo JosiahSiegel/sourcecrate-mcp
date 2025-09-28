@@ -1,0 +1,43 @@
+# Government & Policy Research Configuration
+# Sources and categories for government documents, policy research, and public administration
+
+# Currently minimal government sources - need major expansion
+# This file exists to highlight gaps and future additions
+
+sources: {}
+  # Future government sources will go here
+
+categories: {}
+  # Future government categories will go here
+
+# MAJOR GAPS IDENTIFIED - NEED MORE SOURCES:
+# - Federal Register (US federal regulations)
+# - GovInfo (US government publishing office)
+# - Congressional Research Service reports
+# - Government Accountability Office reports
+# - White House publications
+# - Department reports (State, Defense, etc.)
+# - Congressional testimony and hearings
+# - Policy think tank publications
+# - Brookings Institution
+# - American Enterprise Institute
+# - Heritage Foundation
+# - Center for Strategic and International Studies
+# - Congressional Budget Office
+# - Bureau of Labor Statistics
+# - Census Bureau publications
+# - International government sources
+# - OECD publications
+# - World Bank documents
+# - UN documents and reports
+# - EU institutional publications
+# - UK government publications
+# - Canadian government sources
+# - Australian government documents
+# - Local government repositories
+# - State government archives
+# - Municipal policy documents
+#
+# ISSUE: Government/policy research severely under-resourced
+# Priority: HIGH - Important for policy research, public administration studies
+# Note: Most government sources are public domain and API-friendly

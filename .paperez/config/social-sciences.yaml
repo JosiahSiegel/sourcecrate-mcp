@@ -1,0 +1,35 @@
+# Social Sciences Research Configuration
+# Sources and categories for psychology, sociology, education, anthropology, and related fields
+
+# Currently no dedicated social sciences sources - all rely on general sources
+# This file exists to highlight the gap and future additions
+
+sources: {}
+  # No dedicated social sciences sources yet - using general sources from other files
+  # Future additions will go here
+
+categories: {}
+  # No dedicated social sciences categories yet - this is a major gap
+  # Future categories will go here
+
+# MASSIVE GAPS IDENTIFIED - NO DEDICATED SOURCES:
+# - PsycINFO (psychology research)
+# - SAGE Journals (social sciences publisher)
+# - Taylor & Francis Online (social sciences)
+# - JSTOR (humanities and social sciences)
+# - Project MUSE (humanities and social sciences)
+# - Education databases (ERIC, etc.)
+# - Sociology databases
+# - Anthropology research sources
+# - Political science databases
+# - Social work research
+# - Communication studies sources
+# - Gender studies databases
+# - Cultural studies sources
+# - Linguistics research databases
+# - Area studies sources
+# - International relations databases
+#
+# CRITICAL ISSUE: Social sciences completely missing from PaperezMCP
+# Priority: CRITICAL - This is a major research area with zero dedicated sources
+# Users researching psychology, sociology, education, etc. have no appropriate sources

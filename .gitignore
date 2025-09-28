@@ -96,5 +96,7 @@ logs/
 .fastmcp/
 
 test_*/
-.paperez/*
+.paperez/*.md
+.paperez/*.txt
+.paperez/*.pdf
 !.paperez/config/*

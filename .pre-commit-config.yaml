@@ -18,3 +18,13 @@ repos:
         language: system
         files: \.py$
         exclude: ^(venv/|__pycache__/|scripts/)
+
+  - repo: local
+    hooks:
+      - id: config-validation
+        name: Configuration Validation
+        entry: python3
+        args: ["-c", "from paperez_mcp.config.manager import ConfigManager; cm = ConfigManager(enable_hot_reload=False); config = cm.get_config(); print(f'✓ Configuration valid: {len(config.sources)} sources, {len(config.categories)} categories loaded successfully')"]
+        language: system
+        files: \.paperez/config/.*\.ya?ml$
+        pass_filenames: false

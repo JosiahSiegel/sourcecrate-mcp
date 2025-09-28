@@ -45,11 +45,20 @@ Custom configuration via `.paperez/config/config.yaml`:
 ```yaml
 version: "1.0"
 use_default_sources: true
-default_category: comprehensive
+default_category: null  # Uses intelligent routing
 sources:
-  # Add custom sources here
+  # Add custom HTTP API sources here
+  my_custom_source:
+    name: my_custom_source
+    type: http_api
+    enabled: true
+    config:
+      base_url: https://api.example.com
+      search_path: /search
+      query_param: q
+      # ... more configuration
 categories:
-  # Add custom categories here
+  # Add custom search categories here
 ```
 
 Use `get_help` tool for complete configuration guidance.
@@ -57,6 +66,7 @@ Use `get_help` tool for complete configuration guidance.
 ## 🌟 Features
 
 - 🔍 **Multi-Source Search** - CrossRef, Semantic Scholar, arXiv, PubMed, Google Scholar
+- 🔧 **Fully Extensible** - Add custom sources via YAML configuration
 - 📖 **Unlimited PDF Processing** - No page or character limits
 - 🔄 **Zero-Token Conversion** - PDF to markdown without AI usage
 - ⚡ **Intelligent Fallback** - Robust multi-source search

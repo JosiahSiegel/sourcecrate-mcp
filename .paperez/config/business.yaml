@@ -1,0 +1,64 @@
+# Business & Economics Research Configuration
+# Sources and categories for business, economics, finance, and management research
+
+# Business research sources
+sources:
+  ssrn:
+    name: ssrn
+    type: http_api
+    enabled: false  # Disabled: SSRN ToS reserves rights for data mining, no public API
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: SSRN - Business, economics, and finance research
+      coverage: business research, economics, finance, management, policy
+      base_url: https://api.ssrn.com
+      search_path: /v1/papers
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: papers
+      extra_params:
+        format: json
+        sortBy: relevance
+      field_mappings:
+        title: title
+        authors: authors
+        abstract: abstract
+        journal: journal
+        year: year
+        url: ssrnUrl
+        pdf_url: pdfUrl
+        citation_count: downloads
+      rate_limit_delay: 0.3
+
+# Business research categories
+categories:
+  business:
+    name: business
+    display_name: Business & Economics Research
+    description: Business, economics, finance, and management research
+    type: standard
+    sources:
+      - crossref  # From scientific.yaml
+      - semantic_scholar  # From scientific.yaml
+    max_results_per_source: 8
+    parallel_search: true
+
+# GAPS IDENTIFIED - MASSIVE NEED FOR MORE SOURCES:
+# - RePEc (economics research papers)
+# - NBER (National Bureau of Economic Research)
+# - World Bank databases
+# - IMF publications
+# - Business school repositories
+# - Management research databases
+# - Finance research sources
+# - Marketing research databases
+# - Entrepreneurship research
+# - Supply chain management sources
+# - Human resources research
+# - Corporate governance databases
+#
+# NOTE: This category is severely under-resourced with only 2 general sources
+# Priority: HIGH - Need dedicated business/economics sources

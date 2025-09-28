@@ -54,11 +54,16 @@ class ConfigManager:
     """
     Manages PaperezMCP configuration with multi-tier loading and hot-reloading.
 
+    Loads ALL YAML files from configuration directories for organized config management.
+
     Configuration priority (highest to lowest):
     1. Environment variables (PAPEREZ_*)
-    2. Local project config (./paperez.config.yaml)
-    3. User home config (~/.paperez/config/config.yaml)
-    4. Built-in defaults
+    2. Environment config file (PAPEREZ_CONFIG_PATH)
+    3. Local project config directory (./.paperez/config/*.yaml)
+    4. User home config directory (~/.paperez/config/*.yaml)
+    5. Built-in defaults directory (.paperez/config/*.yaml)
+
+    All YAML files in each directory are loaded and merged together.
     """
 
     def __init__(self, enable_hot_reload: bool = True):
@@ -73,14 +78,17 @@ class ConfigManager:
         self._observers: List = []  # List[Observer] when watchdog available
         self._reload_callbacks: List[Callable[[PaperezConfig], None]] = []
 
-        # Configuration file paths
+        # Configuration directory paths (load ALL YAML files from these directories)
         # Get the root directory of the paperez-mcp package
         package_root = Path(__file__).parent.parent.parent
+        self.config_directories = {
+            'mcp_default': package_root / '.paperez' / 'config',
+            'user_home': Path.home() / '.paperez' / 'config',
+            'project_local': Path.cwd() / '.paperez' / 'config',
+        }
+
+        # Legacy single file paths for backward compatibility and environment override
         self.config_paths = {
-            'mcp_default': package_root / '.paperez' / 'config' / 'config.yaml',
-            'mcp_minimal': package_root / '.paperez' / 'config' / 'minimal_config.yaml',
-            'user_home': Path.home() / '.paperez' / 'config' / 'config.yaml',
-            'project_local': Path.cwd() / '.paperez' / 'config' / 'config.yaml',
             'environment': self._get_env_config_path()
         }
 
@@ -94,69 +102,89 @@ class ConfigManager:
         return Path(env_path) if env_path else None
 
     def _load_config(self):
-        """Load and merge configuration from all sources."""
+        """Load and merge configuration from all sources (directories and individual files)."""
         with self._config_lock:
             try:
-                # Check if user wants to disable default sources
+                # Check if user wants to disable default sources by checking all config directories
                 use_defaults = True
-                for layer_name, config_path in self.config_paths.items():
-                    if layer_name not in ['mcp_default', 'mcp_minimal'] and config_path and config_path.exists():
-                        try:
-                            temp_config = self._load_yaml_file(config_path)
-                            if temp_config.get('use_default_sources') is False:
-                                use_defaults = False
-                                break
-                        except Exception as e:
-                            logger.debug(f"Failed to check use_default_sources in {config_path}: {e}")
-                            continue  # Continue checking other files
+                for layer_name, config_dir in self.config_directories.items():
+                    if layer_name == 'mcp_default':
+                        continue  # Don't check default config for this setting
 
-                # Start with MCP default configuration (if user wants defaults)
+                    if config_dir.exists():
+                        dir_config = self._load_yaml_directory(config_dir)
+                        if dir_config.get('use_default_sources') is False:
+                            use_defaults = False
+                            logger.info(f"Default sources disabled by config in {config_dir}")
+                            break
+
+                # Also check environment file
+                if self.config_paths.get('environment'):
+                    env_path = self.config_paths['environment']
+                    if env_path and env_path.exists():
+                        try:
+                            env_config = self._load_yaml_file(env_path)
+                            if env_config.get('use_default_sources') is False:
+                                use_defaults = False
+                                logger.info(f"Default sources disabled by environment config: {env_path}")
+                        except Exception as e:
+                            logger.debug(f"Failed to check use_default_sources in environment config: {e}")
+
+                # Start with base configuration
                 config_dict = {}
+
                 if use_defaults:
-                    # Load complete MCP default config (includes all sources)
-                    mcp_default_path = self.config_paths['mcp_default']
-                    if mcp_default_path.exists():
-                        config_dict = self._load_yaml_file(mcp_default_path)
-                        logger.info(f"Loaded complete MCP default config: {mcp_default_path}")
+                    # Load MCP default directory (all YAML files)
+                    mcp_default_dir = self.config_directories['mcp_default']
+                    if mcp_default_dir.exists():
+                        config_dict = self._load_yaml_directory(mcp_default_dir)
+                        logger.info(f"Loaded MCP default config directory: {mcp_default_dir}")
                     else:
-                        logger.error(f"MCP default config not found: {mcp_default_path}")
+                        logger.error(f"MCP default config directory not found: {mcp_default_dir}")
                         # Ultimate fallback
                         config_dict = {
                             'version': '1.0',
-                            'default_category': 'comprehensive',
+                            'default_category': None,
                             'sources': {},
                             'categories': {}
                         }
                 else:
-                    # User disabled defaults - start with minimal MCP config
-                    mcp_minimal_path = self.config_paths['mcp_minimal']
-                    if mcp_minimal_path.exists():
-                        config_dict = self._load_yaml_file(mcp_minimal_path)
-                        config_dict['use_default_sources'] = False  # Ensure this is set
-                        logger.info(f"Default sources disabled - using minimal config: {mcp_minimal_path}")
-                    else:
-                        # Ultimate fallback for minimal config
-                        config_dict = {
-                            'version': '1.0',
-                            'default_category': 'comprehensive',
-                            'sources': {},
-                            'categories': {},
-                            'use_default_sources': False
-                        }
-                        logger.warning("Minimal config not found - using empty fallback")
+                    # User disabled defaults - start with minimal config
+                    config_dict = {
+                        'version': '1.0',
+                        'default_category': None,
+                        'sources': {},
+                        'categories': {},
+                        'use_default_sources': False
+                    }
+                    logger.info("Default sources disabled - starting with minimal config")
 
-                # Load and merge each configuration layer
-                for layer_name, config_path in self.config_paths.items():
-                    if layer_name in ['mcp_default', 'mcp_minimal']:
-                        continue  # Already loaded
+                # Load and merge each configuration directory (in priority order)
+                config_layers = [
+                    ('user_home', self.config_directories['user_home']),
+                    ('project_local', self.config_directories['project_local'])
+                ]
 
-                    if config_path and config_path.exists():
+                for layer_name, config_dir in config_layers:
+                    if config_dir.exists():
                         try:
-                            layer_config = self._load_yaml_file(config_path)
-                            config_dict = self._smart_merge(config_dict, layer_config)
-                            logger.info(f"Loaded config layer: {layer_name} ({config_path})")
+                            layer_config = self._load_yaml_directory(config_dir)
+                            if layer_config:  # Only merge if directory had content
+                                config_dict = self._smart_merge(config_dict, layer_config)
+                                logger.info(f"Merged config directory: {layer_name} ({config_dir})")
                         except Exception as e:
-                            logger.warning(f"Failed to load config layer {layer_name}: {e}")
+                            logger.warning(f"Failed to load config directory {layer_name}: {e}")
+
+                # Load individual environment file if specified
+                if self.config_paths.get('environment'):
+                    env_path = self.config_paths['environment']
+                    if env_path and env_path.exists():
+                        try:
+                            env_config = self._load_yaml_file(env_path)
+                            config_dict = self._smart_merge(config_dict, env_config)
+                            logger.info(f"Loaded environment config file: {env_path}")
+                        except Exception as e:
+                            logger.warning(f"Failed to load environment config: {e}")
 
                 # Apply environment variable overrides
                 env_overrides = self._get_env_overrides()
@@ -179,7 +207,7 @@ class ConfigManager:
                 # Fall back to minimal configuration
                 fallback_config = {
                     'version': '1.0',
-                    'default_category': 'comprehensive',
+                    'default_category': None,
                     'sources': {},
                     'categories': {}
                 }
@@ -190,6 +218,38 @@ class ConfigManager:
         with open(file_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f) or {}
 
+    def _load_yaml_directory(self, directory_path: Path) -> Dict[str, Any]:
+        """Load and merge all YAML files from a directory."""
+        if not directory_path.exists() or not directory_path.is_dir():
+            return {}
+
+        merged_config = {}
+        yaml_files = []
+
+        # Find all YAML files in the directory
+        for pattern in ['*.yaml', '*.yml']:
+            yaml_files.extend(directory_path.glob(pattern))
+
+        # Exclude special files that shouldn't be part of regular config loading
+        excluded_files = {'config.yaml', 'minimal_config.yaml'}
+        yaml_files = [f for f in yaml_files if f.name not in excluded_files]
+
+        # Sort files to ensure consistent loading order
+        yaml_files.sort()
+
+        for yaml_file in yaml_files:
+            try:
+                file_config = self._load_yaml_file(yaml_file)
+                merged_config = self._deep_merge(merged_config, file_config)
+                logger.debug(f"Loaded config file: {yaml_file}")
+            except Exception as e:
+                logger.warning(f"Failed to load config file {yaml_file}: {e}")
+
+        if yaml_files:
+            logger.info(f"Loaded {len(yaml_files)} YAML files from {directory_path}")
+
+        return merged_config
+
     def _deep_merge(self, base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
         """Deep merge configuration dictionaries."""
         result = base.copy()
@@ -197,6 +257,12 @@ class ConfigManager:
         for key, value in override.items():
             if key in result and isinstance(result[key], dict) and isinstance(value, dict):
                 result[key] = self._deep_merge(result[key], value)
+            elif key in result and result[key] is None and isinstance(value, dict):
+                # Handle case where base has None but override has a dict (e.g., sources, categories)
+                result[key] = value
+            elif key not in result and isinstance(value, dict):
+                # Initialize missing dict keys
+                result[key] = value
             else:
                 result[key] = value
 
@@ -247,17 +313,29 @@ class ConfigManager:
             logger.warning("Watchdog not available - file watching disabled")
             return
 
-        for layer_name, config_path in self.config_paths.items():
-            if layer_name in ['mcp_default', 'mcp_minimal'] or not config_path:
-                continue
+        # Watch all config directories
+        for layer_name, config_dir in self.config_directories.items():
+            if layer_name == 'mcp_default':
+                continue  # Don't watch the built-in default config
 
-            if config_path.exists():
+            if config_dir.exists():
                 observer = Observer()
                 handler = ConfigFileHandler(self)
-                observer.schedule(handler, str(config_path.parent), recursive=False)
+                observer.schedule(handler, str(config_dir), recursive=False)
                 observer.start()
                 self._observers.append(observer)
-                logger.info(f"Watching config file: {config_path}")
+                logger.info(f"Watching config directory: {config_dir}")
+
+        # Also watch individual environment file if specified
+        if self.config_paths.get('environment'):
+            env_path = self.config_paths['environment']
+            if env_path and env_path.exists():
+                observer = Observer()
+                handler = ConfigFileHandler(self)
+                observer.schedule(handler, str(env_path.parent), recursive=False)
+                observer.start()
+                self._observers.append(observer)
+                logger.info(f"Watching environment config file: {env_path}")
 
     def _reload_config(self):
         """Reload configuration and notify callbacks."""

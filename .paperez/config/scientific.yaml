@@ -1,0 +1,159 @@
+# Scientific Research Configuration
+# Sources and categories for STEM fields, preprints, and general scientific research
+
+# Scientific research sources
+sources:
+  crossref:
+    name: crossref
+    type: http_api
+    enabled: true
+    timeout: 45
+    max_retries: 5
+    cache_expire: 7200
+    config:
+      description: Primary academic publisher database (enhanced)
+      base_url: https://api.crossref.org
+      search_path: /works
+      query_param: query
+      limit_param: rows
+      response_format: json
+      results_path: message.items
+      extra_params:
+        sort: relevance
+        order: desc
+        mailto: research@paperez.org
+      field_mappings:
+        title: title.0
+        authors: author
+        doi: DOI
+        abstract: abstract
+        journal: container-title.0
+        year: published-print.date-parts.0.0
+        url: URL
+        citation_count: is-referenced-by-count
+      rate_limit_delay: 0.05
+
+  semantic_scholar:
+    name: semantic_scholar
+    type: http_api
+    enabled: true
+    timeout: 60
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: AI-powered academic search engine (enhanced)
+      base_url: https://api.semanticscholar.org/graph/v1
+      search_path: /paper/search
+      query_param: query
+      limit_param: limit
+      response_format: json
+      results_path: data
+      extra_params:
+        fields: paperId,title,authors,year,abstract,venue,citationCount,url,openAccessPdf,externalIds
+      field_mappings:
+        title: title
+        authors: authors
+        year: year
+        abstract: abstract
+        journal: venue
+        doi: externalIds.DOI
+        url: url
+        pdf_url: openAccessPdf.url
+        citation_count: citationCount
+      rate_limit_delay: 0.5
+
+  arxiv:
+    name: arxiv
+    type: builtin
+    enabled: true
+    function_name: search_arxiv
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: Preprint repository for STEM fields
+      coverage: physics, mathematics, computer science, biology
+
+  doaj:
+    name: doaj
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: Directory of Open Access Journals
+      coverage: peer-reviewed open access articles across all subjects
+      base_url: https://doaj.org/api/v4
+      search_path: /search/articles/_search
+      query_param: q
+      limit_param: pageSize
+      response_format: json
+      results_path: results
+      field_mappings:
+        title: bibjson.title
+        authors: bibjson.author
+        abstract: bibjson.abstract
+        journal: bibjson.journal.title
+        year: bibjson.year
+        doi: bibjson.identifier.0.id
+        url: bibjson.link.0.url
+      rate_limit_delay: 0.5
+
+  google_scholar:
+    name: google_scholar
+    type: builtin
+    enabled: false  # Disabled by default - requires proxy setup
+    function_name: search_google_scholar_fallback
+    timeout: 45
+    max_retries: 2
+    cache_expire: 7200
+    config:
+      description: Google Scholar fallback search
+      coverage: broad academic content across all disciplines
+
+# Scientific research categories
+categories:
+  academic_premium:
+    name: academic_premium
+    display_name: Premium Academic Sources
+    description: High-quality peer-reviewed sources for authoritative research
+    type: standard
+    sources:
+      - crossref
+      - semantic_scholar
+      - doaj
+    max_results_per_source: 8
+    parallel_search: true
+
+  preprints:
+    name: preprints
+    display_name: Preprints & Latest Research
+    description: Focus on preprint repositories for cutting-edge research
+    type: standard
+    sources:
+      - arxiv
+      - semantic_scholar
+    max_results_per_source: 8
+    parallel_search: true
+
+  open_access:
+    name: open_access
+    display_name: Open Access Publications
+    description: Focus on freely available full-text articles
+    type: standard
+    sources:
+      - arxiv
+      - semantic_scholar
+      - doaj
+    max_results_per_source: 6
+    parallel_search: true
+
+# GAPS IDENTIFIED - NEED MORE SOURCES:
+# - IEEE Xplore (engineering/computer science conferences)
+# - ACM Digital Library (computer science)
+# - OpenAlex (comprehensive multidisciplinary)
+# - Physics databases beyond arXiv
+# - Mathematics research databases
+# - Chemistry databases (ChemRxiv, etc.)
+# - Materials science sources

@@ -1,0 +1,37 @@
+# Legal Research Configuration
+# Sources and categories for legal research, case law, statutes, and legal scholarship
+
+# Currently no dedicated legal sources - all rely on general sources
+# This file exists to highlight the gap and future additions
+
+sources: {}
+  # No dedicated legal sources yet - using general sources from other files
+  # Future additions will go here
+
+categories: {}
+  # No dedicated legal categories yet - this is a major gap
+  # Future categories will go here
+
+# MASSIVE GAPS IDENTIFIED - NO DEDICATED SOURCES:
+# - HeinOnline (legal research database)
+# - Westlaw (legal database - commercial)
+# - LexisNexis (legal database - commercial)
+# - Google Scholar (case law section)
+# - Justia (free legal resources)
+# - CourtListener (federal and state court opinions)
+# - Legal Information Institute (Cornell Law)
+# - FindLaw (legal resources)
+# - Law review databases
+# - Bar journal archives
+# - Legal scholarship repositories
+# - International legal databases
+# - European Court of Justice
+# - International Court of Justice
+# - Regional court systems
+# - Statute and regulation databases
+# - Legal commentary sources
+# - Legal news and analysis
+#
+# CRITICAL ISSUE: Legal research completely missing from PaperezMCP
+# Priority: HIGH - Legal professionals and researchers have zero appropriate sources
+# Note: Many legal sources are commercial, need to focus on open/academic sources
