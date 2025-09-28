@@ -19,16 +19,12 @@
       "server": "paperez-mcp",
       "tools": [
         {
-          "name": "get_papers",
-          "description": "📄 GET PAPERS: Download full academic papers as markdown files. Use when users say 'get papers' - this is the primary function most users want."
-        },
-        {
           "name": "download_papers",
-          "description": "📄 DOWNLOAD PAPERS: Download academic papers as markdown files. Same as get_papers() but more explicit about downloading."
+          "description": "📄 GET/DOWNLOAD PAPERS: Download full academic papers as markdown files. Use when users say 'get papers' or 'download papers' - this is the primary function most users want."
         },
         {
           "name": "browse_papers",
-          "description": "🔍 BROWSE: Explore papers (metadata/abstracts only). For quick overview before downloading. Use get_papers() if you want actual papers."
+          "description": "🔍 BROWSE: Explore papers (metadata/abstracts only). For quick overview before downloading. Use download_papers() if you want actual papers."
         },
         {
           "name": "convert_pdf_to_text",

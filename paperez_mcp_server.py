@@ -111,10 +111,10 @@ search_papers("topic", limit=3, download_and_convert=True)
 
 ## 5 Essential Tools:
 
-1. browse_papers / get_papers / download_papers - Comprehensive paper search and download
+1. browse_papers / download_papers - Comprehensive paper search and download
    - Multi-source search (CrossRef, Semantic Scholar, arXiv, PubMed, Google Scholar)
    - browse_papers: Get metadata/abstracts only for exploration
-   - get_papers/download_papers: Download full papers as markdown files
+   - download_papers: Download full papers as markdown files (use for "get papers" requests)
    - Supports DOI queries, author searches, and keyword searches
 
 2. convert_pdf_to_text - Local PDF text extraction
@@ -405,77 +405,6 @@ async def download_papers(
     return [result]
 
 
-@mcp.tool
-async def get_papers(
-    query: str,
-    limit: int = 5,
-    output_dir: str = ".paperez",
-    force_category: str = None,
-    convert_to_markdown: bool = True
-) -> List[Dict[str, Any]]:
-    """
-    📄 GET FULL PAPERS: Download academic papers as files (PDF or Markdown)
-
-    This is an alias for download_papers() that matches natural language.
-    When users say "get papers", they typically want the actual papers, not metadata.
-    Downloads PDFs with readable filenames and optionally converts to markdown.
-
-    Use this when:
-    - User says "get papers on [topic]"
-    - User wants actual content as files (PDF or Markdown), not just summaries
-    - Need papers for analysis, reading, or citation
-
-    Args:
-        query: Search query (keywords, DOI, title, or author)
-        limit: Maximum papers to get (default: 5, recommended: 5-10)
-        output_dir: Directory to save papers (default: ".paperez")
-        force_category: 🎯 FORCE SPECIFIC SOURCE TYPES (optional, overrides smart routing)
-        convert_to_markdown: If True (default), convert PDFs to markdown. If False, keep as PDFs only.
-        force_category options:
-                       - "preprints" → arXiv, SocArXiv, OSF (latest research, not peer-reviewed)
-                       - "journals" → CrossRef, PubMed, DOAJ (peer-reviewed publications)
-                       - "open_access" → CORE, DOAJ, arXiv (free full-text available)
-                       - "historical" → CORE, CrossRef (older documents, archives)
-                       - "recent" → arXiv, Semantic Scholar (newest papers, last few years)
-                       - "comprehensive" → Semantic Scholar, CrossRef (broad coverage)
-
-                       💡 USE WHEN: Smart routing fails to find papers or you need specific types
-                       💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
-
-    Returns:
-        Same as download_papers() - papers saved as files (PDF or Markdown)
-
-    Example Usage:
-        # Get papers as markdown (default)
-        get_papers("neural networks", limit=5)
-
-        # Get papers as PDFs with readable filenames
-        get_papers("quantum computing", convert_to_markdown=False)
-
-        # Get papers to specific folder
-        get_papers("climate research", output_dir="climate_papers")
-    """
-    # Lazy import utilities
-    _ensure_scholarly_setup()
-    utils = _lazy_import_utils()
-    search_funcs = _lazy_import_search_functions()
-
-    # Import the new paper processor service
-    from paperez_mcp.services.paper_processor import process_papers
-
-    # Use the extracted paper processing service (same as download_papers)
-    result = await process_papers(
-        query=query,
-        limit=limit,
-        output_dir=output_dir,
-        search_funcs=search_funcs,
-        utils=utils,
-        api_status=api_status,
-        force_category=force_category,
-        convert_to_markdown=convert_to_markdown
-    )
-
-    return [result]
 
 
 
@@ -1211,15 +1140,14 @@ def main() -> None:
     """Main entry point for the server"""
     print("🚀 Starting PaperezMCP Server...")
     print("📚 Primary tools:")
-    print("  📄 get_papers: Get full papers as files (most users want this)")
-    print("  📄 download_papers: Same as get_papers but more explicit")
+    print("  📄 download_papers: Get/download full papers as files (most users want this)")
     print("  🔍 browse_papers: Quick metadata overview (titles/abstracts only)")
     print("  📝 convert_pdf_to_text: Convert PDF to plain text files")
     print("  🔄 convert_pdf_to_markdown: Convert PDF to markdown format")
     print("  📁 batch_convert_pdfs: Convert multiple PDFs in a directory")
     print("  🔧 get_status: Check system health and API status")
     print("")
-    print("🎯 QUICK START: Use get_papers('topic') to download full papers!")
+    print("🎯 QUICK START: Use download_papers('topic') to get/download full papers!")
     print("   Only use browse_papers() if you just want to explore titles/abstracts.")
     print("")
     print("🔗 PaperezMCP ready at: stdio")
