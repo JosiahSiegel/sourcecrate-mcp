@@ -25,7 +25,7 @@ class IntelligentErrorHandler:
 
     def __init__(self) -> None:
         # Domain-specific suggestions based on common failure patterns
-        self.domain_suggestions = {
+        self.domain_suggestions: dict[str, dict[str, Any]] = {
             'medical': {
                 'terms': ['medical', 'clinical', 'health', 'disease', 'therapy', 'treatment', 'diagnosis', 'surgery', 'medicine', 'drug', 'vaccine', 'patient', 'hospital'],
                 'suggestions': [
@@ -142,7 +142,7 @@ class IntelligentErrorHandler:
 
         domain_scores = {}
         for domain, config in self.domain_suggestions.items():
-            score = sum(1 for term in config['terms'] if term in query_lower)
+            score = sum(1 for term in config['terms'] if term in query_lower)  # type: ignore
             if score > 0:
                 domain_scores[domain] = score
 

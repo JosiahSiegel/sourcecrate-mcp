@@ -67,7 +67,8 @@ async def smart_downloadable_search(
     except Exception as e:
         logger.warning(f"❌ Enhanced routing failed, falling back to legacy: {e}")
         # Set defaults for fallback
-        topic_classification: dict[str, str | float] = {"primary_topic": "Unknown", "confidence": 0.0}
+        if topic_classification is None:
+            topic_classification = {"primary_topic": "Unknown", "confidence": 0.0}
         source_rankings = [('arxiv', 0.8), ('semantic_scholar', 0.7), ('crossref', 0.5)]
 
     # Enhanced routing has replaced legacy topic detection
@@ -387,7 +388,7 @@ async def smart_downloadable_search(
 
         try:
             # Recursive call with comprehensive fallback
-            fallback_results = await smart_downloadable_search(
+            fallback_results, fallback_log = await smart_downloadable_search(
                 query=query,
                 limit=limit,
                 search_funcs=search_funcs,

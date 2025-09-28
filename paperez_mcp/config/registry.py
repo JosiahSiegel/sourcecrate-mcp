@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class SourceRegistry:
     """Registry for managing search source providers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._sources: dict[str, Callable] = {}
         self._source_configs: dict[str, SourceProviderConfig] = {}
         self._plugin_instances: dict[str, Any] = {}
