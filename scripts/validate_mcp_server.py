@@ -219,12 +219,12 @@ async def test_mcp_tools_functionality():
         )
 
         if warnings:
-            print(f"  ⚠️ Warnings detected (non-blocking):")
+            print("  ⚠️ Warnings detected (non-blocking):")
             for warning in warnings:
                 print(f"    - {warning}")
 
         if real_errors:
-            print(f"  ❌ Real errors detected in logs during testing:")
+            print("  ❌ Real errors detected in logs during testing:")
             for error in real_errors:
                 print(f"    - {error}")
             return False

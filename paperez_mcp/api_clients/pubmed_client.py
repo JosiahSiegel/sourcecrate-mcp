@@ -172,10 +172,13 @@ async def _check_pmc_availability(pmid: str) -> dict[str, str]:
                                 pmc_ids = linksetdb.get("links", [])
                                 if pmc_ids:
                                     pmc_id = pmc_ids[0]
+                                    # Generate standardized PMC PDF URL
+                                    pdf_url = f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/pdf/"
                                     return {
                                         "pmc_id": f"PMC{pmc_id}",
-                                        "pdf_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/pdf/",
+                                        "pdf_url": pdf_url,
                                         "full_text_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/",
+                                        "open_access_pdf": pdf_url,  # PMC PDFs are open access
                                     }
     except Exception as e:
         logger.debug(f"PMC availability check failed for PMID {pmid}: {e}")

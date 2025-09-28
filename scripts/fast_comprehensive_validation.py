@@ -16,8 +16,7 @@ import asyncio
 import logging
 import sys
 import time
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 # Setup concise logging
 logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
@@ -63,7 +62,7 @@ class FastValidator:
             "overall_status": "UNKNOWN",
         }
 
-    async def run_fast_validation(self) -> Dict[str, Any]:
+    async def run_fast_validation(self) -> dict[str, Any]:
         """Run fast comprehensive validation in under 30 seconds"""
         print("🚀 Fast Comprehensive Validation Starting...")
         print("=" * 50)
@@ -116,15 +115,15 @@ class FastValidator:
 
         return self.results
 
-    async def _test_imports_and_config(self) -> Dict[str, Any]:
+    async def _test_imports_and_config(self) -> dict[str, Any]:
         """Test basic imports and configuration loading"""
         test_result = {"name": "imports_and_config", "passed": False, "issues": []}
 
         try:
             # Critical imports
             sys.path.insert(0, ".")
-            from paperez_mcp.config import get_current_config, get_search_service
             from paperez_mcp import server
+            from paperez_mcp.config import get_current_config, get_search_service
 
             # Configuration loading
             config = get_current_config()
@@ -161,7 +160,7 @@ class FastValidator:
 
         return test_result
 
-    async def _test_mcp_server_structure(self) -> Dict[str, Any]:
+    async def _test_mcp_server_structure(self) -> dict[str, Any]:
         """Test MCP server tool registration and basic functionality"""
         test_result = {"name": "mcp_server_structure", "passed": False, "issues": []}
 
@@ -217,7 +216,7 @@ class FastValidator:
 
         return test_result
 
-    async def _test_source_connectivity_fast(self) -> Dict[str, Any]:
+    async def _test_source_connectivity_fast(self) -> dict[str, Any]:
         """Fast parallel test of source connectivity"""
         test_result = {
             "name": "source_connectivity",
@@ -245,7 +244,7 @@ class FastValidator:
             # Quick parallel connectivity test
             async def test_source_quick(
                 source_name: str, search_func: Any
-            ) -> Tuple[str, bool, str]:
+            ) -> tuple[str, bool, str]:
                 """Quick test of a single source"""
                 try:
                     # Very quick test with minimal query
@@ -276,7 +275,7 @@ class FastValidator:
 
                     return source_name, True, "OK"
 
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     return source_name, False, "Timeout"
                 except Exception as e:
                     error_str = str(e)
@@ -325,7 +324,7 @@ class FastValidator:
 
         return test_result
 
-    async def _test_content_quality_fast(self) -> Dict[str, Any]:
+    async def _test_content_quality_fast(self) -> dict[str, Any]:
         """Fast content quality validation with spot checks"""
         test_result = {
             "name": "content_quality",
@@ -403,7 +402,7 @@ class FastValidator:
             test_result["papers_checked"] = len(papers)
             test_result["quality_issues_found"] = len(quality_issues)
 
-        except asyncio.TimeoutError:
+        except TimeoutError:
             test_result["issues"].append("Content quality test timed out")
         except Exception as e:
             test_result["issues"].append(f"Content quality test error: {str(e)}")

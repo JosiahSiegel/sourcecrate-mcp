@@ -14,7 +14,7 @@ Validates:
 import asyncio
 import sys
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class QualityValidator:
@@ -89,7 +89,7 @@ class QualityValidator:
             },
         }
 
-    async def run_quality_validation(self) -> Dict[str, Any]:
+    async def run_quality_validation(self) -> dict[str, Any]:
         """Run comprehensive content quality validation"""
         print("🎯 Enhanced Quality Validation Starting...")
         print("=" * 50)
@@ -129,8 +129,8 @@ class QualityValidator:
         return results
 
     async def _test_query_quality(
-        self, query: str, criteria: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, query: str, criteria: dict[str, Any]
+    ) -> dict[str, Any]:
         """Test quality for a specific query"""
         test_result = {
             "query": query,
@@ -190,7 +190,7 @@ class QualityValidator:
             ):  # Some PDFs should be available
                 test_result["passed"] = True
             else:
-                test_result["issues"].append(f"Quality thresholds not met")
+                test_result["issues"].append("Quality thresholds not met")
 
             print(
                 f"  Relevance: {test_result['relevance_score']:.2f}, Completeness: {test_result['completeness_score']:.2f}, PDF: {test_result['pdf_availability_score']:.2f}"
@@ -202,7 +202,7 @@ class QualityValidator:
         return test_result
 
     def _calculate_relevance_score(
-        self, papers: List[Dict], criteria: Dict[str, Any]
+        self, papers: list[dict], criteria: dict[str, Any]
     ) -> float:
         """Calculate how relevant the results are to the query"""
         if not papers:
@@ -236,7 +236,7 @@ class QualityValidator:
 
         return total_score / len(papers)
 
-    def _calculate_completeness_score(self, papers: List[Dict]) -> float:
+    def _calculate_completeness_score(self, papers: list[dict]) -> float:
         """Calculate how complete the metadata is"""
         if not papers:
             return 0.0
@@ -259,7 +259,7 @@ class QualityValidator:
 
         return total_score / len(papers)
 
-    def _calculate_pdf_availability_score(self, papers: List[Dict]) -> float:
+    def _calculate_pdf_availability_score(self, papers: list[dict]) -> float:
         """Calculate PDF availability rate"""
         if not papers:
             return 0.0
@@ -276,7 +276,7 @@ class QualityValidator:
         return pdf_available / len(papers)
 
     def _calculate_cross_disciplinary_score(
-        self, result: Dict, criteria: Dict[str, Any]
+        self, result: dict, criteria: dict[str, Any]
     ) -> float:
         """Calculate cross-disciplinary routing quality"""
         sources_used = result.get("sources_used", [])
@@ -305,7 +305,6 @@ class QualityValidator:
 
 async def main():
     """Run enhanced quality validation"""
-    import time
 
     validator = QualityValidator()
     results = await validator.run_quality_validation()

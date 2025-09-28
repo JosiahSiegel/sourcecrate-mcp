@@ -8,7 +8,7 @@ import asyncio
 import logging
 import sys
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Setup logging to capture detailed information
 logging.basicConfig(
@@ -70,7 +70,7 @@ class SourceValidator:
 
         self.validation_results = {}
 
-    async def validate_all_sources(self) -> Dict[str, Any]:
+    async def validate_all_sources(self) -> dict[str, Any]:
         """Run comprehensive validation on all configured sources"""
         print("🧪 Starting Comprehensive Source Validation...")
         print("=" * 80)
@@ -88,11 +88,11 @@ class SourceValidator:
             )
 
         # Test query relevance across all sources
-        print(f"\n🎯 Testing Query Relevance Across All Sources")
+        print("\n🎯 Testing Query Relevance Across All Sources")
         relevance_results = await self._test_query_relevance()
 
         # Test fallback behavior
-        print(f"\n🔄 Testing Fallback Behavior")
+        print("\n🔄 Testing Fallback Behavior")
         fallback_results = await self._test_fallback_behavior()
 
         # Compile comprehensive report
@@ -106,7 +106,7 @@ class SourceValidator:
             "recommendations": self._generate_recommendations(source_results),
         }
 
-    async def _get_configured_sources(self) -> Dict[str, Any]:
+    async def _get_configured_sources(self) -> dict[str, Any]:
         """Get all configured sources and their search functions"""
         try:
             sys.path.insert(0, ".")
@@ -120,7 +120,7 @@ class SourceValidator:
 
     async def _test_source_comprehensively(
         self, source_name: str, search_func: Any
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Test a single source with multiple queries and validation criteria"""
         results = {
             "source_name": source_name,
@@ -200,8 +200,8 @@ class SourceValidator:
         return results
 
     def _validate_query_results(
-        self, query: str, results: List[Dict], expectations: Dict, source_name: str
-    ) -> Dict[str, Any]:
+        self, query: str, results: list[dict], expectations: dict, source_name: str
+    ) -> dict[str, Any]:
         """Validate the quality and relevance of query results"""
         validation = {
             "result_count": len(results) if results else 0,
@@ -263,7 +263,7 @@ class SourceValidator:
         return validation
 
     def _calculate_relevance_score(
-        self, query: str, result: Dict, expectations: Dict
+        self, query: str, result: dict, expectations: dict
     ) -> float:
         """Calculate how relevant a result is to the original query"""
         score = 0.0
@@ -327,7 +327,7 @@ class SourceValidator:
 
         return min(score, 1.0)  # Cap at 1.0
 
-    async def _test_query_relevance(self) -> Dict[str, Any]:
+    async def _test_query_relevance(self) -> dict[str, Any]:
         """Test that query routing and relevance works correctly across sources"""
         relevance_results = {}
 
@@ -382,7 +382,7 @@ class SourceValidator:
 
         return relevance_results
 
-    async def _test_fallback_behavior(self) -> Dict[str, Any]:
+    async def _test_fallback_behavior(self) -> dict[str, Any]:
         """Test that fallback behavior works when primary sources fail"""
         fallback_results = {
             "cascade_testing": {},
@@ -420,7 +420,7 @@ class SourceValidator:
 
         return fallback_results
 
-    def _calculate_data_quality(self, query_results: Dict) -> Dict[str, float]:
+    def _calculate_data_quality(self, query_results: dict) -> dict[str, float]:
         """Calculate overall data quality metrics for a source"""
         if not query_results:
             return {"overall_score": 0.0}
@@ -457,7 +457,7 @@ class SourceValidator:
             / len(query_results),
         }
 
-    def _calculate_overall_health(self, source_results: Dict) -> Dict[str, Any]:
+    def _calculate_overall_health(self, source_results: dict) -> dict[str, Any]:
         """Calculate overall system health based on all source results"""
         total_sources = len(source_results)
         functional_sources = sum(
@@ -509,7 +509,7 @@ class SourceValidator:
             "average_quality_score": avg_quality,
         }
 
-    def _generate_recommendations(self, source_results: Dict) -> List[Dict[str, str]]:
+    def _generate_recommendations(self, source_results: dict) -> list[dict[str, str]]:
         """Generate specific recommendations based on test results"""
         recommendations = []
 
@@ -570,7 +570,7 @@ class SourceValidator:
 
         return recommendations
 
-    def print_comprehensive_report(self, results: Dict[str, Any]) -> None:
+    def print_comprehensive_report(self, results: dict[str, Any]) -> None:
         """Print a detailed validation report"""
         print("\n" + "=" * 80)
         print("📊 COMPREHENSIVE SOURCE VALIDATION REPORT")
@@ -589,7 +589,7 @@ class SourceValidator:
         )
 
         # Source-by-source breakdown
-        print(f"\n📋 Individual Source Results:")
+        print("\n📋 Individual Source Results:")
         for source_name, result in results["source_results"].items():
             status = "✅ FUNCTIONAL" if result["is_functional"] else "❌ NON-FUNCTIONAL"
             print(f"   {source_name}: {status}")
@@ -607,7 +607,7 @@ class SourceValidator:
         # Query relevance results
         relevance_results = results.get("relevance_results", {})
         if relevance_results and not relevance_results.get("error"):
-            print(f"\n🎯 Query Relevance Analysis:")
+            print("\n🎯 Query Relevance Analysis:")
             for query, analysis in relevance_results.items():
                 if isinstance(analysis, dict) and not analysis.get("error"):
                     routing_status = (
@@ -620,7 +620,7 @@ class SourceValidator:
         # Recommendations
         recommendations = results.get("recommendations", [])
         if recommendations:
-            print(f"\n💡 Recommendations:")
+            print("\n💡 Recommendations:")
             for rec in recommendations:
                 severity_icon = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
                     rec["severity"], "ℹ️"

@@ -4,9 +4,7 @@ Shared import validation script for both precommit and CI workflow.
 This ensures identical validation across environments.
 """
 
-import asyncio
 import sys
-from pathlib import Path
 
 
 def test_core_imports():
@@ -21,8 +19,8 @@ def test_core_imports():
         from paperez_mcp.server import (
             browse_papers,
             download_papers,
-            get_status,
             get_help,
+            get_status,
         )
 
         print("  ✓ Server tools imported successfully")
@@ -33,9 +31,9 @@ def test_core_imports():
         print("  ✓ Search service imported successfully")
 
         # Test utility imports
-        from paperez_mcp.utils.smart_search import smart_downloadable_search
         from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
         from paperez_mcp.utils.query_intent import QueryIntentDetector
+        from paperez_mcp.utils.smart_search import smart_downloadable_search
 
         print("  ✓ Utility modules imported successfully")
 

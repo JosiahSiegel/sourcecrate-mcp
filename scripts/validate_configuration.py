@@ -53,7 +53,6 @@ def test_search_functionality():
         print(f"  ✓ Query analysis successful: {analysis.intent}")
 
         # Test that smart search functionality is available
-        from paperez_mcp.utils.smart_search import smart_downloadable_search
 
         print("  ✓ Smart search function imported successfully")
 

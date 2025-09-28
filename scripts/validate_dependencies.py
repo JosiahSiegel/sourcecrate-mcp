@@ -6,7 +6,6 @@ This ensures identical validation across environments.
 
 import subprocess
 import sys
-from pathlib import Path
 
 
 def check_pdf_dependencies():

@@ -11,6 +11,7 @@ from .bm25_ranker import BM25SourceRanker
 from .enhanced_classifier import EnhancedTopicClassifier
 from .intelligent_error_handler import error_handler
 from .query_intent import QueryIntentDetector
+from .relevance_scorer import relevance_scorer
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ async def smart_downloadable_search(
     Returns:
         List of papers that were successfully downloaded (or metadata if metadata_only=True)
     """
-    downloadable_papers = []
+    downloadable_papers: list[dict] = []
     all_candidates = []
 
     # Enhanced analysis using new classification system
@@ -419,13 +420,26 @@ async def smart_downloadable_search(
     search_log["unique_candidates"] = len(unique_candidates)
     logger.info(f"📄 After deduplication: {len(unique_candidates)} unique papers")
 
-    # Log top candidates for debugging
+    # Apply relevance scoring and re-rank papers
     if unique_candidates:
-        logger.info("🔝 Top candidates by priority:")
+        logger.info("🧠 Applying relevance scoring to improve result ranking...")
+        ranked_candidates = relevance_scorer.rank_papers(query, unique_candidates)
+
+        # Filter out very low relevance papers (optional)
+        filtered_candidates = relevance_scorer.filter_low_relevance(
+            ranked_candidates, min_threshold=0.05
+        )
+
+        # Update the candidates list
+        unique_candidates = filtered_candidates
+
+        # Log top candidates after relevance ranking
+        logger.info("🔝 Top candidates by relevance score:")
         for i, paper in enumerate(unique_candidates[:5]):
             has_pdf = bool(paper.get("pdf_url") or paper.get("open_access_pdf"))
+            relevance = paper.get("relevance_score", 0.0)
             logger.info(
-                f"  {i+1}. [{paper.get('source', 'Unknown')}] {paper.get('title', 'No title')[:50]}... (PDF: {'✓' if has_pdf else '✗'})"
+                f"  {i+1}. [{paper.get('source', 'Unknown')}] {paper.get('title', 'No title')[:50]}... (PDF: {'✓' if has_pdf else '✗'}, Relevance: {relevance:.3f})"
             )
 
     # Handle metadata-only mode vs download testing

@@ -15,6 +15,7 @@ from fastmcp import FastMCP
 
 # Core imports only - heavy dependencies loaded lazily
 from paperez_mcp.config import api_status, cache, config
+from paperez_mcp.utils.pdf_validator import pdf_validator
 from paperez_mcp.utils.query_cache import query_cache
 
 # Lazy import flags
@@ -848,6 +849,7 @@ async def get_status() -> dict[str, Any]:
                 **query_cache.get_cache_stats(),
                 **query_cache.get_cache_size_info(),
             },
+            "pdf_validation": pdf_validator.get_validation_stats(),
         },
         "config": {
             "has_semantic_scholar_key": bool(config.semantic_scholar_api_key),

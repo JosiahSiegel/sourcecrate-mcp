@@ -10,6 +10,8 @@ from typing import Any
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from ..config import api_status, cache
+from ..utils.metadata_normalizer import metadata_normalizer
+from ..utils.pdf_validator import pdf_validator
 
 logger = logging.getLogger(__name__)
 
@@ -131,15 +133,16 @@ class BaseAPIClient(ABC):
 
     def _standardize_paper(self, paper_data: dict[str, Any]) -> dict[str, Any]:
         """
-        Standardize paper data format across all sources.
+        Standardize paper data format across all sources with metadata normalization.
 
         Args:
             paper_data: Raw paper data from the API
 
         Returns:
-            Standardized paper dictionary with consistent fields
+            Standardized and normalized paper dictionary with consistent fields
         """
-        return {
+        # Basic standardization
+        standardized = {
             "title": paper_data.get("title", ""),
             "authors": paper_data.get("authors", []),
             "abstract": paper_data.get("abstract", ""),
@@ -171,3 +174,25 @@ class BaseAPIClient(ABC):
                 ]
             },
         }
+
+        # Apply metadata normalization
+        normalized = metadata_normalizer.normalize_paper_metadata(standardized)
+
+        # Note: PDF validation is async and expensive, so it's not done here
+        # Instead, it should be done when specifically needed or in batch processing
+
+        return normalized
+
+    async def _enhance_pdf_availability(
+        self, paper_data: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Enhance paper data with validated PDF URLs (async operation)
+
+        Args:
+            paper_data: Paper metadata dictionary
+
+        Returns:
+            Enhanced paper data with validated PDF information
+        """
+        return await pdf_validator.enhance_pdf_availability(paper_data)
