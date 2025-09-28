@@ -207,7 +207,7 @@ class PaperezConfig(BaseModel):
                         warnings.append(f"Meta-category '{cat_name}' includes unknown category '{included_cat}'")
 
         # Check for circular meta-category references
-        def check_circular(cat_name: str, visited: set = None) -> bool:
+        def check_circular(cat_name: str, visited: set[Any] | None = None) -> bool:
             if visited is None:
                 visited = set()
             if cat_name in visited:

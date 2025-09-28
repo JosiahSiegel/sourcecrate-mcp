@@ -187,7 +187,7 @@ class IntelligentErrorHandler:
         """Generate an intelligent error message with suggestions"""
 
         domain = self.detect_domain(query)
-        suggestions: list[str] = []
+        suggestions: list[SearchSuggestion | str] = []
 
         # Base message
         if fallback_used:

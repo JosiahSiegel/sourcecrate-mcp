@@ -328,7 +328,7 @@ def list_plugins() -> dict[str, dict[str, Any]]:
     Returns:
         Dictionary of plugin information
     """
-    plugins = {}
+    plugins: dict[str, Any] = {}
 
     try:
         user_plugins_dir = Path.home() / ".paperez" / "plugins"

@@ -103,7 +103,7 @@ class ConfigManager:
         env_path = os.getenv('PAPEREZ_CONFIG_PATH')
         return Path(env_path) if env_path else None
 
-    def _load_config(self):
+    def _load_config(self) -> None:
         """Load and merge configuration from all sources (directories and individual files)."""
         with self._config_lock:
             try:
@@ -309,7 +309,7 @@ class ConfigManager:
 
         return overrides
 
-    def _setup_file_watching(self):
+    def _setup_file_watching(self) -> None:
         """Setup file system watching for hot-reloading."""
         if not WATCHDOG_AVAILABLE:
             logger.warning("Watchdog not available - file watching disabled")
@@ -339,7 +339,7 @@ class ConfigManager:
                 self._observers.append(observer)
                 logger.info(f"Watching environment config file: {env_path}")
 
-    def _reload_config(self):
+    def _reload_config(self) -> None:
         """Reload configuration and notify callbacks."""
         logger.info("Reloading configuration...")
         self._load_config()
