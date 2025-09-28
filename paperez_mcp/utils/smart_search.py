@@ -23,7 +23,7 @@ async def smart_downloadable_search(
     api_status: dict[str, bool],
     force_category: str | None = None,
     metadata_only: bool = False
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """
     Smart search that prioritizes sources with downloadable PDFs and only counts
     successfully downloadable papers toward the limit.
@@ -67,7 +67,7 @@ async def smart_downloadable_search(
     except Exception as e:
         logger.warning(f"❌ Enhanced routing failed, falling back to legacy: {e}")
         # Set defaults for fallback
-        topic_classification = {"primary_topic": "Unknown", "confidence": 0.0}
+        topic_classification: dict[str, str | float] = {"primary_topic": "Unknown", "confidence": 0.0}
         source_rankings = [('arxiv', 0.8), ('semantic_scholar', 0.7), ('crossref', 0.5)]
 
     # Enhanced routing has replaced legacy topic detection
@@ -289,7 +289,7 @@ async def smart_downloadable_search(
     logger.info(f"📊 Total candidates from all sources: {len(all_candidates)}")
 
     # Sort by PDF availability first, then citation count
-    def pdf_priority_score(paper: dict[str, Any]) -> tuple[int, int, int]:
+    def pdf_priority_score(paper: dict[str, Any]) -> tuple[int, int]:
         has_pdf = bool(paper.get("pdf_url") or paper.get("open_access_pdf"))
         is_arxiv = paper.get("source") == "arXiv"
 

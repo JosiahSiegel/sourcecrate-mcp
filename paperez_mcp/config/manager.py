@@ -37,7 +37,7 @@ if WATCHDOG_AVAILABLE:
             self.debounce_time = 1.0  # seconds
             self.last_reload = 0
 
-        def on_modified(self, event):
+        def on_modified(self, event) -> None:
             if not event.is_directory and event.src_path.endswith(('.yaml', '.yml')):
                 # Debounce rapid file changes
                 current_time = time.time()
@@ -48,7 +48,7 @@ if WATCHDOG_AVAILABLE:
 else:
     # Dummy handler when watchdog is not available
     class ConfigFileHandler:
-        def __init__(self, config_manager):
+        def __init__(self, config_manager) -> None:
             pass
 
 
@@ -91,7 +91,8 @@ class ConfigManager:
 
         # Legacy single file paths for backward compatibility and environment override
         self.config_paths = {
-            'environment': self._get_env_config_path()
+            'environment': self._get_env_config_path(),
+            'user_home': Path.home() / ".paperez" / "config" / "config.yaml"
         }
 
         self._load_config()
@@ -207,7 +208,7 @@ class ConfigManager:
             except Exception as e:
                 logger.error(f"Failed to load configuration: {e}")
                 # Fall back to minimal configuration
-                fallback_config = {
+                fallback_config: dict[str, Any] = {
                     'version': '1.0',
                     'default_category': None,
                     'sources': {},
@@ -289,17 +290,20 @@ class ConfigManager:
         }
 
         for env_var, config_path in env_mappings.items():
-            value = os.getenv(env_var)
-            if value is not None:
+            env_value = os.getenv(env_var)
+            if env_value is not None:
                 # Type conversion
+                value: str | bool | int
                 if env_var.endswith('_ENABLED'):
-                    value = value.lower() in ('true', '1', 'yes', 'on')
+                    value = env_value.lower() in ('true', '1', 'yes', 'on')
                 elif env_var.endswith('_EXPIRE') or env_var.endswith('_CONCURRENT'):
                     try:
-                        value = int(value)
+                        value = int(env_value)
                     except ValueError:
-                        logger.warning(f"Invalid integer value for {env_var}: {value}")
+                        logger.warning(f"Invalid integer value for {env_var}: {env_value}")
                         continue
+                else:
+                    value = env_value
 
                 # Set nested value
                 current = overrides
@@ -345,29 +349,33 @@ class ConfigManager:
         self._load_config()
 
         # Notify callbacks of config change
-        for callback in self._reload_callbacks:
-            try:
-                callback(self._config)
-            except Exception as e:
-                logger.error(f"Error in config reload callback: {e}")
+        if self._config is not None:
+            for callback in self._reload_callbacks:
+                try:
+                    callback(self._config)
+                except Exception as e:
+                    logger.error(f"Error in config reload callback: {e}")
 
         logger.info("Configuration reloaded successfully")
 
     def get_config(self) -> PaperezConfig:
         """Get current configuration."""
         with self._config_lock:
-            return self._config
+            if self._config is None:
+                # Force configuration load if not already loaded
+                self._load_config()
+            return self._config  # type: ignore  # _load_config ensures this is not None
 
-    def add_reload_callback(self, callback: Callable[[PaperezConfig], None]):
+    def add_reload_callback(self, callback: Callable[[PaperezConfig], None]) -> None:
         """Add callback to be called when configuration is reloaded."""
         self._reload_callbacks.append(callback)
 
-    def remove_reload_callback(self, callback: Callable[[PaperezConfig], None]):
+    def remove_reload_callback(self, callback: Callable[[PaperezConfig], None]) -> None:
         """Remove reload callback."""
         if callback in self._reload_callbacks:
             self._reload_callbacks.remove(callback)
 
-    def save_user_config(self, config: dict[str, Any]):
+    def save_user_config(self, config: dict[str, Any]) -> None:
         """Save configuration to user home directory."""
         user_config_path = self.config_paths['user_home']
         user_config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -377,7 +385,7 @@ class ConfigManager:
 
         logger.info(f"Saved user configuration to {user_config_path}")
 
-    def create_example_config(self, output_path: Path):
+    def create_example_config(self, output_path: Path) -> None:
         """Create an example configuration file."""
         example_config = {
             'version': '1.0',
@@ -428,7 +436,7 @@ class ConfigManager:
 
         logger.info(f"Created example configuration at {output_path}")
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         """Shutdown the configuration manager and stop file watching."""
         if WATCHDOG_AVAILABLE:
             for observer in self._observers:
@@ -437,10 +445,10 @@ class ConfigManager:
         self._observers.clear()
         logger.info("Configuration manager shutdown")
 
-    def __enter__(self):
+    def __enter__(self) -> 'ConfigManager':
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.shutdown()
 
 

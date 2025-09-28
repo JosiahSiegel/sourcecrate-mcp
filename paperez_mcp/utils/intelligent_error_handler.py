@@ -256,10 +256,10 @@ class IntelligentErrorHandler:
             'domain_detected': domain,
             'suggestions': [
                 {
-                    'text': s.suggestion,
-                    'reason': s.reason,
-                    'confidence': s.confidence,
-                    'suggested_category': s.suggested_category
+                    'text': s.suggestion if isinstance(s, SearchSuggestion) else s,
+                    'reason': s.reason if isinstance(s, SearchSuggestion) else "",
+                    'confidence': s.confidence if isinstance(s, SearchSuggestion) else 0.0,
+                    'suggested_category': s.suggested_category if isinstance(s, SearchSuggestion) else None
                 }
                 for s in suggestions[:5]  # Limit to top 5 suggestions
             ],

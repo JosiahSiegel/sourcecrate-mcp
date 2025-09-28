@@ -254,6 +254,9 @@ def register_plugin(plugin_file: str) -> bool:
         # Load plugin metadata
         import importlib.util
         spec = importlib.util.spec_from_file_location("temp_plugin", plugin_path)
+        if spec is None or spec.loader is None:
+            print(f"❌ Failed to load plugin spec: {plugin_path}")
+            return False
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
@@ -340,6 +343,8 @@ def list_plugins() -> dict[str, dict[str, Any]]:
             try:
                 import importlib.util
                 spec = importlib.util.spec_from_file_location("temp_plugin", plugin_file)
+                if spec is None or spec.loader is None:
+                    continue
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
 
