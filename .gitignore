@@ -97,5 +97,4 @@ logs/
 
 test_*/
 .paperez/*
-!.paperez/config/
-!.paperez/config/*.yaml
+!.paperez/config/*
