@@ -66,7 +66,9 @@ async def comprehensive_search_internal(
 
         # Get BM25 rankings for the query
         source_rankings = bm25_ranker.rank_sources(query, available_source_names)
-        logger.info(f"🏆 BM25 source rankings: {[(name, f'{score:.3f}') for name, score in source_rankings[:5]]}")
+        logger.info(
+            f"🏆 BM25 source rankings: {[(name, f'{score:.3f}') for name, score in source_rankings[:5]]}"
+        )
 
         # Convert rankings to source preferences dict
         source_preferences = {name: score for name, score in source_rankings}
@@ -97,12 +99,14 @@ async def comprehensive_search_internal(
     # Search through sources in priority order with minimum search threshold
     sources_used = []
     sources_attempted = 0
-    min_sources_to_try = min(3, len(available_sources))  # Always try at least top 3 sources
+    min_sources_to_try = min(
+        3, len(available_sources)
+    )  # Always try at least top 3 sources
 
     for source_name, search_func, preference_score in available_sources:
-        # Continue searching if we haven't hit the minimum threshold or still need results
-        # But always try the minimum number of sources regardless of remaining_limit
-        if remaining_limit <= 0 and len(sources_used) >= min_sources_to_try and sources_attempted >= min_sources_to_try:
+        # Always search the minimum number of sources for diversity, regardless of remaining_limit
+        # Only stop if we've tried minimum sources AND either have enough results or no more sources
+        if sources_attempted >= min_sources_to_try and remaining_limit <= 0:
             break
 
         try:
@@ -110,15 +114,18 @@ async def comprehensive_search_internal(
                 f"Searching {source_name} (preference: {preference_score:.3f}, remaining: {remaining_limit})"
             )
 
-            # Determine appropriate limit for this source - ensure meaningful limits
-            # For top sources (high preference), use higher limits; for others, ensure minimum viable limit
+            # Determine appropriate limit for this source - ensure fair distribution for diversity
             if sources_attempted < min_sources_to_try:
-                # For top sources, use more generous limits
-                source_limit = max(2, min(remaining_limit, max(3, int(limit * preference_score * 1.5))))
+                # For minimum sources, ensure fair distribution while respecting preferences
+                # Reserve some quota for subsequent sources within the minimum threshold
+                sources_remaining = min_sources_to_try - sources_attempted
+                base_quota = max(2, remaining_limit // sources_remaining)
+                preference_bonus = max(0, int(base_quota * preference_score * 0.5))
+                source_limit = min(remaining_limit, base_quota + preference_bonus)
             else:
-                # For additional sources, use standard calculation but with minimum threshold
+                # For additional sources beyond minimum, use standard calculation
                 source_limit = min(
-                    remaining_limit, max(2, int(remaining_limit * preference_score * 2))
+                    remaining_limit, max(1, int(remaining_limit * preference_score * 2))
                 )
 
             # Handle special cases for legacy function signatures
@@ -232,13 +239,17 @@ async def comprehensive_search_internal(
 
         # Convert citation_count to float safely
         try:
-            citation_float = float(citation_count) if citation_count is not None else 0.0
+            citation_float = (
+                float(citation_count) if citation_count is not None else 0.0
+            )
         except (ValueError, TypeError):
             citation_float = 0.0
 
         # Convert relevance_score to float safely
         try:
-            relevance_float = float(relevance_score) if relevance_score is not None else 0.0
+            relevance_float = (
+                float(relevance_score) if relevance_score is not None else 0.0
+            )
         except (ValueError, TypeError):
             relevance_float = 0.0
 
@@ -256,9 +267,13 @@ async def comprehensive_search_internal(
         "search_strategy": "intelligent_routing",
         "bm25_rankings": (
             {
-                "top_sources": source_rankings[:5] if "source_rankings" in locals() else [],
+                "top_sources": (
+                    source_rankings[:5] if "source_rankings" in locals() else []
+                ),
                 "ranking_method": "BM25",
-                "total_sources_ranked": len(source_rankings) if "source_rankings" in locals() else 0,
+                "total_sources_ranked": (
+                    len(source_rankings) if "source_rankings" in locals() else 0
+                ),
             }
             if "source_rankings" in locals()
             else None

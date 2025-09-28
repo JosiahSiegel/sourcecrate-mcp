@@ -3,10 +3,11 @@ Configuration and settings for the Scholarly MCP server.
 """
 
 import os
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
-from diskcache import Cache
+from diskcache import Cache  # type: ignore[import-untyped]
 
 # Global cache instance
 cache = Cache("/tmp/scholarly-mcp-cache", size_limit=1e9)  # 1GB cache
@@ -117,7 +118,7 @@ class DynamicAPIStatus(dict):
             for source in default_sources:
                 self._status[source] = True
 
-    def get(self, source_name: str, default: bool = True) -> bool:
+    def get(self, source_name: str, default: bool = True) -> bool:  # type: ignore[override]
         """Get API status for a source with dynamic fallback for unknown sources."""
         if source_name in self._status:
             return self._status[source_name]
@@ -170,7 +171,7 @@ class DynamicAPIStatus(dict):
         """Make the object JSON serializable by returning the underlying dict."""
         return self._status.copy()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         """Make the object iterable like a dict."""
         return iter(self._status)
 

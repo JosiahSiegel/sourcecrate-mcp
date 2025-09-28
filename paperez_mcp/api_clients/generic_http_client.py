@@ -233,7 +233,9 @@ class GenericHTTPClient(BaseAPIClient):
                                 for pos in positions:
                                     word_positions.append((pos, word))
                             word_positions.sort()
-                            paper[standard_field] = " ".join(word for _, word in word_positions)
+                            paper[standard_field] = " ".join(
+                                word for _, word in word_positions
+                            )
                         else:
                             paper[standard_field] = ""
                     elif isinstance(value, (dict, list)):
@@ -249,7 +251,12 @@ class GenericHTTPClient(BaseAPIClient):
                             paper[standard_field] = str(value[0]) if value[0] else ""
                         elif isinstance(value, dict):
                             # Try common title field names
-                            paper[standard_field] = str(value.get("title", value.get("name", value.get("display_name", ""))))
+                            paper[standard_field] = str(
+                                value.get(
+                                    "title",
+                                    value.get("name", value.get("display_name", "")),
+                                )
+                            )
                         else:
                             paper[standard_field] = ""
                     else:

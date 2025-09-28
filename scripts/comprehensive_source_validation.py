@@ -275,7 +275,9 @@ class SourceValidator:
         if isinstance(title_raw, str):
             title = title_raw.lower()
         elif isinstance(title_raw, list):
-            title = " ".join(str(item) for item in title_raw).lower() if title_raw else ""
+            title = (
+                " ".join(str(item) for item in title_raw).lower() if title_raw else ""
+            )
         elif isinstance(title_raw, dict):
             title = str(title_raw.get("title", title_raw.get("name", ""))).lower()
         else:
@@ -306,7 +308,11 @@ class SourceValidator:
             # Handle special formats like OpenAlex inverted index
             abstract = str(abstract_raw).lower() if abstract_raw else ""
         elif isinstance(abstract_raw, list):
-            abstract = " ".join(str(item) for item in abstract_raw).lower() if abstract_raw else ""
+            abstract = (
+                " ".join(str(item) for item in abstract_raw).lower()
+                if abstract_raw
+                else ""
+            )
         else:
             abstract = str(abstract_raw).lower() if abstract_raw else ""
 
