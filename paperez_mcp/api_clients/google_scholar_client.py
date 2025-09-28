@@ -15,7 +15,7 @@ from ..config import api_status, cache, config
 logger = logging.getLogger(__name__)
 
 
-def setup_scraperapi():
+def setup_scraperapi() -> bool:
     """Try ScraperAPI proxy setup"""
     try:
         if config.scraperapi_key:
@@ -30,11 +30,12 @@ def setup_scraperapi():
                 # If test fails, still try - might work for actual queries
                 pass
             return True
+        return False
     except:
         return False
 
 
-def setup_free_proxies():
+def setup_free_proxies() -> bool:
     """Try free proxies setup"""
     try:
         pg = ProxyGenerator()
@@ -52,7 +53,7 @@ def setup_free_proxies():
         return False
 
 
-def setup_tor_proxy():
+def setup_tor_proxy() -> bool:
     """Try Tor proxy setup"""
     try:
         pg = ProxyGenerator()
@@ -70,7 +71,7 @@ def setup_tor_proxy():
         return False
 
 
-def setup_no_proxy():
+def setup_no_proxy() -> bool:
     """Try direct connection with user agent rotation"""
     try:
         # Clear any existing proxy
@@ -83,7 +84,7 @@ def setup_no_proxy():
         return False
 
 
-def setup_scholarly_proxy():
+def setup_scholarly_proxy() -> bool:
     """Enhanced proxy setup with multiple fallbacks"""
     proxy_methods = [
         ("scraperapi", setup_scraperapi),
@@ -108,7 +109,7 @@ def setup_scholarly_proxy():
 
 async def _search_google_scholar(query: str, limit: int) -> list[dict[str, Any]]:
     """Internal Google Scholar search function"""
-    def _search_scholar():
+    def _search_scholar() -> list[dict[str, Any]]:
         search_query = scholarly.search_pubs(query)
         results = []
 
@@ -157,7 +158,7 @@ async def search_google_scholar_fallback(query: str, limit: int = 5) -> list[dic
     cache_key = f"scholar:{query}:{limit}"
     cached = cache.get(cache_key)
     if cached:
-        return cached
+        return cached  # type: ignore[no-any-return]
 
     try:
         results = await search_google_scholar_with_retry(query, limit)

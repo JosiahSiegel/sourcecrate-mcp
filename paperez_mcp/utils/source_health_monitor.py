@@ -30,7 +30,7 @@ class SourceMetrics:
     consecutive_failures: int = 0
     health_score: float = 1.0  # 0.0 to 1.0
 
-    def update_success(self, response_time: float, result_count: int):
+    def update_success(self, response_time: float, result_count: int) -> None:
         """Update metrics after a successful request"""
         self.total_requests += 1
         self.successful_requests += 1
@@ -46,7 +46,7 @@ class SourceMetrics:
 
         self._calculate_health_score()
 
-    def update_failure(self, error_type: str = "unknown"):
+    def update_failure(self, error_type: str = "unknown") -> None:
         """Update metrics after a failed request"""
         self.total_requests += 1
         self.failed_requests += 1
@@ -55,11 +55,11 @@ class SourceMetrics:
 
         self._calculate_health_score()
 
-    def _calculate_health_score(self):
+    def _calculate_health_score(self) -> float:
         """Calculate overall health score based on multiple factors"""
         if self.total_requests == 0:
             self.health_score = 1.0
-            return
+            return 1.0
 
         # Base success rate (0-1)
         success_rate = self.successful_requests / self.total_requests
@@ -81,6 +81,7 @@ class SourceMetrics:
 
         # Calculate final score
         self.health_score = max(0.0, success_rate - consecutive_penalty - response_penalty - result_penalty)
+        return self.health_score
 
     def is_healthy(self) -> bool:
         """Check if source is considered healthy"""
@@ -107,7 +108,7 @@ class SourceMetrics:
 class SourceHealthMonitor:
     """Monitors health of all academic database sources"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.metrics: dict[str, SourceMetrics] = {}
         self.monitoring_enabled = True
 
@@ -120,7 +121,7 @@ class SourceHealthMonitor:
         for source in source_names:
             self.metrics[source] = SourceMetrics(source_name=source)
 
-    async def monitor_request(self, source_name: str, search_func, *args, **kwargs):
+    async def monitor_request(self, source_name: str, search_func: Any, *args: Any, **kwargs: Any) -> Any:
         """Monitor a request to a source and update metrics"""
         if not self.monitoring_enabled or source_name not in self.metrics:
             # If monitoring disabled or unknown source, just call the function
@@ -178,20 +179,20 @@ class SourceHealthMonitor:
 
         for source_name, metrics in self.metrics.items():
             source_status = metrics.get_status_summary()
-            report["sources"][source_name] = source_status
+            report["sources"][source_name] = source_status  # type: ignore[index]
 
             if api_status.get(source_name, False):
                 if metrics.is_healthy():
-                    report["summary"]["healthy_sources"] += 1
+                    report["summary"]["healthy_sources"] += 1  # type: ignore[index]
                 else:
-                    report["summary"]["unhealthy_sources"] += 1
+                    report["summary"]["unhealthy_sources"] += 1  # type: ignore[index]
             else:
-                report["summary"]["disabled_sources"] += 1
+                report["summary"]["disabled_sources"] += 1  # type: ignore[index]
 
         # Determine overall status
-        if report["summary"]["unhealthy_sources"] > 0 or report["summary"]["disabled_sources"] > 3:
+        if report["summary"]["unhealthy_sources"] > 0 or report["summary"]["disabled_sources"] > 3:  # type: ignore[index]
             report["overall_status"] = "degraded"
-        if report["summary"]["healthy_sources"] < 3:
+        if report["summary"]["healthy_sources"] < 3:  # type: ignore[index]
             report["overall_status"] = "critical"
 
         return report
@@ -286,7 +287,7 @@ class SourceHealthMonitor:
             "recommendations": self.get_source_recommendations()
         }
 
-    def save_metrics_to_cache(self):
+    def save_metrics_to_cache(self) -> None:
         """Save current metrics to cache for persistence"""
         cache_data = {}
         for source_name, metrics in self.metrics.items():
@@ -302,7 +303,7 @@ class SourceHealthMonitor:
 
         cache.set("source_health_metrics", cache_data, expire=86400)  # 24 hours
 
-    def load_metrics_from_cache(self):
+    def load_metrics_from_cache(self) -> None:
         """Load saved metrics from cache"""
         cache_data = cache.get("source_health_metrics")
         if cache_data:

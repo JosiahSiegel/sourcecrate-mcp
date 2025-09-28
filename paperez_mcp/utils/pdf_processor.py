@@ -22,7 +22,7 @@ async def extract_pdf_text(pdf_url: str) -> dict[str, Any]:
     cache_key = f"pdf_text:{pdf_url}"
     cached = cache.get(cache_key)
     if cached:
-        return cached
+        return cached  # type: ignore[no-any-return]
 
     # Try arXiv HTML extraction first (most reliable for arXiv papers)
     if "arxiv.org" in pdf_url:

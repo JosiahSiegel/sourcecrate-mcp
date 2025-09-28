@@ -37,7 +37,7 @@ class BaseAPIClient(ABC):
         self.cache_expire = cache_expire
         self.logger = logging.getLogger(f"{__name__}.{source_name}")
 
-    def _get_cache_key(self, query: str, limit: int, **kwargs) -> str:
+    def _get_cache_key(self, query: str, limit: int, **kwargs: Any) -> str:
         """Generate standardized cache key."""
         extra_params = "_".join(f"{k}:{v}" for k, v in sorted(kwargs.items()) if v is not None)
         base_key = f"{self.source_name.lower()}:{query}:{limit}"
@@ -48,7 +48,7 @@ class BaseAPIClient(ABC):
         cached = cache.get(cache_key)
         if cached:
             self.logger.debug(f"Cache hit for {cache_key}")
-            return cached
+            return cached  # type: ignore[no-any-return]
         return None
 
     def _cache_result(self, cache_key: str, result: list[dict[str, Any]]) -> None:
@@ -56,7 +56,7 @@ class BaseAPIClient(ABC):
         cache.set(cache_key, result, expire=self.cache_expire)
         self.logger.debug(f"Cached {len(result)} results for {cache_key}")
 
-    def _log_success(self, query: str, result_count: int, **kwargs) -> None:
+    def _log_success(self, query: str, result_count: int, **kwargs: Any) -> None:
         """Log successful search with consistent format."""
         extra_info = " ".join(f"{k}={v}" for k, v in kwargs.items() if v is not None)
         extra_str = f" ({extra_info})" if extra_info else ""
@@ -72,7 +72,7 @@ class BaseAPIClient(ABC):
         self.logger.info(f"🔍 {self.source_name}: No results found for '{query}'")
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-    async def search(self, query: str, limit: int = 5, **kwargs) -> list[dict[str, Any]]:
+    async def search(self, query: str, limit: int = 5, **kwargs: Any) -> list[dict[str, Any]]:
         """
         Main search method with caching and error handling.
 
@@ -88,7 +88,7 @@ class BaseAPIClient(ABC):
         cache_key = self._get_cache_key(query, limit, **kwargs)
         cached_result = self._get_cached_result(cache_key)
         if cached_result is not None:
-            return cached_result
+            return cached_result  # type: ignore[no-any-return]
 
         try:
             # Perform the actual search (implemented by subclasses)
@@ -108,7 +108,7 @@ class BaseAPIClient(ABC):
             return []
 
     @abstractmethod
-    async def _perform_search(self, query: str, limit: int, **kwargs) -> list[dict[str, Any]]:
+    async def _perform_search(self, query: str, limit: int, **kwargs: Any) -> list[dict[str, Any]]:
         """
         Perform the actual search implementation.
 

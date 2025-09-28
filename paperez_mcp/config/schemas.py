@@ -139,7 +139,7 @@ class PaperezConfig(BaseModel):
 
     # Query routing
     routing: QueryRoutingConfig = Field(
-        default_factory=QueryRoutingConfig,
+        default_factory=lambda: QueryRoutingConfig(enabled=True, fallback_enabled=True),
         description="Query routing configuration"
     )
 

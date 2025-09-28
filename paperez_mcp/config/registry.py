@@ -68,8 +68,8 @@ class SourceRegistry:
             self._plugin_instances[source_name] = plugin_instance
 
             # Create wrapper function for compatibility (fix closure bug)
-            async def plugin_wrapper(query: str, limit: int = 5, instance=plugin_instance, **kwargs) -> list[dict[str, Any]]:
-                return await instance.search(query, limit, **kwargs)
+            async def plugin_wrapper(query: str, limit: int = 5, instance: Any = plugin_instance, **kwargs: Any) -> list[dict[str, Any]]:
+                return await instance.search(query, limit, **kwargs)  # type: ignore[no-any-return]
 
             self._sources[source_name] = plugin_wrapper
             self._source_configs[source_name] = source_config
@@ -88,8 +88,8 @@ class SourceRegistry:
             self._plugin_instances[source_name] = api_instance
 
             # Create wrapper function for compatibility (fix closure bug)
-            async def api_wrapper(query: str, limit: int = 5, instance=api_instance, **kwargs) -> list[dict[str, Any]]:
-                return await instance.search(query, limit, **kwargs)
+            async def api_wrapper(query: str, limit: int = 5, instance: Any = api_instance, **kwargs: Any) -> list[dict[str, Any]]:
+                return await instance.search(query, limit, **kwargs)  # type: ignore[no-any-return]
 
             self._sources[source_name] = api_wrapper
             self._source_configs[source_name] = source_config
@@ -98,7 +98,7 @@ class SourceRegistry:
         except Exception as e:
             logger.error(f"Failed to register HTTP API source {source_name}: {e}")
 
-    def register_all_sources(self):
+    def register_all_sources(self) -> None:
         """Register all sources from current configuration."""
         self.clear()
         self.register_builtin_sources()
@@ -126,7 +126,7 @@ class SourceRegistry:
         """Check if a source is available and enabled."""
         return source_name in self._sources
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear all registered sources."""
         self._sources.clear()
         self._source_configs.clear()
@@ -220,7 +220,7 @@ class CategoryResolver:
 class ConfigurableSearchService:
     """Enhanced search service with configuration-driven source and category management."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.source_registry = SourceRegistry()
         self.category_resolver = CategoryResolver(self.source_registry)
         self._initialize()
@@ -230,12 +230,12 @@ class ConfigurableSearchService:
         config_manager = get_config_manager()
         config_manager.add_reload_callback(self._on_config_reload)
 
-    def _initialize(self):
+    def _initialize(self) -> None:
         """Initialize the service with current configuration."""
         self.source_registry.register_all_sources()
         logger.info("Configurable search service initialized")
 
-    def _on_config_reload(self, new_config: PaperezConfig):
+    def _on_config_reload(self, new_config: PaperezConfig) -> None:
         """Handle configuration reload."""
         logger.info("Reloading search service configuration...")
         self.source_registry.register_all_sources()
@@ -260,18 +260,18 @@ class ConfigurableSearchService:
         """Get smart category suggestion for a query based on domain detection."""
         config = get_current_config()
         if not config.routing.enabled:
-            return config.default_category
+            return config.default_category or "comprehensive" or "comprehensive"
 
         query_lower = query.lower()
 
         # Domain detection based on keywords
         for domain, keywords in config.routing.domain_keywords.items():
             if any(keyword in query_lower for keyword in keywords):
-                suggested_category = config.routing.domain_categories.get(domain, config.default_category)
+                suggested_category = config.routing.domain_categories.get(domain, config.default_category or "comprehensive")
                 logger.info(f"Smart routing: '{query}' → domain '{domain}' → category '{suggested_category}'")
-                return suggested_category
+                return suggested_category or "comprehensive"
 
-        return config.default_category
+        return config.default_category or "comprehensive"
 
     def get_service_status(self) -> dict[str, Any]:
         """Get comprehensive service status."""

@@ -68,7 +68,7 @@ async def smart_downloadable_search(
         logger.warning(f"❌ Enhanced routing failed, falling back to legacy: {e}")
         # Set defaults for fallback
         if topic_classification is None:
-            topic_classification = {"primary_topic": "Unknown", "confidence": 0.0}
+            topic_classification = {"primary_topic": "Unknown", "confidence": 0.0}  # type: ignore
         source_rankings = [('arxiv', 0.8), ('semantic_scholar', 0.7), ('crossref', 0.5)]
 
     # Enhanced routing has replaced legacy topic detection

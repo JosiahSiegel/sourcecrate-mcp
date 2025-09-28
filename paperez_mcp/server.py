@@ -400,7 +400,7 @@ async def convert_pdf_to_text(file_path: str, output_path: str | None = None, ti
         extraction_result = utils['extract_pdf_text_from_local_file'](file_path)
 
         if not extraction_result.get("success", False):
-            return extraction_result
+            return extraction_result  # type: ignore[no-any-return]
 
         # Generate output path if not provided
         if output_path is None:
@@ -450,7 +450,7 @@ async def convert_pdf_to_text(file_path: str, output_path: str | None = None, ti
             "extraction_method": extraction_result.get("extraction_method", "PyMuPDF Local")
         }
 
-        return result
+        return result  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error(f"Error in convert_pdf_to_text: {e}")
@@ -487,7 +487,7 @@ async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", aut
             # Don't delete markdown here yet - batch_convert_pdfs needs it
             # Will be cleaned up by the calling function
 
-    return result
+    return result  # type: ignore[no-any-return]
 
 
 @mcp.tool
@@ -548,7 +548,7 @@ async def convert_pdf_to_markdown(
     if "markdown" in result:
         del result["markdown"]
 
-    return result
+    return result  # type: ignore[no-any-return]
 
 
 
@@ -582,7 +582,7 @@ async def download_and_convert_paper(
         download_result = await utils['download_pdf'](pdf_url, output_dir)
 
         if not download_result.get("success"):
-            return download_result
+            return download_result  # type: ignore[no-any-return]
 
         pdf_path = download_result["pdf_path"]
 

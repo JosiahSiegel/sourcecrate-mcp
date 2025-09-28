@@ -174,10 +174,10 @@ async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
     cache_key = f"pubmed_enhanced:{query}:{limit}"
     cached = cache.get(cache_key)
     if cached:
-        return cached
+        return cached  # type: ignore[no-any-return]
 
     try:
-        def _search_pubmed():
+        def _search_pubmed() -> list[dict[str, Any]]:
             pubmed = PubMed(tool="paperez-mcp", email=config.crossref_email)
             results = []
 
@@ -228,7 +228,7 @@ async def search_pubmed_central(query: str, limit: int = 5) -> list[dict[str, An
     cache_key = f"pmc:{query}:{limit}"
     cached = cache.get(cache_key)
     if cached:
-        return cached
+        return cached  # type: ignore[no-any-return]
 
     try:
         # Use NCBI E-utilities to search PMC directly
@@ -236,7 +236,7 @@ async def search_pubmed_central(query: str, limit: int = 5) -> list[dict[str, An
         search_params = {
             "db": "pmc",
             "term": query,
-            "retmax": limit,
+            "retmax": str(limit),
             "retmode": "json",
             "sort": "relevance"
         }

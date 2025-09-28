@@ -52,9 +52,10 @@ class SearchOrchestrationService:
             Tuple of (papers_list, search_log)
         """
         # Use existing smart_downloadable_search utility
-        return await self.utils['smart_downloadable_search'](
+        result = await self.utils['smart_downloadable_search'](
             query, limit, self.search_funcs, self.utils, api_status, force_category
         )
+        return result  # type: ignore[no-any-return]
 
     async def comprehensive_search(
         self,

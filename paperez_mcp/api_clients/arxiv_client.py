@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 async def _search_with_strategy(query: str, limit: int, use_phrase: bool = True) -> list[dict[str, Any]]:
     """Internal search function with configurable phrase/keyword strategy"""
-    def _search_arxiv():
+    def _search_arxiv() -> list[dict[str, Any]]:
         # Format query based on strategy
         formatted_query = query
         if ' ' in query.strip() and not (query.strip().startswith('"') and query.strip().endswith('"')):
@@ -61,7 +61,7 @@ async def search_arxiv(query: str, limit: int = 5) -> list[dict[str, Any]]:
     cache_key = f"arxiv:{query}:{limit}"
     cached = cache.get(cache_key)
     if cached:
-        return cached
+        return cached  # type: ignore[no-any-return]
 
     try:
         # Try phrase search first

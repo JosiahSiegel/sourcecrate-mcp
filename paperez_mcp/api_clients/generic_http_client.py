@@ -39,7 +39,7 @@ class GenericHTTPClient(BaseAPIClient):
     }
     """
 
-    def __init__(self, source_name: str, **config):
+    def __init__(self, source_name: str, **config: Any) -> None:
         """
         Initialize generic HTTP client.
 
@@ -99,7 +99,7 @@ class GenericHTTPClient(BaseAPIClient):
                 if isinstance(value, list) and key.isdigit():
                     value = value[int(key)]
                 elif isinstance(value, dict):
-                    value = value.get(key)
+                    value = value.get(key)  # type: ignore[assignment]
                 else:
                     return None
             return value
@@ -121,9 +121,9 @@ class GenericHTTPClient(BaseAPIClient):
                 encoded = base64.b64encode(f"{self.api_key}:".encode()).decode()
                 headers[self.auth_header] = f"Basic {encoded}"
 
-        return headers
+        return headers  # type: ignore[no-any-return]
 
-    def _build_params(self, query: str, limit: int, **kwargs) -> dict[str, Any]:
+    def _build_params(self, query: str, limit: int, **kwargs: Any) -> dict[str, Any]:
         """Build query parameters."""
         params = self.extra_params.copy()
 
@@ -142,7 +142,7 @@ class GenericHTTPClient(BaseAPIClient):
             if key not in ['force_category']:  # Skip internal parameters
                 params[key] = value
 
-        return params
+        return params  # type: ignore[no-any-return]
 
     def _parse_authors(self, authors_data: Any) -> list[str]:
         """Parse authors from various formats."""
@@ -182,7 +182,7 @@ class GenericHTTPClient(BaseAPIClient):
 
     def _standardize_paper(self, item: dict[str, Any]) -> dict[str, Any]:
         """Convert API response item to standard paper format."""
-        paper = {}
+        paper: dict[str, Any] = {}
 
         for standard_field, api_field in self.field_mappings.items():
             if api_field:
@@ -226,7 +226,7 @@ class GenericHTTPClient(BaseAPIClient):
 
         return super()._standardize_paper(paper)
 
-    async def _perform_search(self, query: str, limit: int, **kwargs) -> list[dict[str, Any]]:
+    async def _perform_search(self, query: str, limit: int, **kwargs: Any) -> list[dict[str, Any]]:
         """
         Perform search using generic HTTP API configuration.
 
@@ -245,7 +245,7 @@ class GenericHTTPClient(BaseAPIClient):
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 # Build request
-                url = f"{self.base_url.rstrip('/')}{self.search_path}"
+                url = f"{(self.base_url or '').rstrip('/')}{self.search_path}"
                 headers = self._build_headers()
                 params = self._build_params(query, limit, **kwargs)
 

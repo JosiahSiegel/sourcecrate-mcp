@@ -95,7 +95,7 @@ def initialize_configuration_system(enable_hot_reload: bool = True) -> Configura
     return search_service
 
 
-def create_example_config_file(output_path: str = "paperez.config.example.yaml"):
+def create_example_config_file(output_path: str = "paperez.config.example.yaml") -> None:
     """Create an example configuration file for users."""
     from pathlib import Path
     config_manager = get_config_manager()

@@ -32,7 +32,7 @@ class HealthMonitoringService:
         """
         self.search_funcs = search_funcs
         self.api_status = api_status
-        self.health_metrics = {}
+        self.health_metrics: dict[str, Any] = {}
         self.logger = logging.getLogger(f"{__name__}.HealthMonitoring")
 
     async def get_comprehensive_status(self) -> dict[str, Any]:
@@ -110,7 +110,7 @@ class HealthMonitoringService:
         Returns:
             Dictionary mapping source names to health check results
         """
-        health_results = {}
+        health_results: dict[str, dict[str, Any]] = {}
 
         # Test each available source
         test_query = "test"
@@ -139,7 +139,7 @@ class HealthMonitoringService:
                         "last_check": time.time()
                     }
                 else:
-                    health_results[source_key] = result
+                    health_results[source_key] = result  # type: ignore[assignment]
 
         return health_results
 

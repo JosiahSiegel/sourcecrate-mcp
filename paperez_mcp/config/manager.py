@@ -47,9 +47,12 @@ if WATCHDOG_AVAILABLE:
                     self.config_manager._reload_config()
 else:
     # Dummy handler when watchdog is not available
-    class ConfigFileHandler:
+    class DummyConfigFileHandler:
         def __init__(self, config_manager: Any) -> None:
             pass
+
+    # Alias for compatibility
+    ConfigFileHandler = DummyConfigFileHandler  # type: ignore[misc,assignment]
 
 
 class ConfigManager:
