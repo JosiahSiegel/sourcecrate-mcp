@@ -92,13 +92,11 @@ def test_configuration_loading():
 
         print(f"✓ Validated {enabled_sources} enabled sources")
 
-        return True
-
     except Exception as e:
         print(f"❌ Configuration validation failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"Configuration validation failed: {e}") from e
 
 def test_yaml_file_discovery():
     """Test that YAML files are discovered correctly."""
@@ -129,11 +127,10 @@ def test_yaml_file_discovery():
                     break
 
         assert found_files, "No YAML configuration files found"
-        return True
 
     except Exception as e:
         print(f"❌ YAML file discovery failed: {e}")
-        return False
+        raise AssertionError(f"YAML file discovery failed: {e}") from e
 
 def test_search_analyzer():
     """Test search analysis functionality."""
@@ -175,13 +172,12 @@ def test_search_analyzer():
             print(f"  Classification scores: {list(classification_scores.keys())[:3]}")  # Show top 3
 
         print(f"✓ Search analysis tools working correctly")
-        return True
 
     except Exception as e:
         print(f"❌ Search analysis test failed: {e}")
         import traceback
         traceback.print_exc()
-        return False
+        raise AssertionError(f"Search analysis test failed: {e}") from e
 
 def main():
     """Run all CI configuration tests."""
@@ -203,12 +199,9 @@ def main():
         print("-" * 40)
 
         try:
-            if test_func():
-                print(f"✅ PASSED: {test_name}")
-                passed += 1
-            else:
-                print(f"❌ FAILED: {test_name}")
-                failed += 1
+            test_func()  # Test functions now use assertions instead of returns
+            print(f"✅ PASSED: {test_name}")
+            passed += 1
         except Exception as e:
             print(f"❌ FAILED: {test_name} - {e}")
             failed += 1
