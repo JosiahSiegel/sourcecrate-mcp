@@ -64,7 +64,6 @@ categories:
     description: Focus on historical and archival content including government documents
     type: standard
     sources:
-      - hathitrust
       - internet_archive
       - crossref  # From scientific.yaml for historical academic papers
     max_results_per_source: 8
