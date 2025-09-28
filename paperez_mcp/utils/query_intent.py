@@ -45,7 +45,7 @@ class QueryAnalysis:
 class QueryIntentDetector:
     """Detect query intent using pattern matching and statistical analysis."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.intent_patterns = self._build_intent_patterns()
         self.temporal_patterns = self._build_temporal_patterns()
         self.academic_indicators = self._build_academic_indicators()
@@ -512,7 +512,7 @@ class QueryIntentDetector:
             source_preferences=source_preferences
         )
 
-    def get_routing_recommendations(self, query: str) -> dict[str, any]:
+    def get_routing_recommendations(self, query: str) -> dict[str, Any]:
         """
         Get routing recommendations based on query analysis.
 
@@ -649,7 +649,7 @@ def analyze_query_intent(query: str) -> QueryAnalysis:
     return detector.analyze_query(query)
 
 
-def get_routing_recommendations(query: str) -> dict[str, any]:
+def get_routing_recommendations(query: str) -> dict[str, Any]:
     """Get routing recommendations for a query."""
     detector = QueryIntentDetector()
     return detector.get_routing_recommendations(query)

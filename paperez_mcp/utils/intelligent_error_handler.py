@@ -182,7 +182,7 @@ class IntelligentErrorHandler:
     def generate_error_message(self,
                               query: str,
                               sources_searched: list[str],
-                              fallback_used: bool = False) -> dict[str, any]:
+                              fallback_used: bool = False) -> dict[str, Any]:
         """Generate an intelligent error message with suggestions"""
 
         domain = self.detect_domain(query)

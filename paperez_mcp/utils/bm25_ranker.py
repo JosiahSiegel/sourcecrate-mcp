@@ -558,7 +558,7 @@ class BM25SourceRanker:
 
         return scored_sources
 
-    def get_source_recommendations(self, query: str, max_sources: int = 5) -> dict[str, any]:
+    def get_source_recommendations(self, query: str, max_sources: int = 5) -> dict[str, Any]:
         """
         Get comprehensive source recommendations with explanations.
 
@@ -661,7 +661,7 @@ def rank_sources_bm25(query: str, available_sources: list[str] = None) -> list[t
     return ranker.rank_sources(query, available_sources)
 
 
-def get_bm25_recommendations(query: str, max_sources: int = 5) -> dict[str, any]:
+def get_bm25_recommendations(query: str, max_sources: int = 5) -> dict[str, Any]:
     """Get BM25-based source recommendations."""
     ranker = BM25SourceRanker()
     return ranker.get_source_recommendations(query, max_sources)

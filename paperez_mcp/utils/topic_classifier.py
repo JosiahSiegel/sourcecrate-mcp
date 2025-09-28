@@ -172,7 +172,7 @@ def should_skip_source_for_topic(source: str, query: str, threshold: float = 0.0
     return False
 
 
-def get_topic_explanation(query: str) -> dict[str, any]:
+def get_topic_explanation(query: str) -> dict[str, Any]:
     """
     Get detailed topic analysis for debugging/logging.
 

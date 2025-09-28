@@ -143,7 +143,7 @@ All file-saving tools default to current directory and accept custom output path
 async def browse_papers(
     query: str,
     limit: int = 10,
-    force_category: str = None
+    force_category: str | None = None
 ) -> list[dict[str, Any]]:
     """
     🔍 BROWSE: Find and explore papers (metadata/abstracts only)
@@ -275,7 +275,7 @@ async def download_papers(
     query: str,
     limit: int = 5,
     output_dir: str = ".paperez",
-    force_category: str = None,
+    force_category: str | None = None,
     convert_to_markdown: bool = True
 ) -> list[dict[str, Any]]:
     """

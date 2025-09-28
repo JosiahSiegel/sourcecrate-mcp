@@ -28,7 +28,7 @@ class APIConfig:
     enable_query_reformulation: bool = True
     enable_enhanced_logging: bool = True
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Load from environment
         self.semantic_scholar_api_key = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
         self.scraperapi_key = os.getenv("SCRAPERAPI_KEY")

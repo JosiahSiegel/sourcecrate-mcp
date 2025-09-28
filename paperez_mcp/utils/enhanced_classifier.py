@@ -11,7 +11,7 @@ from collections import Counter
 class EnhancedTopicClassifier:
     """Statistical topic classifier using Jaccard similarity and n-gram analysis."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.hierarchical_taxonomy = self._build_hierarchical_taxonomy()
         self.synonym_dictionary = self._build_synonym_dictionary()
         self.stopwords = self._get_stopwords()
