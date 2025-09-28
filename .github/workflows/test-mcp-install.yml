@@ -163,7 +163,7 @@ jobs:
         # Test PDF processing imports
         try:
             import pymupdf4llm
-            import PyMuPDF
+            import fitz  # PyMuPDF is imported as fitz
             print('✓ PDF processing dependencies available')
         except ImportError as e:
             print(f'❌ PDF processing dependencies missing: {e}')
@@ -185,7 +185,7 @@ jobs:
         # Test PDF processing imports
         try:
             import pymupdf4llm
-            import PyMuPDF
+            import fitz  # PyMuPDF is imported as fitz
             print('✓ PDF processing dependencies available')
         except ImportError as e:
             print(f'❌ PDF processing dependencies missing: {e}')
