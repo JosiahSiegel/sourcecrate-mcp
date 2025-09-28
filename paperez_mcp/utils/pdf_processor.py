@@ -172,7 +172,7 @@ def extract_pdf_text_from_local_file(file_path: str) -> dict[str, Any]:
         }
 
 
-def convert_pdf_to_markdown_content(file_path: str, title: str = "", authors: list = None) -> dict[str, Any]:
+def convert_pdf_to_markdown_content(file_path: str, title: str = "", authors: list[Any] | None = None) -> dict[str, Any]:
     """Convert a local PDF file to formatted markdown content"""
 
     # First extract the PDF text

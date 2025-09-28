@@ -24,9 +24,9 @@ class SourceProfile:
 class BM25SourceRanker:
     """BM25-based ranking system for academic sources."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.source_profiles = self._build_source_profiles()
-        self.idf_cache = {}
+        self.idf_cache: dict[str, float] = {}
         self.k1 = 1.2  # Term frequency saturation parameter
         self.b = 0.75  # Document length normalization parameter
         self._compute_idf_scores()
@@ -391,7 +391,7 @@ class BM25SourceRanker:
             )
         }
 
-    def _compute_idf_scores(self):
+    def _compute_idf_scores(self) -> None:
         """Pre-compute IDF scores for all terms across sources."""
         # Collect all terms from all sources (tokenize specialty terms)
         all_terms = set()

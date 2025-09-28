@@ -5,11 +5,27 @@ Comprehensive search engine that queries multiple academic databases.
 import logging
 from typing import Any
 
+from ..api_clients.arxiv_client import search_arxiv
+from ..api_clients.google_scholar_client import search_google_scholar_fallback
+from ..api_clients.pubmed_client import search_pubmed, search_pubmed_central
 from ..config import api_status, get_search_service
 from .pdf_processor import extract_pdf_text
 from .source_health_monitor import health_monitor
 
 logger = logging.getLogger(__name__)
+
+
+# Placeholder functions for missing search clients
+async def search_semantic_scholar(query: str, limit: int = 5) -> list[dict[str, Any]]:
+    """Placeholder for semantic scholar search - to be implemented"""
+    logger.warning("Semantic Scholar search not implemented yet")
+    return []
+
+
+async def search_clinicaltrials(query: str, limit: int = 5) -> list[dict[str, Any]]:
+    """Placeholder for clinical trials search - to be implemented"""
+    logger.warning("Clinical trials search not implemented yet")
+    return []
 
 
 async def comprehensive_search_internal(query: str, limit: int = 5, include_full_text: bool = False) -> dict[str, Any]:

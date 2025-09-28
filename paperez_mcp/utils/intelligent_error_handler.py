@@ -23,7 +23,7 @@ class SearchSuggestion:
 class IntelligentErrorHandler:
     """Provides intelligent suggestions when searches fail"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Domain-specific suggestions based on common failure patterns
         self.domain_suggestions = {
             'medical': {
@@ -187,7 +187,7 @@ class IntelligentErrorHandler:
         """Generate an intelligent error message with suggestions"""
 
         domain = self.detect_domain(query)
-        suggestions = []
+        suggestions: list[str] = []
 
         # Base message
         if fallback_used:
