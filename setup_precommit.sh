@@ -7,7 +7,7 @@ echo "🔧 Setting up MCP server pre-commit validation..."
 if command -v pre-commit &> /dev/null; then
     echo "📦 Found pre-commit, installing hooks..."
     pre-commit install
-    echo "✅ Pre-commit hooks installed"
+    echo "✅ Pre-commit hooks installed (manual git hook will be replaced)"
     echo "🧪 Testing hooks..."
     pre-commit run --all-files
 else
@@ -46,7 +46,13 @@ echo ""
 echo "📋 What was installed:"
 echo "  • MCP server syntax validation"
 echo "  • Python file syntax checking"
-echo "  • Git pre-commit hook"
+echo "  • Ruff linting (matches CI workflow)"
+echo "  • MyPy type checking (matches CI workflow)"
+if command -v pre-commit &> /dev/null; then
+    echo "  • Pre-commit framework hooks (replaced manual git hook)"
+else
+    echo "  • Manual git pre-commit hook"
+fi
 echo ""
 echo "💡 Usage:"
 echo "  • Hooks run automatically on 'git commit'"
