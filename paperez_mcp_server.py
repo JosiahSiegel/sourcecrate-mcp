@@ -155,37 +155,16 @@ async def browse_papers(
     ⚠️ METADATA ONLY: Returns titles, authors, abstracts, DOIs - no full paper content
 
     FOR GETTING ACTUAL PAPERS:
-    📄 Use get_papers("topic") or download_papers("topic") instead!
+    📄 Use download_papers("topic") instead!
     📄 These functions automatically download full papers as markdown files
 
-    🔄 WHEN TO USE EACH FUNCTION:
-    "Browse papers" → browse_papers("topic", limit=20) - Fast metadata overview
-    "Get papers" → get_papers("topic", limit=5) - Download full papers as files
-    "Save papers" → download_papers("topic", output_dir="my_papers")
-
-    Search academic papers across multiple databases with optional full-text extraction and download.
-    Searches CrossRef, Semantic Scholar, arXiv, PubMed, and Google Scholar with intelligent fallback.
+    Search academic papers across multiple databases with intelligent fallback.
+    Searches CrossRef, Semantic Scholar, arXiv, PubMed, and Google Scholar.
     Supports DOI queries, author queries, and keyword searches.
-
-    💡 WORKFLOW EXAMPLES:
-
-    ## Research Workflow (Explore → Select → Download):
-    Step 1: browse_papers("broad topic", limit=20)  # Get overview
-    Step 2: Review abstracts and select interesting papers
-    Step 3: For selected papers:
-            get_papers("specific topic", limit=3)  # Download chosen papers
-
-    ## Quick Discovery:
-    browse_papers("machine learning", limit=10)  # Fast metadata overview
-    get_papers("transformer architecture", limit=5)  # Download specific papers
 
     Args:
         query: Search query (keywords, DOI with "doi:" prefix, title, or author)
-               - Keywords: "machine learning transformers", "neural networks"
-               - DOI format: "doi:10.1000/xyz123" (must include "doi:" prefix)
-               - Author search: "Geoffrey Hinton", "Yoshua Bengio"
-               - Title search: "Attention Is All You Need"
-        limit: Maximum number of results to return (default: 5, max recommended: 10)
+        limit: Maximum number of results to return (default: 10, max recommended: 20)
         force_category: 🎯 FORCE SPECIFIC SOURCE TYPES (optional, overrides smart routing)
                        - "preprints" → arXiv, SocArXiv, OSF (latest research, not peer-reviewed)
                        - "journals" → CrossRef, PubMed, DOAJ (peer-reviewed publications)
@@ -218,46 +197,10 @@ async def browse_papers(
         - pdf_url: Direct PDF link (if available)
         - open_access_pdf: Open access PDF link (if available)
 
-        When include_full_text=True, adds:
-        - full_text: Extracted text content
-        - text_length: Character count of extracted text
-        - extraction_method: Method used for text extraction
-
-        When download_and_convert=True, adds:
-        - local_pdf: Path to downloaded PDF file
-        - local_markdown: Path to converted markdown file
-        - markdown_characters: Character count of markdown
-        - download_error: Error message if download failed
-
-    🚨 KEY LIMITATIONS:
-    - Default: Metadata/abstracts only, no files created
-    - download_and_convert=True: MAX 3 papers per call
-    - include_full_text=True: Text in memory only, not saved to files
-    - For bulk operations: Requires multi-step workflow
-
     Example Usage:
-        # ❌ WRONG - This only gets metadata/abstracts (what user experienced)
-        search_papers("Balfour Declaration documents", limit=10)
-
-        # ✅ CORRECT - Get 3 full papers as markdown files
-        search_papers("Balfour Declaration documents", limit=3, download_and_convert=True)
-
-        # ✅ CORRECT - Get full text in memory for analysis
-        search_papers("Balfour Declaration documents", limit=10, include_full_text=True)
-
-        # ✅ CORRECT - For 10+ papers as files: multi-step workflow
-        # Step 1: Get metadata to review
-        papers = search_papers("Balfour Declaration documents", limit=10)
-        # Step 2: Download selected papers individually
-        for paper in papers[0]["results"][:5]:  # Select first 5 papers
-            if paper.get("pdf_url"):
-                convert_pdf_to_markdown(paper["pdf_url"],
-                                      output_path=f"papers/{paper['title'][:50]}.md")
-
-        # 🎯 DIRECT SOLUTION for "get 10 papers on topic and save them":
-        # Option A: Multiple download calls (3 papers each)
-        search_papers("topic", limit=3, download_and_convert=True)  # Get first 3
-        # Option B: Use the multi-step workflow above
+        browse_papers("machine learning", limit=10)  # Fast metadata overview
+        browse_papers("Geoffrey Hinton", limit=5)    # Author search
+        browse_papers("doi:10.1000/xyz123")          # DOI search
     """
     # Lazy import utilities
     _ensure_scholarly_setup()
