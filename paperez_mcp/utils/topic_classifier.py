@@ -5,7 +5,6 @@ Topic classification system for academic queries.
 from typing import Any
 
 
-
 def classify_query_topic(query: str) -> dict[str, float]:
     """
     Classify query into topic categories.
@@ -18,7 +17,7 @@ def classify_query_topic(query: str) -> dict[str, float]:
     """
 
     # Keywords for different domains
-    DOMAIN_KEYWORDS = {
+    domain_keywords = {
         "stem": [
             "algorithm", "computation", "neural", "quantum", "equation",
             "theorem", "proof", "optimization", "machine learning", "AI",
@@ -75,7 +74,7 @@ def classify_query_topic(query: str) -> dict[str, float]:
     query_lower = query.lower()
     scores = {}
 
-    for domain, keywords in DOMAIN_KEYWORDS.items():
+    for domain, keywords in domain_keywords.items():
         # Count keyword matches
         matches = sum(1 for keyword in keywords if keyword in query_lower)
         # Normalize by number of keywords in domain

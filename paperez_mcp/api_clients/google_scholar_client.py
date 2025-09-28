@@ -26,12 +26,12 @@ def setup_scraperapi() -> bool:
             try:
                 test_query = scholarly.search_pubs("ai")
                 next(test_query)
-            except:
+            except Exception:
                 # If test fails, still try - might work for actual queries
                 pass
             return True
         return False
-    except:
+    except Exception:
         return False
 
 
@@ -45,11 +45,11 @@ def setup_free_proxies() -> bool:
         try:
             test_query = scholarly.search_pubs("ai")
             next(test_query)
-        except:
+        except Exception:
             # If test fails, still try - might work for actual queries
             pass
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -63,11 +63,11 @@ def setup_tor_proxy() -> bool:
         try:
             test_query = scholarly.search_pubs("ai")
             next(test_query)
-        except:
+        except Exception:
             # If test fails, still try - might work for actual queries
             pass
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -80,7 +80,7 @@ def setup_no_proxy() -> bool:
         UserAgent()
         # Skip test query for direct connection - it should work
         return True
-    except:
+    except Exception:
         return False
 
 
