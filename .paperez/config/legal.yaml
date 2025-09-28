@@ -9,6 +9,7 @@ sources:
     name: courtlistener
     type: http_api
     enabled: false  # DISABLED: Requires API token - create account at courtlistener.com
+    disabled_reason: "Requires API token - create account at courtlistener.com"
     timeout: 30
     max_retries: 3
     cache_expire: 7200

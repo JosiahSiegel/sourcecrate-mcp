@@ -9,6 +9,7 @@ sources:
     name: core_repository
     type: http_api
     enabled: false  # DISABLED: Requires API key registration - register at core.ac.uk/services/api
+    disabled_reason: "Requires API key registration - register at core.ac.uk/services/api"
     timeout: 30
     max_retries: 3
     cache_expire: 3600

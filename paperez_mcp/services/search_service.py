@@ -142,18 +142,8 @@ class SearchOrchestrationService:
     def _get_sources_for_category(
         self, force_category: str | None, api_status: dict[str, bool]
     ) -> list[str]:
-        """Get list of sources to search based on category."""
-        if force_category == "preprints":
-            return ["search_arxiv", "search_biorxiv"]
-        elif force_category == "journals":
-            return ["search_crossref", "search_pubmed"]
-        elif force_category == "open_access":
-            return ["search_arxiv", "search_pubmed_central", "search_crossref"]
-        elif force_category == "medical":
-            return ["search_pubmed", "search_pubmed_central", "search_clinicaltrials"]
-        elif force_category == "recent":
-            return ["search_arxiv", "search_semantic_scholar"]
-        else:
+        """Get list of sources to search based on category using dynamic configuration."""
+        if not force_category:
             # Default comprehensive search
             available_sources = [
                 name
@@ -161,6 +151,91 @@ class SearchOrchestrationService:
                 if status and f"search_{name}" in self.search_funcs
             ]
             return [f"search_{name}" for name in available_sources]
+
+        # Load configuration to get category definitions
+        try:
+            from ..config.manager import get_current_config
+
+            config = get_current_config()
+
+            # Check if the force_category exists in configuration
+            if force_category in config.categories:
+                category_config = config.categories[force_category]
+                if hasattr(category_config, "sources") and category_config.sources:
+                    # Filter sources by availability and enabled status
+                    available_sources = []
+                    for source_name in category_config.sources:
+                        # Check if source is available and enabled
+                        if (
+                            source_name in api_status
+                            and api_status[source_name]
+                            and f"search_{source_name}" in self.search_funcs
+                            and source_name in config.sources
+                            and config.sources[source_name].enabled
+                        ):
+                            available_sources.append(f"search_{source_name}")
+
+                    if available_sources:
+                        return available_sources
+
+            # Fallback to capability-based selection for special categories
+            return self._get_sources_by_capabilities(force_category, api_status)
+
+        except Exception as e:
+            # Fallback to capability-based selection if configuration loading fails
+            logger.warning(f"Failed to load category configuration: {e}")
+            return self._get_sources_by_capabilities(force_category, api_status)
+
+    def _get_sources_by_capabilities(
+        self, force_category: str, api_status: dict[str, bool]
+    ) -> list[str]:
+        """Get sources based on capabilities when category not found in config."""
+        try:
+            from ..config.manager import get_current_config
+
+            config = get_current_config()
+
+            # Map force_category to source capabilities
+            capability_filters = {
+                "preprints": lambda caps: getattr(caps, "preprint_focus", False)
+                or getattr(caps, "stem_focus", False),
+                "journals": lambda caps: getattr(caps, "peer_reviewed", False),
+                "open_access": lambda caps: getattr(caps, "open_access_focus", False)
+                or getattr(caps, "high_pdf_availability", False),
+                "medical": lambda caps: getattr(caps, "medical_focus", False),
+                "recent": lambda caps: getattr(caps, "recent_focus", False)
+                or getattr(caps, "preprint_focus", False),
+            }
+
+            if force_category in capability_filters:
+                filter_func = capability_filters[force_category]
+                available_sources = []
+
+                for source_name, source_config in config.sources.items():
+                    if (
+                        source_config.enabled
+                        and source_name in api_status
+                        and api_status[source_name]
+                        and f"search_{source_name}" in self.search_funcs
+                        and hasattr(source_config, "capabilities")
+                        and source_config.capabilities
+                        and filter_func(source_config.capabilities)
+                    ):
+                        available_sources.append(f"search_{source_name}")
+
+                if available_sources:
+                    return available_sources
+
+        except Exception as e:
+            logger.warning(f"Failed to filter sources by capabilities: {e}")
+
+        # Final fallback to all available sources
+        available_sources = [
+            name
+            for name, status in api_status.items()
+            if status and f"search_{name}" in self.search_funcs
+        ]
+        return [f"search_{name}" for name in available_sources]
 
     def _deduplicate_papers(self, papers: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
@@ -201,7 +276,7 @@ class SearchOrchestrationService:
 
     def analyze_query_domain(self, query: str) -> dict[str, Any]:
         """
-        Analyze query to determine likely domain and suggest optimal sources.
+        Analyze query to determine likely domain and suggest optimal sources using configuration.
 
         Args:
             query: Search query string
@@ -209,82 +284,157 @@ class SearchOrchestrationService:
         Returns:
             Dictionary with domain analysis and source recommendations
         """
-        query_lower = query.lower()
+        try:
+            from ..config.manager import get_current_config
 
-        # Medical/biomedical terms
-        medical_terms = [
-            "medical",
-            "clinical",
-            "patient",
-            "treatment",
-            "therapy",
-            "disease",
-            "diagnosis",
-            "health",
-            "medicine",
-            "pharmaceutical",
-        ]
+            config = get_current_config()
 
-        # Computer science terms
-        cs_terms = [
-            "algorithm",
-            "machine learning",
-            "artificial intelligence",
-            "computer",
-            "software",
-            "programming",
-            "neural",
-            "deep learning",
-        ]
+            query_lower = query.lower()
+            domain_scores = {}
+            domain_keywords = {}
 
-        # Physics/engineering terms
-        physics_terms = [
-            "quantum",
-            "physics",
-            "engineering",
-            "materials",
-            "energy",
-            "electromagnetic",
-            "mechanics",
-        ]
+            # Get domain keywords from configuration
+            if hasattr(config, "routing") and hasattr(
+                config.routing, "domain_keywords"
+            ):
+                domain_keywords = config.routing.domain_keywords
+            else:
+                # Fallback to basic keywords if not in config
+                domain_keywords = {
+                    "medical": [
+                        "medical",
+                        "clinical",
+                        "patient",
+                        "treatment",
+                        "therapy",
+                        "disease",
+                    ],
+                    "computer_science": [
+                        "algorithm",
+                        "machine learning",
+                        "artificial intelligence",
+                        "computer",
+                        "software",
+                    ],
+                    "physics": [
+                        "quantum",
+                        "physics",
+                        "engineering",
+                        "materials",
+                        "energy",
+                    ],
+                }
 
-        # Count domain-specific terms
-        medical_score = sum(1 for term in medical_terms if term in query_lower)
-        cs_score = sum(1 for term in cs_terms if term in query_lower)
-        physics_score = sum(1 for term in physics_terms if term in query_lower)
+            # Count domain-specific terms
+            for domain, keywords in domain_keywords.items():
+                score = sum(1 for keyword in keywords if keyword in query_lower)
+                domain_scores[domain] = score
 
-        # Determine primary domain
-        domain = "general"
-        if medical_score > 0:
-            domain = "medical"
-        elif cs_score > 0:
-            domain = "computer_science"
-        elif physics_score > 0:
-            domain = "physics"
+            # Determine primary domain
+            max_score = max(domain_scores.values()) if domain_scores else 0
+            domain = "general"
+            if max_score > 0:
+                domain = max(domain_scores, key=lambda x: domain_scores[x])
 
-        # Suggest optimal sources
-        source_recommendations = {
-            "medical": [
-                "search_pubmed",
-                "search_pubmed_central",
-                "search_clinicaltrials",
-            ],
-            "computer_science": [
-                "search_arxiv",
-                "search_semantic_scholar",
-                "search_crossref",
-            ],
-            "physics": ["search_arxiv", "search_crossref", "search_semantic_scholar"],
-            "general": ["search_crossref", "search_semantic_scholar", "search_arxiv"],
-        }
+            # Get source recommendations based on capabilities
+            recommended_sources = self._get_domain_source_recommendations(
+                domain, config
+            )
 
-        return {
-            "domain": domain,
-            "confidence_scores": {
-                "medical": medical_score,
-                "computer_science": cs_score,
-                "physics": physics_score,
-            },
-            "recommended_sources": source_recommendations.get(domain, []),
-            "suggested_category": domain if domain != "general" else None,
-        }
+            # Get suggested category from configuration
+            suggested_category = None
+            if (
+                hasattr(config, "routing")
+                and hasattr(config.routing, "domain_categories")
+                and domain in config.routing.domain_categories
+            ):
+                suggested_category = config.routing.domain_categories[domain]
+
+            return {
+                "domain": domain,
+                "confidence_scores": domain_scores,
+                "recommended_sources": recommended_sources,
+                "suggested_category": suggested_category,
+            }
+
+        except Exception as e:
+            logger.warning(f"Failed to analyze query domain: {e}")
+            # Fallback to general recommendations
+            return {
+                "domain": "general",
+                "confidence_scores": {},
+                "recommended_sources": [
+                    "search_crossref",
+                    "search_semantic_scholar",
+                    "search_arxiv",
+                ],
+                "suggested_category": None,
+            }
+
+    def _get_domain_source_recommendations(self, domain: str, config: Any) -> list[str]:
+        """Get source recommendations for a domain based on capabilities."""
+        try:
+            # Map domains to capability filters
+            domain_capability_map = {
+                "medical": lambda caps: getattr(caps, "medical_focus", False),
+                "computer_science": lambda caps: getattr(caps, "stem_focus", False)
+                or getattr(caps, "preprint_focus", False),
+                "physics": lambda caps: getattr(caps, "stem_focus", False)
+                or getattr(caps, "preprint_focus", False),
+                "business": lambda caps: getattr(caps, "business_focus", False),
+                "humanities": lambda caps: getattr(caps, "humanities_focus", False),
+                "social_sciences": lambda caps: getattr(
+                    caps, "social_science_focus", False
+                ),
+                "legal": lambda caps: getattr(caps, "legal_focus", False),
+                "historical": lambda caps: getattr(caps, "historical_focus", False),
+            }
+
+            recommended_sources = []
+
+            if domain in domain_capability_map:
+                filter_func = domain_capability_map[domain]
+
+                # Find sources with matching capabilities
+                for source_name, source_config in config.sources.items():
+                    if (
+                        source_config.enabled
+                        and hasattr(source_config, "capabilities")
+                        and source_config.capabilities
+                        and filter_func(source_config.capabilities)
+                    ):
+                        recommended_sources.append(f"search_{source_name}")
+
+                # Add high-quality general sources as backup
+                general_sources = []
+                for source_name, source_config in config.sources.items():
+                    if (
+                        source_config.enabled
+                        and hasattr(source_config, "capabilities")
+                        and source_config.capabilities
+                        and getattr(source_config.capabilities, "peer_reviewed", False)
+                        and f"search_{source_name}" not in recommended_sources
+                    ):
+                        general_sources.append(f"search_{source_name}")
+
+                # Combine domain-specific and general sources
+                recommended_sources.extend(
+                    general_sources[:2]
+                )  # Limit to avoid too many sources
+
+            else:
+                # For general or unknown domains, recommend high-quality sources
+                for source_name, source_config in config.sources.items():
+                    if (
+                        source_config.enabled
+                        and hasattr(source_config, "capabilities")
+                        and source_config.capabilities
+                        and getattr(source_config.capabilities, "peer_reviewed", False)
+                    ):
+                        recommended_sources.append(f"search_{source_name}")
+
+            return recommended_sources[:5]  # Limit to 5 sources
+
+        except Exception as e:
+            logger.warning(f"Failed to get domain source recommendations: {e}")
+            return ["search_crossref", "search_semantic_scholar", "search_arxiv"]

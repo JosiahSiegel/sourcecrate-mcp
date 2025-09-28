@@ -100,6 +100,9 @@ class SourceProviderConfig(BaseModel):
         ..., description="Source type"
     )
     enabled: bool = Field(True, description="Whether source is enabled")
+    disabled_reason: str | None = Field(
+        None, description="Reason why source is disabled (shown in warnings)"
+    )
 
     # For builtin sources
     function_name: str | None = Field(
@@ -326,8 +329,14 @@ class PaperezConfig(BaseModel):
                             f"Category '{cat_name}' references unknown source '{source_name}'"
                         )
                     elif not self.sources[source_name].enabled:
+                        source_config = self.sources[source_name]
+                        reason = getattr(
+                            source_config, "disabled_reason", "Unknown reason"
+                        )
                         warnings.append(
-                            f"Category '{cat_name}' references disabled source '{source_name}'"
+                            f"Category '{cat_name}' references disabled source '{source_name}' - "
+                            f"Reason: {reason}. To enable, set 'enabled: true' in the source configuration "
+                            f"and ensure required credentials are configured."
                         )
             elif category.type == "meta":
                 for included_cat in category.includes:

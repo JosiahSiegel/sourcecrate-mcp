@@ -8,6 +8,7 @@ sources:
     name: repec
     type: http_api
     enabled: false  # DISABLED: Requires special API access - contact team@mail.authors.repec.org
+    disabled_reason: "Requires special API access - contact team@mail.authors.repec.org"
     timeout: 30
     max_retries: 3
     cache_expire: 7200
