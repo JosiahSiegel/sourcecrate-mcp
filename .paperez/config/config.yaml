@@ -19,7 +19,7 @@
 
 # Version and basic settings
 version: "1.0"
-default_category: comprehensive
+default_category: null  # Use intelligent default routing
 max_concurrent_searches: 15  # Higher concurrency for comprehensive setup
 global_cache_enabled: true
 global_cache_expire: 7200  # Longer cache for comprehensive setup
@@ -72,7 +72,7 @@ routing:
     physics: preprints
     historical: historical
     business: business
-    general: comprehensive
+    general: null  # Use intelligent default routing
 
 # Complete source configurations including all built-in and enhanced sources
 sources:
@@ -356,25 +356,6 @@ sources:
 
 # Complete categories for all research needs
 categories:
-  # Enhanced comprehensive search
-  comprehensive:
-    name: comprehensive
-    display_name: Comprehensive Search (Enhanced)
-    description: Search across all available sources with optimized settings
-    type: standard
-    sources:
-      - crossref
-      - semantic_scholar
-      - arxiv
-      - pubmed
-      - pubmed_central
-      - europe_pmc
-      - doaj
-      - hathitrust
-      - internet_archive
-      - clinicaltrials
-    max_results_per_source: 6
-    parallel_search: true
 
   # High-quality academic sources
   academic_premium:

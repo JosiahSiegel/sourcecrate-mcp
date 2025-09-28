@@ -171,7 +171,6 @@ async def browse_papers(
                        - "open_access" → CORE, DOAJ, arXiv (free full-text available)
                        - "historical" → CORE, CrossRef (older documents, archives)
                        - "recent" → arXiv, Semantic Scholar (newest papers, last few years)
-                       - "comprehensive" → Semantic Scholar, CrossRef (broad coverage)
 
                        💡 USE WHEN: Smart routing fails to find papers or you need specific types
                        💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
@@ -238,9 +237,9 @@ async def browse_papers(
     # Add fallback notification if used
     if fallback_used:
         result["fallback_notification"] = {
-            "message": f"Results found using comprehensive sources (original {'smart routing' if not original_category else original_category} found no results)",
+            "message": f"Results found using intelligent default search (original {'smart routing' if not original_category else original_category} found no results)",
             "original_category": original_category or "smart_routing",
-            "fallback_category": "comprehensive"
+            "fallback_category": "intelligent_default"
         }
 
     # Add intelligent error suggestions if no results found
@@ -298,7 +297,6 @@ async def download_papers(
                        - "open_access" → CORE, DOAJ, arXiv (free full-text available)
                        - "historical" → CORE, CrossRef (older documents, archives)
                        - "recent" → arXiv, Semantic Scholar (newest papers, last few years)
-                       - "comprehensive" → Semantic Scholar, CrossRef (broad coverage)
 
                        💡 USE WHEN: Smart routing fails to find papers or you need specific types
                        💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
@@ -923,7 +921,7 @@ async def get_help() -> Dict[str, Any]:
             },
             "optional_fields": {
                 "use_default_sources": "Boolean - whether to include built-in sources (default: true)",
-                "default_category": "String - default search category (default: 'comprehensive')",
+                "default_category": "String - default search category (default: intelligent routing)",
                 "max_concurrent_searches": "Integer - max parallel searches (default: 15)",
                 "global_cache_enabled": "Boolean - enable caching (default: true)",
                 "global_cache_expire": "Integer - cache expiration in seconds (default: 7200)",
@@ -1038,7 +1036,6 @@ categories:
         },
 
         "available_categories": {
-            "comprehensive": "Search across all available sources (default)",
             "academic_premium": "High-quality peer-reviewed sources",
             "preprints": "Latest research from preprint repositories",
             "medical": "Medical and biomedical research sources",

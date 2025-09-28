@@ -147,7 +147,6 @@ async def smart_downloadable_search(
             "open_access": ["core", "doaj", "arxiv", "pubmed_central", "socarxiv", "osf_preprints", "europe_pmc"],
             "historical": ["core", "crossref", "internet_archive"],
             "recent": ["arxiv", "semantic_scholar", "pubmed_central", "clinicaltrials", "osf_preprints", "europe_pmc"],
-            "comprehensive": list(search_funcs.keys()),  # Use ALL available sources for comprehensive
             "medical": ["pubmed", "pubmed_central", "clinicaltrials", "europe_pmc"]
         }
 
