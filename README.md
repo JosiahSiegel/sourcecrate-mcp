@@ -39,7 +39,13 @@ Ask Claude naturally:
 ```bash
 export SEMANTIC_SCHOLAR_API_KEY="your_key_here"
 export CROSSREF_EMAIL="your_email@example.com"
+export NCBI_API_KEY="your_ncbi_api_key"  # Recommended: 10 RPS vs 3 RPS default
 ```
+
+**API Key Benefits:**
+- **NCBI/PubMed**: Register at [NCBI](https://www.ncbi.nlm.nih.gov/account/) for 10 RPS (vs 3 RPS default)
+- **Semantic Scholar**: Higher rate limits for academic research
+- **CrossRef**: Email contact improves service reliability
 
 ### Custom Configuration Files
 
@@ -98,7 +104,7 @@ Use `get_help` tool for complete configuration schemas and examples.
 
 ## 🌟 Features
 
-- 🔍 **Multi-Source Search** - 13 legitimate academic APIs across all disciplines
+- 🔍 **Multi-Source Search** - 11 verified legal academic APIs across all disciplines
 - 🔧 **Fully Extensible** - Add custom sources via YAML configuration
 - 📖 **Unlimited PDF Processing** - No page or character limits
 - 🔄 **Zero-Token Conversion** - PDF to markdown without AI usage
@@ -115,7 +121,7 @@ Use `get_help` tool for complete configuration schemas and examples.
 
 ## ⚖️ Legal & Ethical Usage
 
-**All default sources use legitimate public APIs designed for academic research:**
+**All 11 enabled sources verified legal for academic research (2025):**
 
 ### Scientific & General Sources
 - **[CrossRef](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)** - Official API from non-profit organization, requires email contact (configured)
@@ -128,27 +134,28 @@ Use `get_help` tool for complete configuration schemas and examples.
 - **[Europe PMC](https://europepmc.org/privacy)** - European biomedical database, ~10 requests/time period limit
 - **[ClinicalTrials.gov](https://clinicaltrials.gov/data-about-studies/learn-about-this-site/terms-and-conditions)** - US government database, ~50 requests/minute, public domain
 
-### Specialized Domain Sources
-- **[Internet Archive](https://help.archive.org/help/archive-org-api/)** - Non-profit digital library, ~1 RPS for non-commercial use
+### Specialized Domain Sources ✅
 - **[Open Library](https://openlibrary.org/developers/api)** - Internet Archive's book database, humanities focus
 - **[CORE Repository](https://core.ac.uk/services/api/)** - Open access research aggregator, demo API key
-- **[Federal Register](https://www.federalregister.gov/learn/developers)** - US government regulations database, public domain
-- **[CourtListener](https://www.courtlistener.com/api/rest-info/)** - Free Legal opinions database, 5 requests/second
+- **[CourtListener](https://www.courtlistener.com/api/rest-info/)** - Free Law Project non-profit, legal opinions database
 
-### Disabled Sources (Compliance Issues)
-- **[HathiTrust](https://www.hathitrust.org/data_api)** - Disabled: No keyword search API available, only item lookup
-- **[Google Scholar](https://scholar.google.com/intl/en/scholar/help.html#overview)** - Disabled: No official API, potential ToS violations
-- **[SSRN](https://www.ssrn.com/index.cfm/en/terms-of-use/)** - Disabled: ToS reserves data mining rights, restricted access
+### Recently Disabled Sources (2025 ToS Changes)
+- **Federal Register** - DISABLED: Now requires IP-based access approval due to anti-scraping measures
+- **Internet Archive** - DISABLED: API terms unclear as of 2025, requires verification
 
-**Compliance measures:**
-- ✅ **Strict rate limiting** per each source's ToS requirements (0.1s to 3s delays)
-- ✅ **Email contact** information included where required (CrossRef)
-- ✅ **Small-scale queries** only, no bulk data harvesting or scraping
-- ✅ **Non-commercial academic research** use only
-- ✅ **Proper attribution** included in documentation and citations
-- ✅ **Public domain/open data** preference for government sources
-- ✅ **Legitimate API endpoints** only, no web scraping
-- ✅ **User-agent identification** as academic research tool
+### Previously Disabled Sources (Compliance Issues)
+- **Google Scholar** - No official API available
+- **SSRN** - ToS restrictions on data mining
+
+**Compliance measures (verified 2025):**
+- ✅ **ToS verification completed** for all 11 enabled sources as of 2025
+- ✅ **Strict rate limiting** per each source's requirements (0.05s to 1.0s delays)
+- ✅ **Email contact** configured where required (CrossRef: research@paperez.org)
+- ✅ **Academic research use only** - all sources designed for scholarly access
+- ✅ **Attribution requirements** met with proper source citation
+- ✅ **Government databases** prioritized for public domain content
+- ✅ **Official APIs only** - no web scraping or unofficial endpoints
+- ✅ **Proactive compliance monitoring** - sources disabled if ToS change
 
 **User responsibility for custom sources:**
 - Verify Terms of Service compliance before adding custom sources

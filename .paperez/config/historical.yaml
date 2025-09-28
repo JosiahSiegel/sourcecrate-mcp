@@ -31,7 +31,7 @@ sources:
   internet_archive:
     name: internet_archive
     type: http_api
-    enabled: true
+    enabled: false  # DISABLED 2025: Current API terms unclear, needs ToS verification
     timeout: 30
     max_retries: 3
     cache_expire: 7200

@@ -64,6 +64,21 @@ python3 scripts/validate_imports.py
 python3 scripts/validate_code_quality.py
 ```
 
+### Configuration Validation
+```bash
+python3 scripts/validate_configuration.py
+```
+
+### PDF Processing
+```bash
+python3 scripts/validate_pdf_processing.py
+```
+
+### MCP Server Functionality
+```bash
+python3 scripts/validate_mcp_server.py
+```
+
 ## Manual Commands (if scripts fail)
 
 ### Syntax Check

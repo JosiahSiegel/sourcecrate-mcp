@@ -8,7 +8,7 @@ sources:
   federal_register:
     name: federal_register
     type: http_api
-    enabled: true
+    enabled: false  # DISABLED 2025: Requires IP-based access approval due to anti-scraping measures
     timeout: 30
     max_retries: 3
     cache_expire: 7200
