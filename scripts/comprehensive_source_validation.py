@@ -270,8 +270,16 @@ class SourceValidator:
         query_words = set(query.lower().split())
         expected_keywords = set(word.lower() for word in expectations["keywords"])
 
-        # Check title relevance
-        title = result.get("title", "").lower()
+        # Check title relevance (safely handle non-string titles)
+        title_raw = result.get("title", "")
+        if isinstance(title_raw, str):
+            title = title_raw.lower()
+        elif isinstance(title_raw, list):
+            title = " ".join(str(item) for item in title_raw).lower() if title_raw else ""
+        elif isinstance(title_raw, dict):
+            title = str(title_raw.get("title", title_raw.get("name", ""))).lower()
+        else:
+            title = str(title_raw).lower() if title_raw else ""
         title_words = set(title.split())
 
         # Query word matches in title
@@ -290,8 +298,18 @@ class SourceValidator:
         )
         score += keyword_matches * 0.3
 
-        # Check abstract relevance if available
-        abstract = result.get("abstract", "").lower()
+        # Check abstract relevance if available (safely handle non-string abstracts)
+        abstract_raw = result.get("abstract", "")
+        if isinstance(abstract_raw, str):
+            abstract = abstract_raw.lower()
+        elif isinstance(abstract_raw, dict):
+            # Handle special formats like OpenAlex inverted index
+            abstract = str(abstract_raw).lower() if abstract_raw else ""
+        elif isinstance(abstract_raw, list):
+            abstract = " ".join(str(item) for item in abstract_raw).lower() if abstract_raw else ""
+        else:
+            abstract = str(abstract_raw).lower() if abstract_raw else ""
+
         if abstract:
             abstract_words = set(abstract.split())
             abstract_query_matches = (

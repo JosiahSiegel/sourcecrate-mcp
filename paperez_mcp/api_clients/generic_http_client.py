@@ -222,6 +222,38 @@ class GenericHTTPClient(BaseAPIClient):
                         paper[standard_field] = int(value)
                     except (ValueError, TypeError):
                         paper[standard_field] = 0
+                elif standard_field == "abstract":
+                    # Handle special abstract formats
+                    if isinstance(value, dict) and self.source_name == "openalex":
+                        # OpenAlex abstract_inverted_index - convert back to text
+                        if value:
+                            # Reconstruct text from inverted index
+                            word_positions = []
+                            for word, positions in value.items():
+                                for pos in positions:
+                                    word_positions.append((pos, word))
+                            word_positions.sort()
+                            paper[standard_field] = " ".join(word for _, word in word_positions)
+                        else:
+                            paper[standard_field] = ""
+                    elif isinstance(value, (dict, list)):
+                        # Convert non-string abstract data to empty string
+                        paper[standard_field] = ""
+                    else:
+                        paper[standard_field] = str(value) if value else ""
+                elif standard_field == "title":
+                    # Ensure title is always a string
+                    if isinstance(value, (dict, list)):
+                        # Try to extract title from complex data structures
+                        if isinstance(value, list) and value:
+                            paper[standard_field] = str(value[0]) if value[0] else ""
+                        elif isinstance(value, dict):
+                            # Try common title field names
+                            paper[standard_field] = str(value.get("title", value.get("name", value.get("display_name", ""))))
+                        else:
+                            paper[standard_field] = ""
+                    else:
+                        paper[standard_field] = str(value) if value else ""
                 elif standard_field == "url" and self.source_name == "crossref":
                     # CrossRef: Generate DOI URL if no direct URL provided
                     if not value and paper.get("doi"):
