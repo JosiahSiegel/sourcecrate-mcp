@@ -52,7 +52,7 @@ async def extract_pdf_text(pdf_url: str) -> dict[str, Any]:
                 authors = authors_elem.get_text().replace('Authors:', '').strip() if authors_elem else ""
 
                 # Check for source files link
-                source_link = soup.find('a', string='Other formats')
+                source_link = soup.find(name='a', string='Other formats')
                 source_available = bool(source_link)
 
                 if abstract or title:
