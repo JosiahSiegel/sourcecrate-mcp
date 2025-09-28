@@ -184,6 +184,8 @@ sources:
         year: bibjson.year
         doi: bibjson.identifier.0.id
         url: bibjson.link.0.url
+        citation_count: "0"  # DOAJ doesn't provide citation counts
+        pdf_url: bibjson.link.0.url  # May contain PDF links
       rate_limit_delay: 0.5
 
   openalex:

@@ -101,6 +101,7 @@ sources:
         year: pubYear
         doi: doi
         url: fullTextUrlList.fullTextUrl.0.url
+        pdf_url: fullTextUrlList.fullTextUrl.0.url  # Often contains PDF links
         citation_count: citedByCount
       rate_limit_delay: 0.2
 

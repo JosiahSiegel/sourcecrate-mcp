@@ -32,7 +32,7 @@ class PDFValidator:
             },
             "doi": {
                 "pattern": r"10\.\d{4,}\/[^\s]+",
-                "unpaywall_url": "https://api.unpaywall.org/v2/{}?email=research@example.com",
+                "unpaywall_url": "https://api.unpaywall.org/v2/{}?email=paperez-mcp@github.com",
             },
         }
 
@@ -203,24 +203,81 @@ class PDFValidator:
         return unique_alternatives
 
     async def _get_doi_pdf_alternatives(self, doi: str) -> list[str]:
-        """Get alternative PDF URLs based on DOI"""
+        """Get alternative PDF URLs based on DOI using multiple sources"""
         alternatives = []
 
-        # Try Unpaywall API for open access PDFs
+        # Strategy 1: Try Unpaywall API for open access PDFs
         try:
             unpaywall_url = self.pdf_patterns["doi"]["unpaywall_url"].format(doi)
             async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 async with session.get(unpaywall_url) as response:
                     if response.status == 200:
                         data = await response.json()
-                        if data.get("is_oa") and data.get("best_oa_location"):
-                            oa_url = data["best_oa_location"].get("url_for_pdf")
-                            if oa_url:
-                                alternatives.append(oa_url)
+                        if data.get("is_oa"):
+                            # Get best open access location
+                            best_oa = data.get("best_oa_location")
+                            if best_oa and best_oa.get("url_for_pdf"):
+                                alternatives.append(best_oa["url_for_pdf"])
+
+                            # Also check all open access locations for additional PDFs
+                            oa_locations = data.get("oa_locations", [])
+                            for location in oa_locations:
+                                pdf_url = location.get("url_for_pdf")
+                                if pdf_url and pdf_url not in alternatives:
+                                    alternatives.append(pdf_url)
+
+                        logger.debug(
+                            f"Unpaywall found {len(alternatives)} open access PDFs for DOI {doi}"
+                        )
+                    elif response.status == 404:
+                        logger.debug(f"DOI {doi} not found in Unpaywall database")
+                    else:
+                        logger.debug(
+                            f"Unpaywall API returned status {response.status} for DOI {doi}"
+                        )
         except Exception as e:
             logger.debug(f"Unpaywall lookup failed for DOI {doi}: {e}")
 
+        # Strategy 2: Try publisher-specific PDF URL patterns
+        publisher_patterns = self._get_publisher_pdf_patterns(doi)
+        for pattern_url in publisher_patterns:
+            if pattern_url not in alternatives:
+                alternatives.append(pattern_url)
+
+        # Strategy 3: Try DOI.org resolution with PDF hints
+        try:
+            doi_resolution_url = f"https://doi.org/{doi}"
+            # Some publishers redirect to PDF when Accept header is set to application/pdf
+            alternatives.append(doi_resolution_url)
+        except Exception:
+            pass
+
         return alternatives
+
+    def _get_publisher_pdf_patterns(self, doi: str) -> list[str]:
+        """Get publisher-specific PDF URL patterns based on DOI"""
+        patterns = []
+
+        # Common publisher PDF URL patterns
+        publisher_patterns = {
+            "10.1371": "https://journals.plos.org/plosone/article/file?id={}&type=printable",  # PLOS
+            "10.1038": "https://www.nature.com/articles/{}.pdf",  # Nature
+            "10.1126": "https://www.science.org/doi/pdf/{}",  # Science
+            "10.1016": "https://www.sciencedirect.com/science/article/pii/{}/pdfft",  # Elsevier
+            "10.1186": "https://link.springer.com/content/pdf/{}.pdf",  # BMC/Springer
+            "10.1080": "https://www.tandfonline.com/doi/pdf/{}",  # Taylor & Francis
+            "10.1177": "https://journals.sagepub.com/doi/pdf/{}",  # SAGE
+        }
+
+        for prefix, pattern in publisher_patterns.items():
+            if doi.startswith(prefix):
+                try:
+                    formatted_url = pattern.format(doi)
+                    patterns.append(formatted_url)
+                except Exception:
+                    continue
+
+        return patterns
 
     async def enhance_pdf_availability(self, paper_data: dict) -> dict:
         """

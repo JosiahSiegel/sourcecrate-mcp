@@ -12,9 +12,36 @@ import aiohttp
 from pymed import PubMed
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ..config import api_status, cache, config
+from ..config import api_status, config
+from .base_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
+
+
+class PubMedClient(BaseAPIClient):
+    """PubMed API client with enhanced PDF validation and metadata normalization"""
+
+    def __init__(self) -> None:
+        super().__init__("PubMed", cache_expire=3600)  # 1 hour cache
+
+    async def _perform_search(
+        self, query: str, limit: int, **kwargs: Any
+    ) -> list[dict[str, Any]]:
+        """Perform PubMed search with PMC enhancement"""
+        return await _search_pubmed_internal(query, limit)
+
+
+class PubMedCentralClient(BaseAPIClient):
+    """PubMed Central API client with enhanced PDF validation and metadata normalization"""
+
+    def __init__(self) -> None:
+        super().__init__("PubMed Central", cache_expire=3600)  # 1 hour cache
+
+    async def _perform_search(
+        self, query: str, limit: int, **kwargs: Any
+    ) -> list[dict[str, Any]]:
+        """Perform PMC search with full-text access"""
+        return await _search_pmc_internal(query, limit)
 
 
 def _parse_pmc_xml(xml_content: str) -> list[dict[str, Any]]:
@@ -186,60 +213,73 @@ async def _check_pmc_availability(pmid: str) -> dict[str, str]:
     return {}
 
 
+async def _search_pubmed_internal(query: str, limit: int) -> list[dict[str, Any]]:
+    """Internal PubMed search function"""
+
+    def _search_pubmed() -> list[dict[str, Any]]:
+        pubmed = PubMed(tool="paperez-mcp", email=config.crossref_email)
+        results = []
+
+        for article in pubmed.query(query, max_results=limit):
+            result = {
+                "title": article.title,
+                "authors": [str(author) for author in (article.authors or [])],
+                "abstract": article.abstract,
+                "journal": getattr(article, "journal", None),
+                "year": (
+                    article.publication_date.year
+                    if article.publication_date
+                    and hasattr(article.publication_date, "year")
+                    else None
+                ),
+                "pubmed_id": article.pubmed_id,
+                "doi": article.doi,
+                "source": "PubMed",
+                "url": (
+                    f"https://pubmed.ncbi.nlm.nih.gov/{article.pubmed_id}/"
+                    if article.pubmed_id
+                    else ""
+                ),
+                "citation_count": 0,  # PubMed doesn't provide citation counts
+            }
+            results.append(result)
+        return results
+
+    results = await asyncio.to_thread(_search_pubmed)
+
+    # Enhance results with PMC availability for better PDF access
+    enhanced_results = []
+    for result in results:
+        if result.get("pubmed_id"):
+            pmc_info = await _check_pmc_availability(result["pubmed_id"])
+            if pmc_info:
+                result.update(pmc_info)
+                result["open_access_pdf"] = pmc_info.get("pdf_url")
+                logger.debug(f"PMC available for {result['title'][:50]}...")
+        enhanced_results.append(result)
+
+    return enhanced_results
+
+
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
 async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
-    """Search PubMed for biomedical literature with PMC integration"""
-    cache_key = f"pubmed_enhanced:{query}:{limit}"
-    cached = cache.get(cache_key)
-    if cached:
-        return cached  # type: ignore[no-any-return]
+    """Search PubMed for biomedical literature with enhanced PDF validation"""
+    client = PubMedClient()
 
     try:
+        # Get search results
+        results = await _search_pubmed_internal(query, limit)
 
-        def _search_pubmed() -> list[dict[str, Any]]:
-            pubmed = PubMed(tool="paperez-mcp", email=config.crossref_email)
-            results = []
-
-            for article in pubmed.query(query, max_results=limit):
-                result = {
-                    "title": article.title,
-                    "authors": [str(author) for author in (article.authors or [])],
-                    "abstract": article.abstract,
-                    "journal": getattr(article, "journal", None),
-                    "year": (
-                        article.publication_date.year
-                        if article.publication_date
-                        and hasattr(article.publication_date, "year")
-                        else None
-                    ),
-                    "pubmed_id": article.pubmed_id,
-                    "doi": article.doi,
-                    "source": "PubMed",
-                    "url": (
-                        f"https://pubmed.ncbi.nlm.nih.gov/{article.pubmed_id}/"
-                        if article.pubmed_id
-                        else ""
-                    ),
-                    "citation_count": 0,  # PubMed doesn't provide citation counts
-                }
-                results.append(result)
-            return results
-
-        results = await asyncio.to_thread(_search_pubmed)
-
-        # Enhance results with PMC availability for better PDF access
+        # Enhance results with PDF validation and metadata normalization
         enhanced_results = []
         for result in results:
-            if result.get("pubmed_id"):
-                pmc_info = await _check_pmc_availability(result["pubmed_id"])
-                if pmc_info:
-                    result.update(pmc_info)
-                    result["open_access_pdf"] = pmc_info.get("pdf_url")
-                    logger.debug(f"PMC available for {result['title'][:50]}...")
-            enhanced_results.append(result)
+            # Apply base client standardization (includes metadata normalization)
+            standardized = client._standardize_paper(result)
 
-        # Cache for 1 hour
-        cache.set(cache_key, enhanced_results, expire=3600)
+            # Enhance with PDF validation (async operation)
+            enhanced = await client._enhance_pdf_availability(standardized)
+            enhanced_results.append(enhanced)
+
         pmc_count = sum(1 for r in enhanced_results if r.get("pmc_id"))
         logger.info(
             f"✅ PubMed: Found {len(enhanced_results)} results ({pmc_count} with PMC full-text) for '{query}'"
@@ -252,14 +292,8 @@ async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
         return []
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-async def search_pubmed_central(query: str, limit: int = 5) -> list[dict[str, Any]]:
-    """Search PubMed Central directly for open access full-text articles"""
-    cache_key = f"pmc:{query}:{limit}"
-    cached = cache.get(cache_key)
-    if cached:
-        return cached  # type: ignore[no-any-return]
-
+async def _search_pmc_internal(query: str, limit: int) -> list[dict[str, Any]]:
+    """Internal PMC search function"""
     try:
         # Use NCBI E-utilities to search PMC directly
         search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
@@ -302,12 +336,39 @@ async def search_pubmed_central(query: str, limit: int = 5) -> list[dict[str, An
                     xml_content = await fetch_response.text()
                     results = _parse_pmc_xml(xml_content)
 
-                    # Cache for 1 hour
-                    cache.set(cache_key, results, expire=3600)
                     logger.info(
                         f"✅ PMC: Found {len(results)} full-text articles for {query}"
                     )
                     return results
+
+    except Exception as e:
+        logger.warning(f"❌ PMC search failed: {e}")
+        return []
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
+async def search_pubmed_central(query: str, limit: int = 5) -> list[dict[str, Any]]:
+    """Search PubMed Central for open access full-text articles with enhanced PDF validation"""
+    client = PubMedCentralClient()
+
+    try:
+        # Get search results
+        results = await _search_pmc_internal(query, limit)
+
+        # Enhance results with PDF validation and metadata normalization
+        enhanced_results = []
+        for result in results:
+            # Apply base client standardization (includes metadata normalization)
+            standardized = client._standardize_paper(result)
+
+            # Enhance with PDF validation (async operation)
+            enhanced = await client._enhance_pdf_availability(standardized)
+            enhanced_results.append(enhanced)
+
+        logger.info(
+            f"✅ PMC: Found {len(enhanced_results)} enhanced results for '{query}'"
+        )
+        return enhanced_results
 
     except Exception as e:
         logger.warning(f"❌ PMC search failed: {e}")
