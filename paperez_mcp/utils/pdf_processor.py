@@ -37,26 +37,40 @@ async def extract_pdf_text(pdf_url: str) -> dict[str, Any]:
 
             if response.status_code == 200:
                 html_content = response.text
-                soup = BeautifulSoup(html_content, 'html.parser')
+                soup = BeautifulSoup(html_content, "html.parser")
 
                 # Extract title
-                title_elem = soup.find('h1', class_='title')
-                title = title_elem.get_text().replace('Title:', '').strip() if title_elem else "Unknown Title"
+                title_elem = soup.find("h1", class_="title")
+                title = (
+                    title_elem.get_text().replace("Title:", "").strip()
+                    if title_elem
+                    else "Unknown Title"
+                )
 
                 # Extract abstract
-                abstract_elem = soup.find('blockquote', class_='abstract')
-                abstract = abstract_elem.get_text().replace('Abstract:', '').strip() if abstract_elem else ""
+                abstract_elem = soup.find("blockquote", class_="abstract")
+                abstract = (
+                    abstract_elem.get_text().replace("Abstract:", "").strip()
+                    if abstract_elem
+                    else ""
+                )
 
                 # Extract authors
-                authors_elem = soup.find('div', class_='authors')
-                authors = authors_elem.get_text().replace('Authors:', '').strip() if authors_elem else ""
+                authors_elem = soup.find("div", class_="authors")
+                authors = (
+                    authors_elem.get_text().replace("Authors:", "").strip()
+                    if authors_elem
+                    else ""
+                )
 
                 # Check for source files link
-                source_link = soup.find(name='a', string='Other formats')
+                source_link = soup.find(name="a", string="Other formats")
                 source_available = bool(source_link)
 
                 if abstract or title:
-                    full_text = f"Title: {title}\n\nAuthors: {authors}\n\nAbstract:\n{abstract}"
+                    full_text = (
+                        f"Title: {title}\n\nAuthors: {authors}\n\nAbstract:\n{abstract}"
+                    )
                     if source_available:
                         full_text += f"\n\nNote: LaTeX source files are available at {abstract_url.replace('/abs/', '/format/')}"
 
@@ -66,7 +80,7 @@ async def extract_pdf_text(pdf_url: str) -> dict[str, Any]:
                         "pdf_url": pdf_url,
                         "abstract_url": abstract_url,
                         "source_available": source_available,
-                        "success": True
+                        "success": True,
                     }
                     cache.set(cache_key, result, expire=86400 * 30)
                     return result
@@ -103,7 +117,7 @@ async def extract_pdf_text(pdf_url: str) -> dict[str, Any]:
                     "num_pages": num_pages,
                     "extraction_method": "PyMuPDF",
                     "pdf_url": pdf_url,
-                    "success": True
+                    "success": True,
                 }
                 cache.set(cache_key, result, expire=86400 * 30)
                 return result
@@ -115,7 +129,7 @@ async def extract_pdf_text(pdf_url: str) -> dict[str, Any]:
     return {
         "success": False,
         "error": "PDF extraction failed - trying fallback methods",
-        "pdf_url": pdf_url
+        "pdf_url": pdf_url,
     }
 
 
@@ -125,7 +139,7 @@ def extract_pdf_text_from_local_file(file_path: str) -> dict[str, Any]:
         return {
             "success": False,
             "error": f"File not found: {file_path}",
-            "file_path": file_path
+            "file_path": file_path,
         }
 
     try:
@@ -155,24 +169,26 @@ def extract_pdf_text_from_local_file(file_path: str) -> dict[str, Any]:
                 "file_size": file_size,
                 "text_length": len(full_text),
                 "extraction_method": "PyMuPDF Local",
-                "file_path": file_path
+                "file_path": file_path,
             }
         else:
             return {
                 "success": False,
                 "error": "PDF extraction failed - no text found",
-                "file_path": file_path
+                "file_path": file_path,
             }
 
     except Exception as e:
         return {
             "success": False,
             "error": f"PDF extraction failed: {str(e)}",
-            "file_path": file_path
+            "file_path": file_path,
         }
 
 
-def convert_pdf_to_markdown_content(file_path: str, title: str = "", authors: list[Any] | None = None) -> dict[str, Any]:
+def convert_pdf_to_markdown_content(
+    file_path: str, title: str = "", authors: list[Any] | None = None
+) -> dict[str, Any]:
     """Convert a local PDF file to formatted markdown content"""
 
     # First extract the PDF text
@@ -190,14 +206,14 @@ def convert_pdf_to_markdown_content(file_path: str, title: str = "", authors: li
             markdown.append(f"# {title}")
         else:
             # Try to extract title from first few lines
-            text_lines = pdf_result["text"].split('\n')[:10]
+            text_lines = pdf_result["text"].split("\n")[:10]
             for line in text_lines:
                 line = line.strip()
                 if line and len(line) > 10 and len(line) < 200:
                     markdown.append(f"# {line}")
                     break
             else:
-                filename = Path(file_path).stem.replace('_', ' ').title()
+                filename = Path(file_path).stem.replace("_", " ").title()
                 markdown.append(f"# {filename}")
 
         # Authors section
@@ -210,8 +226,12 @@ def convert_pdf_to_markdown_content(file_path: str, title: str = "", authors: li
         markdown.append("\n## Document Metadata")
         markdown.append(f"- **File**: {Path(file_path).name}")
         markdown.append(f"- **Pages**: {pdf_result.get('num_pages', 0)}")
-        markdown.append(f"- **Text Length**: {pdf_result.get('text_length', 0):,} characters")
-        markdown.append(f"- **Extraction Method**: {pdf_result.get('extraction_method', 'Unknown')}")
+        markdown.append(
+            f"- **Text Length**: {pdf_result.get('text_length', 0):,} characters"
+        )
+        markdown.append(
+            f"- **Extraction Method**: {pdf_result.get('extraction_method', 'Unknown')}"
+        )
 
         # Full text content with page breaks
         markdown.append("\n## Full Text Content")
@@ -222,7 +242,11 @@ def convert_pdf_to_markdown_content(file_path: str, title: str = "", authors: li
 
         for _i, page_content in enumerate(pages[1:], 1):  # Skip first empty split
             page_number = page_content.split(" ---")[0]
-            page_text = page_content.split(" ---", 1)[1] if " ---" in page_content else page_content
+            page_text = (
+                page_content.split(" ---", 1)[1]
+                if " ---" in page_content
+                else page_content
+            )
 
             markdown.append(f"\n### Page {page_number}")
             markdown.append(f"\n{page_text.strip()}")
@@ -234,13 +258,13 @@ def convert_pdf_to_markdown_content(file_path: str, title: str = "", authors: li
             "markdown": markdown_content,
             "markdown_length": len(markdown_content),
             "original_file": file_path,
-            "pages_extracted": pdf_result.get('num_pages', 0),
-            "text_length": pdf_result.get('text_length', 0)
+            "pages_extracted": pdf_result.get("num_pages", 0),
+            "text_length": pdf_result.get("text_length", 0),
         }
 
     except Exception as e:
         return {
             "success": False,
             "error": f"Markdown conversion failed: {str(e)}",
-            "file_path": file_path
+            "file_path": file_path,
         }

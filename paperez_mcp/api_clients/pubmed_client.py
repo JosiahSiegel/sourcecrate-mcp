@@ -25,34 +25,36 @@ def _parse_pmc_xml(xml_content: str) -> list[dict[str, Any]]:
         root = ET.fromstring(xml_content)
 
         # PMC XML structure: pmc-articleset > article
-        for article in root.findall('.//article'):
+        for article in root.findall(".//article"):
             try:
                 # Extract article metadata
-                front = article.find('.//front')
+                front = article.find(".//front")
                 if front is None:
                     continue
 
-                article_meta = front.find('.//article-meta')
+                article_meta = front.find(".//article-meta")
                 if article_meta is None:
                     continue
 
                 # Extract title
-                title_group = article_meta.find('.//title-group')
+                title_group = article_meta.find(".//title-group")
                 title = ""
                 if title_group is not None:
-                    article_title = title_group.find('article-title')
+                    article_title = title_group.find("article-title")
                     if article_title is not None:
-                        title = ''.join(article_title.itertext()).strip()
+                        title = "".join(article_title.itertext()).strip()
 
                 # Extract authors
                 authors = []
-                contrib_group = article_meta.find('.//contrib-group')
+                contrib_group = article_meta.find(".//contrib-group")
                 if contrib_group is not None:
-                    for contrib in contrib_group.findall('.//contrib[@contrib-type="author"]'):
-                        name = contrib.find('.//name')
+                    for contrib in contrib_group.findall(
+                        './/contrib[@contrib-type="author"]'
+                    ):
+                        name = contrib.find(".//name")
                         if name is not None:
-                            surname = name.find('surname')
-                            given_names = name.find('given-names')
+                            surname = name.find("surname")
+                            given_names = name.find("given-names")
                             if surname is not None:
                                 author_name = surname.text or ""
                                 if given_names is not None and given_names.text:
@@ -61,25 +63,27 @@ def _parse_pmc_xml(xml_content: str) -> list[dict[str, Any]]:
 
                 # Extract abstract
                 abstract = ""
-                abstract_elem = article_meta.find('.//abstract')
+                abstract_elem = article_meta.find(".//abstract")
                 if abstract_elem is not None:
-                    abstract = ''.join(abstract_elem.itertext()).strip()
+                    abstract = "".join(abstract_elem.itertext()).strip()
 
                 # Extract journal
                 journal = ""
-                journal_meta = front.find('.//journal-meta')
+                journal_meta = front.find(".//journal-meta")
                 if journal_meta is not None:
-                    journal_title = journal_meta.find('.//journal-title')
+                    journal_title = journal_meta.find(".//journal-title")
                     if journal_title is not None:
                         journal = journal_title.text or ""
 
                 # Extract publication date/year
                 year = None
-                pub_date = article_meta.find('.//pub-date[@pub-type="epub"]') or \
-                          article_meta.find('.//pub-date[@pub-type="ppub"]') or \
-                          article_meta.find('.//pub-date')
+                pub_date = (
+                    article_meta.find('.//pub-date[@pub-type="epub"]')
+                    or article_meta.find('.//pub-date[@pub-type="ppub"]')
+                    or article_meta.find(".//pub-date")
+                )
                 if pub_date is not None:
-                    year_elem = pub_date.find('year')
+                    year_elem = pub_date.find("year")
                     if year_elem is not None and year_elem.text:
                         try:
                             year = int(year_elem.text)
@@ -88,16 +92,16 @@ def _parse_pmc_xml(xml_content: str) -> list[dict[str, Any]]:
 
                 # Extract DOI
                 doi = None
-                article_ids = article_meta.findall('.//article-id')
+                article_ids = article_meta.findall(".//article-id")
                 for article_id in article_ids:
-                    if article_id.get('pub-id-type') == 'doi':
+                    if article_id.get("pub-id-type") == "doi":
                         doi = article_id.text
                         break
 
                 # Extract PMC ID
                 pmc_id = None
                 for article_id in article_ids:
-                    if article_id.get('pub-id-type') == 'pmcid':
+                    if article_id.get("pub-id-type") == "pmcid":
                         pmc_id = article_id.text  # Already includes PMC prefix
                         break
 
@@ -111,11 +115,27 @@ def _parse_pmc_xml(xml_content: str) -> list[dict[str, Any]]:
                         "pmc_id": pmc_id,
                         "doi": doi,
                         "source": "PubMed Central",
-                        "url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/" if pmc_id else "",
-                        "pdf_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/pdf/" if pmc_id else None,
-                        "open_access_pdf": f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/pdf/" if pmc_id else None,
-                        "full_text_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/" if pmc_id else "",
-                        "citation_count": 0  # PMC doesn't provide citation counts directly
+                        "url": (
+                            f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/"
+                            if pmc_id
+                            else ""
+                        ),
+                        "pdf_url": (
+                            f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/pdf/"
+                            if pmc_id
+                            else None
+                        ),
+                        "open_access_pdf": (
+                            f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/pdf/"
+                            if pmc_id
+                            else None
+                        ),
+                        "full_text_url": (
+                            f"https://www.ncbi.nlm.nih.gov/pmc/articles/{pmc_id}/"
+                            if pmc_id
+                            else ""
+                        ),
+                        "citation_count": 0,  # PMC doesn't provide citation counts directly
                     }
                     results.append(result)
 
@@ -137,12 +157,7 @@ async def _check_pmc_availability(pmid: str) -> dict[str, str]:
     try:
         # Use NCBI elink to find PMC ID
         elink_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/elink.fcgi"
-        params = {
-            "dbfrom": "pubmed",
-            "db": "pmc",
-            "id": pmid,
-            "retmode": "json"
-        }
+        params = {"dbfrom": "pubmed", "db": "pmc", "id": pmid, "retmode": "json"}
 
         async with aiohttp.ClientSession() as session:
             async with session.get(elink_url, params=params) as response:
@@ -160,7 +175,7 @@ async def _check_pmc_availability(pmid: str) -> dict[str, str]:
                                     return {
                                         "pmc_id": f"PMC{pmc_id}",
                                         "pdf_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/pdf/",
-                                        "full_text_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/"
+                                        "full_text_url": f"https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{pmc_id}/",
                                     }
     except Exception as e:
         logger.debug(f"PMC availability check failed for PMID {pmid}: {e}")
@@ -177,6 +192,7 @@ async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
         return cached  # type: ignore[no-any-return]
 
     try:
+
         def _search_pubmed() -> list[dict[str, Any]]:
             pubmed = PubMed(tool="paperez-mcp", email=config.crossref_email)
             results = []
@@ -187,12 +203,20 @@ async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
                     "authors": [str(author) for author in (article.authors or [])],
                     "abstract": article.abstract,
                     "journal": article.journal,
-                    "year": article.publication_date.year if article.publication_date else None,
+                    "year": (
+                        article.publication_date.year
+                        if article.publication_date
+                        else None
+                    ),
                     "pubmed_id": article.pubmed_id,
                     "doi": article.doi,
                     "source": "PubMed",
-                    "url": f"https://pubmed.ncbi.nlm.nih.gov/{article.pubmed_id}/" if article.pubmed_id else "",
-                    "citation_count": 0  # PubMed doesn't provide citation counts
+                    "url": (
+                        f"https://pubmed.ncbi.nlm.nih.gov/{article.pubmed_id}/"
+                        if article.pubmed_id
+                        else ""
+                    ),
+                    "citation_count": 0,  # PubMed doesn't provide citation counts
                 }
                 results.append(result)
             return results
@@ -213,7 +237,9 @@ async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
         # Cache for 1 hour
         cache.set(cache_key, enhanced_results, expire=3600)
         pmc_count = sum(1 for r in enhanced_results if r.get("pmc_id"))
-        logger.info(f"✅ PubMed: Found {len(enhanced_results)} results ({pmc_count} with PMC full-text) for '{query}'")
+        logger.info(
+            f"✅ PubMed: Found {len(enhanced_results)} results ({pmc_count} with PMC full-text) for '{query}'"
+        )
         return enhanced_results
 
     except Exception as e:
@@ -238,7 +264,7 @@ async def search_pubmed_central(query: str, limit: int = 5) -> list[dict[str, An
             "term": query,
             "retmax": str(limit),
             "retmode": "json",
-            "sort": "relevance"
+            "sort": "relevance",
         }
 
         async with aiohttp.ClientSession() as session:
@@ -257,15 +283,15 @@ async def search_pubmed_central(query: str, limit: int = 5) -> list[dict[str, An
 
                 # Fetch detailed information for found articles
                 fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
-                fetch_params = {
-                    "db": "pmc",
-                    "id": ",".join(pmc_ids),
-                    "retmode": "xml"
-                }
+                fetch_params = {"db": "pmc", "id": ",".join(pmc_ids), "retmode": "xml"}
 
-                async with session.get(fetch_url, params=fetch_params) as fetch_response:
+                async with session.get(
+                    fetch_url, params=fetch_params
+                ) as fetch_response:
                     if fetch_response.status != 200:
-                        logger.warning(f"PMC fetch failed with status {fetch_response.status}")
+                        logger.warning(
+                            f"PMC fetch failed with status {fetch_response.status}"
+                        )
                         return []
 
                     # Parse XML response to extract real article metadata
@@ -274,7 +300,9 @@ async def search_pubmed_central(query: str, limit: int = 5) -> list[dict[str, An
 
                     # Cache for 1 hour
                     cache.set(cache_key, results, expire=3600)
-                    logger.info(f"✅ PMC: Found {len(results)} full-text articles for {query}")
+                    logger.info(
+                        f"✅ PMC: Found {len(results)} full-text articles for {query}"
+                    )
                     return results
 
     except Exception as e:

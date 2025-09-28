@@ -18,7 +18,7 @@ def check_pdf_dependencies():
         ("pymupdf4llm", "pymupdf4llm"),
         ("pdfplumber", "pdfplumber"),
         ("lxml", "lxml"),
-        ("beautifulsoup4", "bs4")
+        ("beautifulsoup4", "bs4"),
     ]
 
     missing_deps = []
@@ -57,7 +57,7 @@ def check_core_dependencies():
         ("arxiv", "arxiv"),
         ("pymed", "pymed"),
         ("semanticscholar", "semanticscholar"),
-        ("free-proxy", "free_proxy")
+        ("free-proxy", "fp.fp"),
     ]
 
     missing_deps = []
@@ -91,7 +91,7 @@ def check_dev_dependencies():
         ("mypy", "mypy"),
         ("types-PyYAML", None),  # Type stubs don't have importable modules
         ("types-requests", None),
-        ("types-beautifulsoup4", None)
+        ("types-beautifulsoup4", None),
     ]
 
     missing_deps = []
@@ -101,9 +101,13 @@ def check_dev_dependencies():
             # For type stubs, just check if they're installed via pip
             try:
                 result = subprocess.run(
-                    [sys.executable, "-c", f"import pkg_resources; pkg_resources.get_distribution('{dep_name}')"],
+                    [
+                        sys.executable,
+                        "-c",
+                        f"import pkg_resources; pkg_resources.get_distribution('{dep_name}')",
+                    ],
                     capture_output=True,
-                    text=True
+                    text=True,
                 )
                 if result.returncode == 0:
                     print(f"  ✓ {dep_name} available")

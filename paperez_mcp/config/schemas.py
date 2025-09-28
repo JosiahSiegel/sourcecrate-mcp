@@ -18,18 +18,24 @@ class SourceProviderConfig(BaseModel):
     """Configuration for a search source provider."""
 
     name: str = Field(..., description="Unique identifier for the source")
-    type: Literal["builtin", "plugin", "http_api"] = Field(..., description="Source type")
+    type: Literal["builtin", "plugin", "http_api"] = Field(
+        ..., description="Source type"
+    )
     enabled: bool = Field(True, description="Whether source is enabled")
 
     # For builtin sources
-    function_name: str | None = Field(None, description="Function name for builtin sources")
+    function_name: str | None = Field(
+        None, description="Function name for builtin sources"
+    )
 
     # For plugin sources
     module_path: str | None = Field(None, description="Python module path for plugin")
     class_name: str | None = Field(None, description="Class name for plugin")
 
     # Source configuration
-    config: dict[str, Any] = Field(default_factory=dict, description="Source-specific configuration")
+    config: dict[str, Any] = Field(
+        default_factory=dict, description="Source-specific configuration"
+    )
 
     # Performance settings
     timeout: int = Field(30, description="Request timeout in seconds")
@@ -67,12 +73,20 @@ class CategoryConfig(BaseModel):
     type: Literal["standard", "meta"] = Field("standard", description="Category type")
 
     # For standard categories
-    sources: list[str] = Field(default_factory=list, description="Source names to search")
+    sources: list[str] = Field(
+        default_factory=list, description="Source names to search"
+    )
 
     # For meta categories
-    includes: list[str] = Field(default_factory=list, description="Categories to include in meta search")
-    merge_strategy: Literal["union", "weighted_union", "intersection"] = Field("union", description="How to merge results")
-    weights: dict[str, float] = Field(default_factory=dict, description="Category weights for weighted merge")
+    includes: list[str] = Field(
+        default_factory=list, description="Categories to include in meta search"
+    )
+    merge_strategy: Literal["union", "weighted_union", "intersection"] = Field(
+        "union", description="How to merge results"
+    )
+    weights: dict[str, float] = Field(
+        default_factory=dict, description="Category weights for weighted merge"
+    )
 
     # Search behavior
     max_results_per_source: int = Field(5, description="Max results per source")
@@ -96,16 +110,40 @@ class QueryRoutingConfig(BaseModel):
     """Configuration for intelligent query routing."""
 
     enabled: bool = Field(True, description="Enable smart routing")
-    fallback_enabled: bool = Field(True, description="Enable fallback to comprehensive sources")
+    fallback_enabled: bool = Field(
+        True, description="Enable fallback to comprehensive sources"
+    )
 
     # Domain detection
     domain_keywords: dict[str, list[str]] = Field(
         default_factory=lambda: {
-            "medical": ["medical", "clinical", "patient", "treatment", "therapy", "disease", "diagnosis", "health"],
-            "computer_science": ["algorithm", "machine learning", "artificial intelligence", "neural", "deep learning"],
-            "physics": ["quantum", "physics", "engineering", "materials", "energy", "electromagnetic"]
+            "medical": [
+                "medical",
+                "clinical",
+                "patient",
+                "treatment",
+                "therapy",
+                "disease",
+                "diagnosis",
+                "health",
+            ],
+            "computer_science": [
+                "algorithm",
+                "machine learning",
+                "artificial intelligence",
+                "neural",
+                "deep learning",
+            ],
+            "physics": [
+                "quantum",
+                "physics",
+                "engineering",
+                "materials",
+                "energy",
+                "electromagnetic",
+            ],
         },
-        description="Keywords for domain detection"
+        description="Keywords for domain detection",
     )
 
     # Category mapping for domains
@@ -114,9 +152,9 @@ class QueryRoutingConfig(BaseModel):
             "medical": "medical",
             "computer_science": "preprints",
             "physics": "preprints",
-            "general": None  # Use intelligent routing for general queries
+            "general": None,  # Use intelligent routing for general queries
         },
-        description="Default categories for detected domains"
+        description="Default categories for detected domains",
     )
 
 
@@ -127,25 +165,28 @@ class PaperezConfig(BaseModel):
 
     # Source providers
     sources: dict[str, SourceProviderConfig] = Field(
-        default_factory=dict,
-        description="Available source providers"
+        default_factory=dict, description="Available source providers"
     )
 
     # Categories
     categories: dict[str, CategoryConfig] = Field(
-        default_factory=dict,
-        description="Search categories"
+        default_factory=dict, description="Search categories"
     )
 
     # Query routing
     routing: QueryRoutingConfig = Field(
         default_factory=lambda: QueryRoutingConfig(enabled=True, fallback_enabled=True),
-        description="Query routing configuration"
+        description="Query routing configuration",
     )
 
     # Global settings
-    default_category: str | None = Field(None, description="Default category when none specified (null = intelligent routing)")
-    max_concurrent_searches: int = Field(10, description="Maximum concurrent source searches")
+    default_category: str | None = Field(
+        None,
+        description="Default category when none specified (null = intelligent routing)",
+    )
+    max_concurrent_searches: int = Field(
+        10, description="Maximum concurrent source searches"
+    )
 
     # Cache settings
     global_cache_enabled: bool = Field(True, description="Enable global caching")
@@ -156,7 +197,9 @@ class PaperezConfig(BaseModel):
     cleanup_temp_files: bool = Field(True, description="Clean up temporary files")
 
     # User control options
-    use_default_sources: bool = Field(True, description="Enable built-in default sources")
+    use_default_sources: bool = Field(
+        True, description="Enable built-in default sources"
+    )
 
     # TODO: Fix validators for Pydantic V2
     # @validator('default_category')
@@ -198,13 +241,19 @@ class PaperezConfig(BaseModel):
             if category.type == "standard":
                 for source_name in category.sources:
                     if source_name not in self.sources:
-                        warnings.append(f"Category '{cat_name}' references unknown source '{source_name}'")
+                        warnings.append(
+                            f"Category '{cat_name}' references unknown source '{source_name}'"
+                        )
                     elif not self.sources[source_name].enabled:
-                        warnings.append(f"Category '{cat_name}' references disabled source '{source_name}'")
+                        warnings.append(
+                            f"Category '{cat_name}' references disabled source '{source_name}'"
+                        )
             elif category.type == "meta":
                 for included_cat in category.includes:
                     if included_cat not in self.categories:
-                        warnings.append(f"Meta-category '{cat_name}' includes unknown category '{included_cat}'")
+                        warnings.append(
+                            f"Meta-category '{cat_name}' includes unknown category '{included_cat}'"
+                        )
 
         # Check for circular meta-category references
         def check_circular(cat_name: str, visited: set[Any] | None = None) -> bool:
@@ -220,7 +269,9 @@ class PaperezConfig(BaseModel):
                 visited.add(cat_name)
                 for included in category.includes:
                     if check_circular(included, visited.copy()):
-                        warnings.append(f"Circular reference detected in meta-category '{cat_name}'")
+                        warnings.append(
+                            f"Circular reference detected in meta-category '{cat_name}'"
+                        )
                         return True
             return False
 

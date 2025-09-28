@@ -11,7 +11,9 @@ from urllib.parse import urlparse
 import httpx
 
 
-async def download_pdf(pdf_url: str, output_dir: str = ".paperez", title: str | None = None) -> dict[str, Any]:
+async def download_pdf(
+    pdf_url: str, output_dir: str = ".paperez", title: str | None = None
+) -> dict[str, Any]:
     """
     Download a PDF from URL to local directory.
 
@@ -31,8 +33,10 @@ async def download_pdf(pdf_url: str, output_dir: str = ".paperez", title: str | 
         if title:
             # Use paper title for readable filename
             filename = title[:50]  # Truncate to reasonable length
-            filename = "".join(c for c in filename if c.isalnum() or c in (' ', '-', '_')).rstrip()
-            filename = re.sub(r'\s+', ' ', filename)  # Normalize whitespace
+            filename = "".join(
+                c for c in filename if c.isalnum() or c in (" ", "-", "_")
+            ).rstrip()
+            filename = re.sub(r"\s+", " ", filename)  # Normalize whitespace
             if not filename:  # If title sanitization results in empty string
                 filename = "unknown_paper"
         else:
@@ -40,12 +44,12 @@ async def download_pdf(pdf_url: str, output_dir: str = ".paperez", title: str | 
             paper_id = None
             if "arxiv.org" in pdf_url:
                 # Extract arXiv ID
-                match = re.search(r'(\d{4}\.\d{4,5})', pdf_url)
+                match = re.search(r"(\d{4}\.\d{4,5})", pdf_url)
                 if match:
                     paper_id = f"arxiv_{match.group(1)}"
             elif "doi.org" in pdf_url:
                 # Extract DOI
-                match = re.search(r'10\.\d+/(.+)', pdf_url)
+                match = re.search(r"10\.\d+/(.+)", pdf_url)
                 if match:
                     paper_id = f"doi_{match.group(1).replace('/', '_')}"
 
@@ -55,7 +59,7 @@ async def download_pdf(pdf_url: str, output_dir: str = ".paperez", title: str | 
                 paper_id = Path(parsed.path).stem or "unknown_paper"
 
             # Clean filename
-            filename = re.sub(r'[^\w\-_\.]', '_', paper_id)
+            filename = re.sub(r"[^\w\-_\.]", "_", paper_id)
 
         pdf_path = os.path.join(output_dir, f"{filename}.pdf")
 
@@ -64,26 +68,23 @@ async def download_pdf(pdf_url: str, output_dir: str = ".paperez", title: str | 
             response = await client.get(pdf_url)
 
             if response.status_code == 200:
-                with open(pdf_path, 'wb') as f:
+                with open(pdf_path, "wb") as f:
                     f.write(response.content)
 
                 return {
                     "success": True,
                     "pdf_path": pdf_path,
                     "file_size": len(response.content),
-                    "filename": filename
+                    "filename": filename,
                 }
             else:
                 return {
                     "success": False,
-                    "error": f"Failed to download PDF: HTTP {response.status_code}"
+                    "error": f"Failed to download PDF: HTTP {response.status_code}",
                 }
 
     except Exception as e:
-        return {
-            "success": False,
-            "error": f"Download failed: {str(e)}"
-        }
+        return {"success": False, "error": f"Download failed: {str(e)}"}
 
 
 def save_markdown_file(markdown_content: str, file_path: str) -> dict[str, Any]:
@@ -102,17 +103,14 @@ def save_markdown_file(markdown_content: str, file_path: str) -> dict[str, Any]:
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         # Save markdown
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(markdown_content)
 
         return {
             "success": True,
             "markdown_path": file_path,
-            "markdown_characters": len(markdown_content)
+            "markdown_characters": len(markdown_content),
         }
 
     except Exception as e:
-        return {
-            "success": False,
-            "error": f"Failed to save markdown: {str(e)}"
-        }
+        return {"success": False, "error": f"Failed to save markdown: {str(e)}"}

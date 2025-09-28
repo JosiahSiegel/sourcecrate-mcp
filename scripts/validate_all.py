@@ -19,8 +19,7 @@ def run_validation_script(script_name: str, description: str) -> bool:
 
     try:
         result = subprocess.run(  # noqa: S603
-            [sys.executable, str(script_path)],
-            check=False
+            [sys.executable, str(script_path)], check=False
         )
         return result.returncode == 0
     except Exception as e:

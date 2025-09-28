@@ -19,8 +19,4 @@ Or use the CLI:
 
 from .simple import create_plugin, list_plugins, register_plugin
 
-__all__ = [
-    'create_plugin',
-    'register_plugin',
-    'list_plugins'
-]
+__all__ = ["create_plugin", "register_plugin", "list_plugins"]

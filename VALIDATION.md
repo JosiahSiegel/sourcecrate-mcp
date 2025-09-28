@@ -1,127 +1,112 @@
-# Validation System
+# Validation Guide
 
-## Overview
+## Quick Validation
+```bash
+python3 scripts/validate_all.py
+```
 
-This repository uses a comprehensive shared validation system that ensures identical checks between local development and CI environments. **All validation checks are mandatory** - there are no optional checks or warnings that allow broken code to pass.
+## Installing Dependencies in Restricted Environments
 
-## Shared Validation Scripts
+### Method 1: System Package Manager Override
+```bash
+pip install black ruff mypy pytest pytest-asyncio --break-system-packages
+```
 
-All validation is performed using shared scripts in the `scripts/` directory:
+### Method 2: Virtual Environment (Recommended)
+```bash
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
+pip install -e .[dev]
+python3 scripts/validate_all.py
+```
 
-- **`scripts/validate_dependencies.py`** - Validates ALL dependencies (core, PDF, dev)
-- **`scripts/validate_imports.py`** - Tests imports and MCP server structure
-- **`scripts/validate_code_quality.py`** - Runs syntax, ruff, mypy, black checks
-- **`scripts/validate_all.py`** - Master script that runs all validations
+### Method 3: User Directory Installation
+```bash
+pip install --user black ruff mypy pytest pytest-asyncio
+```
 
 ## Required Dependencies
 
+### Development Tools
+- `black` - Code formatting
+- `ruff` - Linting
+- `mypy` - Type checking
+- `pytest` - Testing framework
+- `pytest-asyncio` - Async test support
+
 ### Core Dependencies
 ```bash
-pip install fastmcp scholarly httpx aiohttp requests tenacity diskcache asyncio-throttle fake-useragent arxiv pymed semanticscholar free-proxy
+pip install fastmcp scholarly httpx aiohttp requests tenacity diskcache asyncio-throttle fake-useragent arxiv pymed semanticscholar free-proxy PyMuPDF pymupdf4llm pdfplumber lxml beautifulsoup4
 ```
 
-### PDF Processing Dependencies
+### Type Stubs
 ```bash
-pip install PyMuPDF pymupdf4llm pdfplumber lxml beautifulsoup4
+pip install types-PyYAML types-requests types-beautifulsoup4
 ```
 
-### Development Dependencies
+## Individual Validation Commands
+
+### Dependencies
 ```bash
-pip install pytest pytest-asyncio black ruff mypy types-PyYAML types-requests types-beautifulsoup4
-```
-
-## Validation Checks
-
-### 1. Dependency Validation
-- **ALL** core dependencies must be installed
-- **ALL** PDF processing dependencies must be installed
-- **ALL** development dependencies must be installed
-- **NO** optional dependencies - everything is required
-
-### 2. Import & Structure Validation
-- All core modules must import successfully
-- Configuration system must load properly
-- All 7 MCP tools must be available and structured correctly
-
-### 3. Code Quality Validation
-- **Python syntax** must be valid for all `.py` files
-- **Ruff linting** must pass with zero issues
-- **MyPy type checking** must pass with zero errors
-- **Black formatting** must be correct
-
-## Precommit Hook Behavior
-
-The precommit hook runs `scripts/validate_all.py` which performs ALL validation checks:
-
-```bash
-# This runs automatically on git commit
-python3 scripts/validate_all.py
-```
-
-**If ANY validation check fails, the commit is rejected.**
-
-## CI Workflow Behavior
-
-The CI workflow uses the same validation scripts to ensure identical behavior:
-
-```yaml
-- name: Validate dependencies using shared script
-  run: python scripts/validate_dependencies.py
-
-- name: Validate imports and functionality using shared script
-  run: python scripts/validate_imports.py
-
-- name: Validate code quality using shared script
-  run: python scripts/validate_code_quality.py
-```
-
-## Benefits
-
-✅ **No false positives** - If validation passes locally, it passes in CI
-✅ **No missing dependencies** - All required packages are checked
-✅ **No formatting issues** - Black formatting is enforced
-✅ **No type errors** - MyPy checking is mandatory
-✅ **No linting issues** - Ruff linting must pass
-✅ **Consistent environments** - Local and CI use identical validation
-
-## Troubleshooting
-
-### Missing Dependencies
-```bash
-❌ Missing required core dependencies: free-proxy
-Install with: pip install free-proxy
-```
-
-### Black Formatting Issues
-```bash
-❌ Black formatting issues found:
-Run 'black paperez_mcp/ scripts/' to fix formatting
-```
-
-### Ruff Linting Issues
-```bash
-❌ Ruff linting failed!
-Run 'ruff check paperez_mcp/ --fix' to auto-fix issues
-```
-
-### MyPy Type Issues
-```bash
-❌ MyPy type checking failed!
-Run 'mypy paperez_mcp/ --ignore-missing-imports' to see details
-```
-
-## Manual Validation
-
-Run validation manually at any time:
-
-```bash
-# Run all validations
-python3 scripts/validate_all.py
-
-# Run individual validations
 python3 scripts/validate_dependencies.py
+```
+
+### Imports & Structure
+```bash
 python3 scripts/validate_imports.py
+```
+
+### Code Quality
+```bash
 python3 scripts/validate_code_quality.py
 ```
 
-This strict validation system ensures high code quality and prevents issues from reaching production.
+## Manual Commands (if scripts fail)
+
+### Syntax Check
+```bash
+python3 -m py_compile paperez_mcp_server.py
+python3 -c "import py_compile; [py_compile.compile(f, doraise=True) for f in __import__('pathlib').Path('paperez_mcp').rglob('*.py')]"
+```
+
+### Linting
+```bash
+ruff check paperez_mcp/
+```
+
+### Type Checking
+```bash
+mypy paperez_mcp/ --ignore-missing-imports
+```
+
+### Formatting Check
+```bash
+black --check paperez_mcp/ scripts/
+```
+
+### Auto-fix Formatting
+```bash
+black paperez_mcp/ scripts/
+```
+
+## Troubleshooting
+
+### "externally-managed-environment" Error
+Use `--break-system-packages` or virtual environment.
+
+### Import Errors
+- Check dependency installation: `pip list | grep <package>`
+- Verify Python path: `python3 -c "import sys; print(sys.path)"`
+
+### Permission Errors
+- Use `--user` flag for user installation
+- Create virtual environment with `python3 -m venv`
+
+## CI Integration
+
+The validation scripts are used by:
+- `.git/hooks/pre-commit` (local)
+- `.github/workflows/test-mcp-install.yml` (CI)
+
+Both environments run identical validation ensuring consistency.

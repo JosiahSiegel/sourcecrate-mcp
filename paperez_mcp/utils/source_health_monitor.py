@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SourceMetrics:
     """Health metrics for a single source"""
+
     source_name: str
     total_requests: int = 0
     successful_requests: int = 0
@@ -42,7 +43,9 @@ class SourceMetrics:
 
         # Update average response time
         if self.recent_response_times:
-            self.average_response_time = sum(self.recent_response_times) / len(self.recent_response_times)
+            self.average_response_time = sum(self.recent_response_times) / len(
+                self.recent_response_times
+            )
 
         self._calculate_health_score()
 
@@ -75,20 +78,28 @@ class SourceMetrics:
         # Penalty for low result counts
         result_penalty = 0.0
         if self.recent_result_counts:
-            avg_results = sum(self.recent_result_counts) / len(self.recent_result_counts)
+            avg_results = sum(self.recent_result_counts) / len(
+                self.recent_result_counts
+            )
             if avg_results < 1.0:  # Very few results consistently
                 result_penalty = 0.1
 
         # Calculate final score
-        self.health_score = max(0.0, success_rate - consecutive_penalty - response_penalty - result_penalty)
+        self.health_score = max(
+            0.0, success_rate - consecutive_penalty - response_penalty - result_penalty
+        )
         return self.health_score
 
     def is_healthy(self) -> bool:
         """Check if source is considered healthy"""
-        return (self.health_score > 0.5 and
-                self.consecutive_failures < 3 and
-                (self.last_success_time is None or
-                 (datetime.now() - self.last_success_time).total_seconds() < 3600))  # Success within last hour
+        return (
+            self.health_score > 0.5
+            and self.consecutive_failures < 3
+            and (
+                self.last_success_time is None
+                or (datetime.now() - self.last_success_time).total_seconds() < 3600
+            )
+        )  # Success within last hour
 
     def get_status_summary(self) -> dict[str, Any]:
         """Get a summary of source status"""
@@ -96,12 +107,18 @@ class SourceMetrics:
             "source": self.source_name,
             "health_score": round(self.health_score, 3),
             "is_healthy": self.is_healthy(),
-            "success_rate": round(self.successful_requests / max(1, self.total_requests), 3),
+            "success_rate": round(
+                self.successful_requests / max(1, self.total_requests), 3
+            ),
             "average_response_time": round(self.average_response_time, 2),
             "consecutive_failures": self.consecutive_failures,
-            "last_success": self.last_success_time.isoformat() if self.last_success_time else None,
-            "last_failure": self.last_failure_time.isoformat() if self.last_failure_time else None,
-            "total_requests": self.total_requests
+            "last_success": (
+                self.last_success_time.isoformat() if self.last_success_time else None
+            ),
+            "last_failure": (
+                self.last_failure_time.isoformat() if self.last_failure_time else None
+            ),
+            "total_requests": self.total_requests,
         }
 
 
@@ -114,14 +131,25 @@ class SourceHealthMonitor:
 
         # Initialize metrics for all known sources
         source_names = [
-            'crossref', 'semantic_scholar', 'arxiv', 'pubmed', 'pubmed_central',
-            'clinicaltrials', 'google_scholar', 'core', 'doaj', 'socarxiv', 'osf_preprints'
+            "crossref",
+            "semantic_scholar",
+            "arxiv",
+            "pubmed",
+            "pubmed_central",
+            "clinicaltrials",
+            "google_scholar",
+            "core",
+            "doaj",
+            "socarxiv",
+            "osf_preprints",
         ]
 
         for source in source_names:
             self.metrics[source] = SourceMetrics(source_name=source)
 
-    async def monitor_request(self, source_name: str, search_func: Any, *args: Any, **kwargs: Any) -> Any:
+    async def monitor_request(
+        self, source_name: str, search_func: Any, *args: Any, **kwargs: Any
+    ) -> Any:
         """Monitor a request to a source and update metrics"""
         if not self.monitoring_enabled or source_name not in self.metrics:
             # If monitoring disabled or unknown source, just call the function
@@ -142,7 +170,9 @@ class SourceHealthMonitor:
             # Update global API status
             api_status[source_name] = True
 
-            logger.debug(f"✅ {source_name}: {result_count} results in {response_time:.2f}s (health: {metrics.health_score:.3f})")
+            logger.debug(
+                f"✅ {source_name}: {result_count} results in {response_time:.2f}s (health: {metrics.health_score:.3f})"
+            )
 
             return results
 
@@ -156,9 +186,13 @@ class SourceHealthMonitor:
             # Update global API status if too many consecutive failures
             if metrics.consecutive_failures >= 3:
                 api_status[source_name] = False
-                logger.warning(f"❌ {source_name}: Marked as unhealthy after {metrics.consecutive_failures} consecutive failures")
+                logger.warning(
+                    f"❌ {source_name}: Marked as unhealthy after {metrics.consecutive_failures} consecutive failures"
+                )
 
-            logger.warning(f"❌ {source_name}: {error_type} in {response_time:.2f}s (health: {metrics.health_score:.3f})")
+            logger.warning(
+                f"❌ {source_name}: {error_type} in {response_time:.2f}s (health: {metrics.health_score:.3f})"
+            )
 
             # Re-raise the exception to maintain normal error handling
             raise
@@ -173,8 +207,8 @@ class SourceHealthMonitor:
                 "total_sources": len(self.metrics),
                 "healthy_sources": 0,
                 "unhealthy_sources": 0,
-                "disabled_sources": 0
-            }
+                "disabled_sources": 0,
+            },
         }
 
         for source_name, metrics in self.metrics.items():
@@ -204,29 +238,35 @@ class SourceHealthMonitor:
         for source_name, metrics in self.metrics.items():
             if not metrics.is_healthy():
                 if metrics.consecutive_failures >= 3:
-                    recommendations.append({
-                        "source": source_name,
-                        "severity": "high",
-                        "issue": "Multiple consecutive failures",
-                        "recommendation": "Check API credentials and network connectivity",
-                        "action": f"Investigate {source_name} API issues"
-                    })
+                    recommendations.append(
+                        {
+                            "source": source_name,
+                            "severity": "high",
+                            "issue": "Multiple consecutive failures",
+                            "recommendation": "Check API credentials and network connectivity",
+                            "action": f"Investigate {source_name} API issues",
+                        }
+                    )
                 elif metrics.average_response_time > 10.0:
-                    recommendations.append({
-                        "source": source_name,
-                        "severity": "medium",
-                        "issue": f"Slow response times ({metrics.average_response_time:.1f}s)",
-                        "recommendation": "Consider implementing request caching or rate limiting",
-                        "action": f"Optimize {source_name} request patterns"
-                    })
+                    recommendations.append(
+                        {
+                            "source": source_name,
+                            "severity": "medium",
+                            "issue": f"Slow response times ({metrics.average_response_time:.1f}s)",
+                            "recommendation": "Consider implementing request caching or rate limiting",
+                            "action": f"Optimize {source_name} request patterns",
+                        }
+                    )
                 elif metrics.health_score < 0.7:
-                    recommendations.append({
-                        "source": source_name,
-                        "severity": "low",
-                        "issue": f"Low health score ({metrics.health_score:.3f})",
-                        "recommendation": "Monitor for patterns and consider backup sources",
-                        "action": f"Keep monitoring {source_name} performance"
-                    })
+                    recommendations.append(
+                        {
+                            "source": source_name,
+                            "severity": "low",
+                            "issue": f"Low health score ({metrics.health_score:.3f})",
+                            "recommendation": "Monitor for patterns and consider backup sources",
+                            "action": f"Keep monitoring {source_name} performance",
+                        }
+                    )
 
         return recommendations
 
@@ -236,17 +276,17 @@ class SourceHealthMonitor:
 
         # Simple test queries for each source type
         test_queries = {
-            'crossref': 'machine learning',
-            'semantic_scholar': 'artificial intelligence',
-            'arxiv': 'neural networks',
-            'pubmed': 'diabetes treatment',
-            'pubmed_central': 'cancer therapy',
-            'clinicaltrials': 'diabetes',
-            'google_scholar': 'computer science',
-            'core': 'climate change',
-            'doaj': 'open access',
-            'socarxiv': 'social science',
-            'osf_preprints': 'psychology'
+            "crossref": "machine learning",
+            "semantic_scholar": "artificial intelligence",
+            "arxiv": "neural networks",
+            "pubmed": "diabetes treatment",
+            "pubmed_central": "cancer therapy",
+            "clinicaltrials": "diabetes",
+            "google_scholar": "computer science",
+            "core": "climate change",
+            "doaj": "open access",
+            "socarxiv": "social science",
+            "osf_preprints": "psychology",
         }
 
         # Use unified config system
@@ -264,13 +304,19 @@ class SourceHealthMonitor:
                     search_func = search_functions[source_name]
 
                     # Monitor the health check request
-                    results = await self.monitor_request(source_name, search_func, query, 3)
+                    results = await self.monitor_request(
+                        source_name, search_func, query, 3
+                    )
 
                     health_results[source_name] = {
                         "status": "healthy",
                         "test_query": query,
                         "results_found": len(results) if results else 0,
-                        "response_time": self.metrics[source_name].recent_response_times[-1] if self.metrics[source_name].recent_response_times else 0
+                        "response_time": (
+                            self.metrics[source_name].recent_response_times[-1]
+                            if self.metrics[source_name].recent_response_times
+                            else 0
+                        ),
                     }
 
                 except Exception as e:
@@ -278,13 +324,13 @@ class SourceHealthMonitor:
                         "status": "unhealthy",
                         "test_query": test_queries[source_name],
                         "error": str(e),
-                        "error_type": type(e).__name__
+                        "error_type": type(e).__name__,
                     }
 
         return {
             "health_check_results": health_results,
             "overall_report": self.get_health_report(),
-            "recommendations": self.get_source_recommendations()
+            "recommendations": self.get_source_recommendations(),
         }
 
     def save_metrics_to_cache(self) -> None:
@@ -297,8 +343,16 @@ class SourceHealthMonitor:
                 "failed_requests": metrics.failed_requests,
                 "consecutive_failures": metrics.consecutive_failures,
                 "health_score": metrics.health_score,
-                "last_success_time": metrics.last_success_time.isoformat() if metrics.last_success_time else None,
-                "last_failure_time": metrics.last_failure_time.isoformat() if metrics.last_failure_time else None
+                "last_success_time": (
+                    metrics.last_success_time.isoformat()
+                    if metrics.last_success_time
+                    else None
+                ),
+                "last_failure_time": (
+                    metrics.last_failure_time.isoformat()
+                    if metrics.last_failure_time
+                    else None
+                ),
             }
 
         cache.set("source_health_metrics", cache_data, expire=86400)  # 24 hours
@@ -317,9 +371,13 @@ class SourceHealthMonitor:
                     metrics.health_score = data.get("health_score", 1.0)
 
                     if data.get("last_success_time"):
-                        metrics.last_success_time = datetime.fromisoformat(data["last_success_time"])
+                        metrics.last_success_time = datetime.fromisoformat(
+                            data["last_success_time"]
+                        )
                     if data.get("last_failure_time"):
-                        metrics.last_failure_time = datetime.fromisoformat(data["last_failure_time"])
+                        metrics.last_failure_time = datetime.fromisoformat(
+                            data["last_failure_time"]
+                        )
 
 
 # Global instance

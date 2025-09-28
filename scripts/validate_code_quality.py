@@ -16,7 +16,7 @@ def check_syntax():
 
     python_files = [
         Path("paperez_mcp/server.py"),
-        *list(Path("paperez_mcp").rglob("*.py"))
+        *list(Path("paperez_mcp").rglob("*.py")),
     ]
 
     failed_files = []
@@ -47,7 +47,7 @@ def run_ruff():
             ["ruff", "check", "paperez_mcp/"],
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
 
         if result.returncode == 0:
@@ -76,7 +76,7 @@ def run_mypy():
             ["mypy", "paperez_mcp/", "--ignore-missing-imports"],
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
 
         if result.returncode == 0:
@@ -105,7 +105,7 @@ def run_black_check():
             ["black", "--check", "paperez_mcp/", "scripts/"],
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
 
         if result.returncode == 0:

@@ -27,14 +27,17 @@ logger = logging.getLogger(__name__)
 # Initialize FastMCP server
 mcp = FastMCP("PaperezMCP - Academic Paper Research Made Easy")
 
+
 # Lazy import helpers
 def _ensure_scholarly_setup() -> None:
     """Lazy initialization of scholarly proxy setup"""
     global _scholarly_setup_done
     if not _scholarly_setup_done:
         from paperez_mcp.api_clients import setup_scholarly_proxy
+
         setup_scholarly_proxy()
         _scholarly_setup_done = True
+
 
 def _ensure_pymupdf4llm() -> Any:
     """Lazy import of pymupdf4llm"""
@@ -42,6 +45,7 @@ def _ensure_pymupdf4llm() -> Any:
     if _PYMUPDF4LLM_AVAILABLE is None:
         try:
             import pymupdf4llm
+
             _PYMUPDF4LLM_AVAILABLE = True
             return pymupdf4llm
         except ImportError:
@@ -49,8 +53,10 @@ def _ensure_pymupdf4llm() -> Any:
             return None
     elif _PYMUPDF4LLM_AVAILABLE:
         import pymupdf4llm
+
         return pymupdf4llm
     return None
+
 
 def _lazy_import_search_functions() -> dict[str, Any]:
     """Get search functions from unified config system"""
@@ -59,6 +65,7 @@ def _lazy_import_search_functions() -> dict[str, Any]:
     # Use the new unified config system
     search_service = get_search_service()
     return search_service.get_search_functions()
+
 
 def _lazy_import_utils() -> dict[str, Any]:
     """Lazy import of utility functions"""
@@ -70,14 +77,16 @@ def _lazy_import_utils() -> dict[str, Any]:
         smart_downloadable_search,
     )
     from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
+
     return {
-        'extract_pdf_text': extract_pdf_text,
-        'convert_pdf_to_markdown_content': convert_pdf_to_markdown_content,
-        'download_pdf': download_pdf,
-        'save_markdown_file': save_markdown_file,
-        'extract_pdf_text_from_local_file': extract_pdf_text_from_local_file,
-        'smart_downloadable_search': smart_downloadable_search
+        "extract_pdf_text": extract_pdf_text,
+        "convert_pdf_to_markdown_content": convert_pdf_to_markdown_content,
+        "download_pdf": download_pdf,
+        "save_markdown_file": save_markdown_file,
+        "extract_pdf_text_from_local_file": extract_pdf_text_from_local_file,
+        "smart_downloadable_search": smart_downloadable_search,
     }
+
 
 """
 OPTIMIZED MCP TOOLS - 6 Essential Functions
@@ -141,9 +150,7 @@ All file-saving tools default to current directory and accept custom output path
 
 @mcp.tool
 async def browse_papers(
-    query: str,
-    limit: int = 10,
-    force_category: str | None = None
+    query: str, limit: int = 10, force_category: str | None = None
 ) -> list[dict[str, Any]]:
     """
     🔍 BROWSE: Find and explore papers (metadata/abstracts only)
@@ -206,8 +213,14 @@ async def browse_papers(
     search_funcs = _lazy_import_search_functions()
 
     # Use enhanced routing for metadata search (no downloads)
-    papers, search_log = await utils['smart_downloadable_search'](
-        query, limit, search_funcs, utils, api_status, force_category, metadata_only=True
+    papers, search_log = await utils["smart_downloadable_search"](
+        query,
+        limit,
+        search_funcs,
+        utils,
+        api_status,
+        force_category,
+        metadata_only=True,
     )
 
     # Convert to browse format (metadata only, remove download info)
@@ -216,21 +229,33 @@ async def browse_papers(
     original_category = None
 
     for paper in papers:
-        browse_paper = {k: v for k, v in paper.items()
-                       if k not in ['download_success', 'local_markdown', 'markdown_characters', '_fallback_used', '_original_category']}
+        browse_paper = {
+            k: v
+            for k, v in paper.items()
+            if k
+            not in [
+                "download_success",
+                "local_markdown",
+                "markdown_characters",
+                "_fallback_used",
+                "_original_category",
+            ]
+        }
         browse_results.append(browse_paper)
 
         # Check if any paper used fallback
-        if paper.get('_fallback_used'):
+        if paper.get("_fallback_used"):
             fallback_used = True
-            original_category = paper.get('_original_category')
+            original_category = paper.get("_original_category")
 
     result = {
         "results": browse_results,
         "total_found": len(browse_results),
         "api_status": api_status,
-        "sources_used": list(set(paper.get("source", "Unknown") for paper in browse_results)),
-        "query": query
+        "sources_used": list(
+            set(paper.get("source", "Unknown") for paper in browse_results)
+        ),
+        "query": query,
     }
 
     # Add fallback notification if used
@@ -238,7 +263,7 @@ async def browse_papers(
         result["fallback_notification"] = {
             "message": f"Results found using intelligent default search (original {'smart routing' if not original_category else original_category} found no results)",
             "original_category": original_category or "smart_routing",
-            "fallback_category": "intelligent_default"
+            "fallback_category": "intelligent_default",
         }
 
     # Add intelligent error suggestions if no results found
@@ -264,7 +289,7 @@ async def browse_papers(
             "suggestions": safe_suggestions,
             "suggested_categories": error_info.get("suggested_categories", []),
             "help_text": error_info.get("help_text"),
-            "query_refinements": safe_refinements
+            "query_refinements": safe_refinements,
         }
 
     return [result]
@@ -276,7 +301,7 @@ async def download_papers(
     limit: int = 5,
     output_dir: str = ".paperez",
     force_category: str | None = None,
-    convert_to_markdown: bool = True
+    convert_to_markdown: bool = True,
 ) -> list[dict[str, Any]]:
     """
     📄 GET FULL PAPERS: Download academic papers as files (PDF or Markdown)
@@ -330,26 +355,19 @@ async def download_papers(
         utils=utils,
         api_status=api_status,
         force_category=force_category,
-        convert_to_markdown=convert_to_markdown
+        convert_to_markdown=convert_to_markdown,
     )
 
     return [result]
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 @mcp.tool
-async def convert_pdf_to_text(file_path: str, output_path: str | None = None, title: str = "", authors: list[str] | None = None) -> dict[str, Any]:
+async def convert_pdf_to_text(
+    file_path: str,
+    output_path: str | None = None,
+    title: str = "",
+    authors: list[str] | None = None,
+) -> dict[str, Any]:
     """
     Convert a local PDF file to plain text and save to a text file.
 
@@ -397,7 +415,7 @@ async def convert_pdf_to_text(file_path: str, output_path: str | None = None, ti
     try:
         # First extract the text using existing method
         utils = _lazy_import_utils()
-        extraction_result = utils['extract_pdf_text_from_local_file'](file_path)
+        extraction_result = utils["extract_pdf_text_from_local_file"](file_path)
 
         if not extraction_result.get("success", False):
             return extraction_result  # type: ignore[no-any-return]
@@ -424,10 +442,14 @@ async def convert_pdf_to_text(file_path: str, output_path: str | None = None, ti
                 content_parts.append(f"Authors: {authors_str}\n")
 
         if title or authors:
-            content_parts.append(f"Pages: {extraction_result.get('num_pages', 'Unknown')}")
+            content_parts.append(
+                f"Pages: {extraction_result.get('num_pages', 'Unknown')}"
+            )
             content_parts.append(f"File: {file_path}")
-            content_parts.append(f"Extraction Method: {extraction_result.get('extraction_method', 'Unknown')}")
-            content_parts.append("\n" + "="*80 + "\n")
+            content_parts.append(
+                f"Extraction Method: {extraction_result.get('extraction_method', 'Unknown')}"
+            )
+            content_parts.append("\n" + "=" * 80 + "\n")
 
         # Add the extracted text
         content_parts.append(extraction_result.get("text", ""))
@@ -436,7 +458,7 @@ async def convert_pdf_to_text(file_path: str, output_path: str | None = None, ti
         full_content = "\n".join(content_parts)
 
         # Write to file
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(full_content)
 
         # Return metadata only (no text content to save context)
@@ -447,23 +469,35 @@ async def convert_pdf_to_text(file_path: str, output_path: str | None = None, ti
             "original_file": file_path,
             "pages_extracted": extraction_result.get("num_pages", 0),
             "file_size": extraction_result.get("file_size", 0),
-            "extraction_method": extraction_result.get("extraction_method", "PyMuPDF Local")
+            "extraction_method": extraction_result.get(
+                "extraction_method", "PyMuPDF Local"
+            ),
         }
 
         return result  # type: ignore[no-any-return]
 
     except Exception as e:
         logger.error(f"Error in convert_pdf_to_text: {e}")
-        return {"success": False, "error": str(e), "text_path": None, "original_file": file_path}
+        return {
+            "success": False,
+            "error": str(e),
+            "text_path": None,
+            "original_file": file_path,
+        }
 
 
-async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", authors: list[str] | None = None, output_path: str | None = None) -> dict[str, Any]:
+async def _convert_pdf_to_markdown_internal(
+    file_path: str,
+    title: str = "",
+    authors: list[str] | None = None,
+    output_path: str | None = None,
+) -> dict[str, Any]:
     """
     Internal function to convert a local PDF file to formatted markdown.
     Duplicates PDF extraction logic to avoid MCP tool calling MCP tool.
     """
     utils = _lazy_import_utils()
-    result = utils['convert_pdf_to_markdown_content'](file_path, title, authors)
+    result = utils["convert_pdf_to_markdown_content"](file_path, title, authors)
 
     if result.get("success"):
         # Determine output path
@@ -477,7 +511,7 @@ async def _convert_pdf_to_markdown_internal(file_path: str, title: str = "", aut
         # Create output directory if it doesn't exist
         os.makedirs(os.path.dirname(markdown_path), exist_ok=True)
 
-        save_result = utils['save_markdown_file'](result["markdown"], markdown_path)
+        save_result = utils["save_markdown_file"](result["markdown"], markdown_path)
         if save_result.get("success"):
             result["markdown_path"] = markdown_path
 
@@ -495,7 +529,7 @@ async def convert_pdf_to_markdown(
     file_path: str,
     title: str = "",
     authors: list[str] | None = None,
-    output_path: str | None = None
+    output_path: str | None = None,
 ) -> dict[str, Any]:
     """
     Convert a local PDF file to formatted markdown.
@@ -542,7 +576,9 @@ async def convert_pdf_to_markdown(
         convert_pdf_to_markdown("paper.pdf", title="My Research Paper", authors=["John Doe"])
         convert_pdf_to_markdown("input.pdf", output_path="/documents/converted/paper.md")
     """
-    result = await _convert_pdf_to_markdown_internal(file_path, title, authors, output_path)
+    result = await _convert_pdf_to_markdown_internal(
+        file_path, title, authors, output_path
+    )
 
     # Remove markdown content to avoid context window usage
     if "markdown" in result:
@@ -551,12 +587,8 @@ async def convert_pdf_to_markdown(
     return result  # type: ignore[no-any-return]
 
 
-
-
 async def download_and_convert_paper(
-    pdf_url: str,
-    convert_to_markdown: bool = True,
-    output_dir: str | None = None
+    pdf_url: str, convert_to_markdown: bool = True, output_dir: str | None = None
 ) -> dict[str, Any]:
     """
     Download a PDF and optionally convert it to markdown (default behavior).
@@ -579,7 +611,7 @@ async def download_and_convert_paper(
             output_dir = os.getcwd()
 
         # Download PDF
-        download_result = await utils['download_pdf'](pdf_url, output_dir)
+        download_result = await utils["download_pdf"](pdf_url, output_dir)
 
         if not download_result.get("success"):
             return download_result  # type: ignore[no-any-return]
@@ -595,8 +627,10 @@ async def download_and_convert_paper(
                     markdown_content = pymupdf4llm.to_markdown(pdf_path)
 
                     # Save markdown
-                    markdown_path = pdf_path.replace('.pdf', '.md')
-                    save_result = utils['save_markdown_file'](markdown_content, markdown_path)
+                    markdown_path = pdf_path.replace(".pdf", ".md")
+                    save_result = utils["save_markdown_file"](
+                        markdown_content, markdown_path
+                    )
 
                     if save_result.get("success"):
                         return {
@@ -604,7 +638,7 @@ async def download_and_convert_paper(
                             "pdf_path": pdf_path,
                             "markdown_path": markdown_path,
                             "markdown_characters": len(markdown_content),
-                            "method": "pymupdf4llm_direct"
+                            "method": "pymupdf4llm_direct",
                         }
                 except Exception as e:
                     logger.warning(f"Direct conversion failed: {e}")
@@ -618,7 +652,7 @@ async def download_and_convert_paper(
                         "pdf_path": pdf_path,
                         "markdown_path": result.get("markdown_path"),
                         "markdown_characters": result.get("markdown_length", 0),
-                        "method": "internal_converter"
+                        "method": "internal_converter",
                     }
             except Exception as e:
                 logger.warning(f"Internal conversion failed: {e}")
@@ -626,20 +660,17 @@ async def download_and_convert_paper(
         return {
             "success": True,
             "pdf_path": pdf_path,
-            "message": "PDF downloaded successfully" + (" but markdown conversion failed" if convert_to_markdown else "")
+            "message": "PDF downloaded successfully"
+            + (" but markdown conversion failed" if convert_to_markdown else ""),
         }
 
     except Exception as e:
-        return {
-            "success": False,
-            "error": f"Download/conversion failed: {str(e)}"
-        }
+        return {"success": False, "error": f"Download/conversion failed: {str(e)}"}
 
 
 @mcp.tool
 async def batch_convert_pdfs(
-    directory: str = "articles",
-    output_dir: str | None = None
+    directory: str = "articles", output_dir: str | None = None
 ) -> dict[str, Any]:
     """
     Convert all PDFs in a directory to markdown format.
@@ -687,17 +718,14 @@ async def batch_convert_pdfs(
         utils = _lazy_import_utils()
 
         if not os.path.isdir(directory):
-            return {
-                "success": False,
-                "error": f"Directory not found: {directory}"
-            }
+            return {"success": False, "error": f"Directory not found: {directory}"}
 
         # Find all PDF files
-        pdf_files = list(Path(directory).glob('*.pdf'))
+        pdf_files = list(Path(directory).glob("*.pdf"))
         if not pdf_files:
             return {
                 "success": False,
-                "error": f"No PDF files found in directory: {directory}"
+                "error": f"No PDF files found in directory: {directory}",
             }
 
         if output_dir is None:
@@ -718,7 +746,9 @@ async def batch_convert_pdfs(
                     filename = pdf_file.stem + "_full.md"
                     output_path = os.path.join(output_dir, filename)
 
-                    save_result = utils['save_markdown_file'](result["markdown"], output_path)
+                    save_result = utils["save_markdown_file"](
+                        result["markdown"], output_path
+                    )
 
                     # Clean up markdown content to avoid context window usage
                     if "markdown" in result:
@@ -726,38 +756,42 @@ async def batch_convert_pdfs(
 
                     if save_result.get("success"):
                         successful += 1
-                        results.append({
-                            "input_file": str(pdf_file),
-                            "output_file": output_path,
-                            "success": True,
-                            "characters": result.get("markdown_length", 0)
-                        })
+                        results.append(
+                            {
+                                "input_file": str(pdf_file),
+                                "output_file": output_path,
+                                "success": True,
+                                "characters": result.get("markdown_length", 0),
+                            }
+                        )
                     else:
                         failed += 1
-                        results.append({
-                            "input_file": str(pdf_file),
-                            "success": False,
-                            "error": save_result.get("error")
-                        })
+                        results.append(
+                            {
+                                "input_file": str(pdf_file),
+                                "success": False,
+                                "error": save_result.get("error"),
+                            }
+                        )
                 else:
                     # Clean up markdown content even on failure
                     if "markdown" in result:
                         del result["markdown"]
 
                     failed += 1
-                    results.append({
-                        "input_file": str(pdf_file),
-                        "success": False,
-                        "error": result.get("error")
-                    })
+                    results.append(
+                        {
+                            "input_file": str(pdf_file),
+                            "success": False,
+                            "error": result.get("error"),
+                        }
+                    )
 
             except Exception as e:
                 failed += 1
-                results.append({
-                    "input_file": str(pdf_file),
-                    "success": False,
-                    "error": str(e)
-                })
+                results.append(
+                    {"input_file": str(pdf_file), "success": False, "error": str(e)}
+                )
 
         return {
             "success": True,
@@ -766,16 +800,11 @@ async def batch_convert_pdfs(
             "total_files": len(pdf_files),
             "successful_conversions": successful,
             "failed_conversions": failed,
-            "files": results
+            "files": results,
         }
 
     except Exception as e:
-        return {
-            "success": False,
-            "error": f"Batch conversion failed: {str(e)}"
-        }
-
-
+        return {"success": False, "error": f"Batch conversion failed: {str(e)}"}
 
 
 @mcp.tool
@@ -824,14 +853,14 @@ async def get_status() -> dict[str, Any]:
         "cache_stats": {
             "size": len(cache),
             "cache_dir": cache.directory,
-            "size_limit": cache.size_limit
+            "size_limit": cache.size_limit,
         },
         "config": {
             "has_semantic_scholar_key": bool(config.semantic_scholar_api_key),
             "has_scraperapi_key": bool(config.scraperapi_key),
             "crossref_email": config.crossref_email,
-            "max_retries": config.max_retries
-        }
+            "max_retries": config.max_retries,
+        },
     }
 
     # Add comprehensive health monitoring
@@ -845,23 +874,27 @@ async def get_status() -> dict[str, Any]:
         health_monitor.save_metrics_to_cache()
 
         # Add health data to basic status
-        basic_status.update({
-            "health_report": health_monitor.get_health_report(),
-            "recommendations": health_monitor.get_source_recommendations(),
-            "health_check_results": health_check["health_check_results"],
-            "monitoring_enabled": health_monitor.monitoring_enabled,
-            "timestamp": health_check["overall_report"]["timestamp"]
-        })
+        basic_status.update(
+            {
+                "health_report": health_monitor.get_health_report(),
+                "recommendations": health_monitor.get_source_recommendations(),
+                "health_check_results": health_check["health_check_results"],
+                "monitoring_enabled": health_monitor.monitoring_enabled,
+                "timestamp": health_check["overall_report"]["timestamp"],
+            }
+        )
 
     except Exception as e:
         logger.warning(f"Health monitoring unavailable: {e}")
-        basic_status.update({
-            "health_report": {"status": "monitoring_unavailable"},
-            "recommendations": [],  # list[dict[str, Any]] - empty list is valid
-            "monitoring_enabled": False,  # bool - matches successful case
-            "health_check_results": {},
-            "timestamp": ""
-        })
+        basic_status.update(
+            {
+                "health_report": {"status": "monitoring_unavailable"},
+                "recommendations": [],  # list[dict[str, Any]] - empty list is valid
+                "monitoring_enabled": False,  # bool - matches successful case
+                "health_check_results": {},
+                "timestamp": "",
+            }
+        )
 
     return basic_status
 
@@ -895,30 +928,32 @@ async def get_help() -> dict[str, Any]:
                 "1. Create the configuration directory: .paperez/config/",
                 "2. Place your config.yaml file in that directory",
                 "3. Restart Claude Code after making changes for them to take effect",
-                "4. Use get_status() to verify your configuration is working"
+                "4. Use get_status() to verify your configuration is working",
             ],
             "important_notes": [
                 "Changes only take effect after pushing to GitHub and restarting Claude Code",
                 "User configs override defaults - same-name sources/categories replace entirely",
-                "Set use_default_sources: false to disable all built-in sources"
-            ]
+                "Set use_default_sources: false to disable all built-in sources",
+            ],
         },
-
         "file_paths": {
-            "user_config_path": str(Path.home() / ".paperez" / "config" / "config.yaml"),
-            "project_config_path": str(Path.cwd() / ".paperez" / "config" / "config.yaml"),
+            "user_config_path": str(
+                Path.home() / ".paperez" / "config" / "config.yaml"
+            ),
+            "project_config_path": str(
+                Path.cwd() / ".paperez" / "config" / "config.yaml"
+            ),
             "config_directory": ".paperez/config/",
             "create_commands": [
                 "mkdir -p .paperez/config/",
-                "touch .paperez/config/config.yaml"
-            ]
+                "touch .paperez/config/config.yaml",
+            ],
         },
-
         "schema_info": {
             "required_fields": {
                 "version": "Configuration version (string, e.g., '1.0')",
                 "sources": "Dictionary of source configurations",
-                "categories": "Dictionary of search categories"
+                "categories": "Dictionary of search categories",
             },
             "optional_fields": {
                 "use_default_sources": "Boolean - whether to include built-in sources (default: true)",
@@ -927,7 +962,7 @@ async def get_help() -> dict[str, Any]:
                 "global_cache_enabled": "Boolean - enable caching (default: true)",
                 "global_cache_expire": "Integer - cache expiration in seconds (default: 7200)",
                 "default_output_dir": "String - default output directory (default: '.paperez')",
-                "cleanup_temp_files": "Boolean - clean temporary files (default: true)"
+                "cleanup_temp_files": "Boolean - clean temporary files (default: true)",
             },
             "source_structure": {
                 "name": "Unique identifier for the source",
@@ -936,7 +971,7 @@ async def get_help() -> dict[str, Any]:
                 "timeout": "Integer - request timeout in seconds",
                 "max_retries": "Integer - max retry attempts",
                 "cache_expire": "Integer - cache duration in seconds",
-                "config": "Source-specific configuration dictionary"
+                "config": "Source-specific configuration dictionary",
             },
             "category_structure": {
                 "name": "Unique identifier for the category",
@@ -945,10 +980,9 @@ async def get_help() -> dict[str, Any]:
                 "type": "Category type (usually 'standard')",
                 "sources": "List of source names to include",
                 "max_results_per_source": "Integer - max results per source",
-                "parallel_search": "Boolean - enable parallel searching"
-            }
+                "parallel_search": "Boolean - enable parallel searching",
+            },
         },
-
         "examples": {
             "minimal_config": {
                 "description": "Basic configuration with just one source",
@@ -984,9 +1018,8 @@ categories:
     sources:
       - crossref
     max_results_per_source: 10
-    parallel_search: false"""
+    parallel_search: false""",
             },
-
             "custom_source_config": {
                 "description": "Adding a custom HTTP API source",
                 "content": """sources:
@@ -1012,16 +1045,14 @@ categories:
         year: publication_year
         abstract: abstract
         url: url
-      rate_limit_delay: 0.5"""
+      rate_limit_delay: 0.5""",
             },
-
             "disable_defaults_config": {
                 "description": "Disable all default sources and use only custom ones",
                 "content": """version: "1.0"
 use_default_sources: false
-# Your custom sources and categories here"""
+# Your custom sources and categories here""",
             },
-
             "enhance_defaults_config": {
                 "description": "Keep defaults but add custom sources",
                 "content": """version: "1.0"
@@ -1032,19 +1063,17 @@ sources:
     # custom source configuration
 categories:
   my_category:
-    # custom category configuration"""
-            }
+    # custom category configuration""",
+            },
         },
-
         "available_categories": {
             "academic_premium": "High-quality peer-reviewed sources",
             "preprints": "Latest research from preprint repositories",
             "medical": "Medical and biomedical research sources",
             "open_access": "Freely available full-text articles",
             "historical": "Historical and archival content",
-            "business": "Business, economics, and finance research"
+            "business": "Business, economics, and finance research",
         },
-
         "available_sources": {
             "crossref": "Primary academic publisher database",
             "semantic_scholar": "AI-powered academic search engine",
@@ -1057,46 +1086,44 @@ categories:
             "internet_archive": "Historical documents and archives",
             "ssrn": "Business and economics research",
             "clinicaltrials": "Clinical trials database",
-            "google_scholar": "Google Scholar (disabled by default)"
+            "google_scholar": "Google Scholar (disabled by default)",
         },
-
         "troubleshooting": {
             "config_not_loading": [
                 "Ensure file is at correct path: .paperez/config/config.yaml",
                 "Check YAML syntax is valid (use online YAML validator)",
                 "Restart Claude Code after configuration changes",
-                "Use get_status() to check if config loaded successfully"
+                "Use get_status() to check if config loaded successfully",
             ],
             "sources_not_working": [
                 "Check source 'enabled' field is set to true",
                 "Verify API endpoints are accessible",
                 "Check timeout and retry settings",
                 "Review rate limiting delays",
-                "Use get_status() to check API health"
+                "Use get_status() to check API health",
             ],
             "permission_errors": [
                 "Ensure .paperez directory is writable",
                 "Check file permissions on config.yaml",
-                "Verify directory exists before creating config file"
+                "Verify directory exists before creating config file",
             ],
             "yaml_syntax_errors": [
                 "Use consistent indentation (spaces, not tabs)",
                 "Quote string values that contain special characters",
                 "Ensure proper list formatting with dashes",
-                "Check for unclosed brackets or quotes"
-            ]
+                "Check for unclosed brackets or quotes",
+            ],
         },
-
         "quick_start": {
             "basic_setup": [
                 "mkdir -p .paperez/config/",
                 "Create .paperez/config/config.yaml with your desired sources",
                 "Use examples above as starting points",
                 "Test with get_status() and browse_papers()",
-                "Push changes and restart Claude Code"
+                "Push changes and restart Claude Code",
             ],
-            "recommended_first_config": "Start with 'enhance_defaults_config' example to keep built-in sources while adding custom ones"
-        }
+            "recommended_first_config": "Start with 'enhance_defaults_config' example to keep built-in sources while adding custom ones",
+        },
     }
 
     return help_info
@@ -1106,7 +1133,9 @@ def main() -> None:
     """Main entry point for the server"""
     print("🚀 Starting PaperezMCP Server...")
     print("📚 Primary tools:")
-    print("  📄 download_papers: Get/download full papers as files (most users want this)")
+    print(
+        "  📄 download_papers: Get/download full papers as files (most users want this)"
+    )
     print("  🔍 browse_papers: Quick metadata overview (titles/abstracts only)")
     print("  📝 convert_pdf_to_text: Convert PDF to plain text files")
     print("  🔄 convert_pdf_to_markdown: Convert PDF to markdown format")

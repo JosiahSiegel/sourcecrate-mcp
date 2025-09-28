@@ -9,5 +9,5 @@ __all__ = [
     "convert_pdf_to_markdown_content",
     "download_pdf",
     "save_markdown_file",
-    "smart_downloadable_search"
+    "smart_downloadable_search",
 ]

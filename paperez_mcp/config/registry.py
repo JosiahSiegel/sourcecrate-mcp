@@ -33,15 +33,15 @@ class SourceRegistry:
 
         # Built-in source function mapping (only for sources not yet converted to config)
         builtin_sources = {
-            'search_arxiv': search_arxiv,
-            'search_pubmed': search_pubmed,
-            'search_pubmed_central': search_pubmed_central,
-            'search_google_scholar_fallback': search_google_scholar_fallback,
+            "search_arxiv": search_arxiv,
+            "search_pubmed": search_pubmed,
+            "search_pubmed_central": search_pubmed_central,
+            "search_google_scholar_fallback": search_google_scholar_fallback,
         }
 
         config = get_current_config()
         for source_name, source_config in config.sources.items():
-            if source_config.type == 'builtin' and source_config.enabled:
+            if source_config.type == "builtin" and source_config.enabled:
                 function_name = source_config.function_name
                 if function_name in builtin_sources:
                     self._sources[source_name] = builtin_sources[function_name]
@@ -50,25 +50,36 @@ class SourceRegistry:
                 else:
                     logger.warning(f"Built-in function not found: {function_name}")
 
-    def register_plugin_source(self, source_name: str, source_config: SourceProviderConfig) -> None:
+    def register_plugin_source(
+        self, source_name: str, source_config: SourceProviderConfig
+    ) -> None:
         """Register a plugin-based search source."""
         try:
             # Import the plugin module
             if source_config.module_path is None or source_config.class_name is None:
-                raise ValueError(f"Plugin {source_name} missing module_path or class_name")
+                raise ValueError(
+                    f"Plugin {source_name} missing module_path or class_name"
+                )
             module = importlib.import_module(source_config.module_path)
             plugin_class = getattr(module, source_config.class_name)
 
             # Validate that it has the required search method
-            if not hasattr(plugin_class, 'search'):
-                raise ValueError(f"Plugin class {source_config.class_name} must have a 'search' method")
+            if not hasattr(plugin_class, "search"):
+                raise ValueError(
+                    f"Plugin class {source_config.class_name} must have a 'search' method"
+                )
 
             # Create instance with configuration
             plugin_instance = plugin_class(**source_config.config)
             self._plugin_instances[source_name] = plugin_instance
 
             # Create wrapper function for compatibility (fix closure bug)
-            async def plugin_wrapper(query: str, limit: int = 5, instance: Any = plugin_instance, **kwargs: Any) -> list[dict[str, Any]]:
+            async def plugin_wrapper(
+                query: str,
+                limit: int = 5,
+                instance: Any = plugin_instance,
+                **kwargs: Any,
+            ) -> list[dict[str, Any]]:
                 return await instance.search(query, limit, **kwargs)  # type: ignore[no-any-return]
 
             self._sources[source_name] = plugin_wrapper
@@ -78,7 +89,9 @@ class SourceRegistry:
         except Exception as e:
             logger.error(f"Failed to register plugin source {source_name}: {e}")
 
-    def register_http_api_source(self, source_name: str, source_config: SourceProviderConfig) -> None:
+    def register_http_api_source(
+        self, source_name: str, source_config: SourceProviderConfig
+    ) -> None:
         """Register an HTTP API-based search source using configuration only."""
         try:
             from ..api_clients.generic_http_client import GenericHTTPClient
@@ -88,7 +101,9 @@ class SourceRegistry:
             self._plugin_instances[source_name] = api_instance
 
             # Create wrapper function for compatibility (fix closure bug)
-            async def api_wrapper(query: str, limit: int = 5, instance: Any = api_instance, **kwargs: Any) -> list[dict[str, Any]]:
+            async def api_wrapper(
+                query: str, limit: int = 5, instance: Any = api_instance, **kwargs: Any
+            ) -> list[dict[str, Any]]:
                 return await instance.search(query, limit, **kwargs)  # type: ignore[no-any-return]
 
             self._sources[source_name] = api_wrapper
@@ -105,9 +120,9 @@ class SourceRegistry:
 
         config = get_current_config()
         for source_name, source_config in config.sources.items():
-            if source_config.type == 'plugin' and source_config.enabled:
+            if source_config.type == "plugin" and source_config.enabled:
                 self.register_plugin_source(source_name, source_config)
-            elif source_config.type == 'http_api' and source_config.enabled:
+            elif source_config.type == "http_api" and source_config.enabled:
                 self.register_http_api_source(source_name, source_config)
 
     def get_source_function(self, source_name: str) -> Callable | None:
@@ -139,7 +154,9 @@ class CategoryResolver:
     def __init__(self, source_registry: SourceRegistry):
         self.source_registry = source_registry
 
-    def resolve_category(self, category_name: str, visited: set[str] | None = None) -> list[str]:
+    def resolve_category(
+        self, category_name: str, visited: set[str] | None = None
+    ) -> list[str]:
         """
         Resolve a category to a list of source names.
         Handles meta-categories recursively with circular reference detection.
@@ -148,7 +165,9 @@ class CategoryResolver:
             visited = set()
 
         if category_name in visited:
-            logger.warning(f"Circular reference detected in category resolution: {category_name}")
+            logger.warning(
+                f"Circular reference detected in category resolution: {category_name}"
+            )
             return []
 
         config = get_current_config()
@@ -159,19 +178,22 @@ class CategoryResolver:
         category = config.categories[category_name]
         visited.add(category_name)
 
-        if category.type == 'standard':
+        if category.type == "standard":
             # Filter to only available sources
             available_sources = [
-                source for source in category.sources
+                source
+                for source in category.sources
                 if self.source_registry.is_source_available(source)
             ]
             return available_sources
 
-        elif category.type == 'meta':
+        elif category.type == "meta":
             # Recursively resolve included categories
             all_sources = []
             for included_category in category.includes:
-                resolved_sources = self.resolve_category(included_category, visited.copy())
+                resolved_sources = self.resolve_category(
+                    included_category, visited.copy()
+                )
                 all_sources.extend(resolved_sources)
 
             # Remove duplicates while preserving order
@@ -204,16 +226,17 @@ class CategoryResolver:
 
         sources = self.resolve_category(category_name)
         return {
-            'name': category_config.name,
-            'display_name': category_config.display_name,
-            'description': category_config.description,
-            'type': category_config.type,
-            'sources': sources,
-            'available_sources': len(sources),
-            'total_configured_sources': (
-                len(category_config.sources) if category_config.type == 'standard'
+            "name": category_config.name,
+            "display_name": category_config.display_name,
+            "description": category_config.description,
+            "type": category_config.type,
+            "sources": sources,
+            "available_sources": len(sources),
+            "total_configured_sources": (
+                len(category_config.sources)
+                if category_config.type == "standard"
                 else len(category_config.includes)
-            )
+            ),
         }
 
 
@@ -227,6 +250,7 @@ class ConfigurableSearchService:
 
         # Register for configuration changes
         from .manager import get_config_manager
+
         config_manager = get_config_manager()
         config_manager.add_reload_callback(self._on_config_reload)
 
@@ -267,8 +291,12 @@ class ConfigurableSearchService:
         # Domain detection based on keywords
         for domain, keywords in config.routing.domain_keywords.items():
             if any(keyword in query_lower for keyword in keywords):
-                suggested_category = config.routing.domain_categories.get(domain, config.default_category or "comprehensive")
-                logger.info(f"Smart routing: '{query}' → domain '{domain}' → category '{suggested_category}'")
+                suggested_category = config.routing.domain_categories.get(
+                    domain, config.default_category or "comprehensive"
+                )
+                logger.info(
+                    f"Smart routing: '{query}' → domain '{domain}' → category '{suggested_category}'"
+                )
                 return suggested_category or "comprehensive"
 
         return config.default_category or "comprehensive"
@@ -279,33 +307,30 @@ class ConfigurableSearchService:
         enabled_sources = self.source_registry.get_enabled_sources()
 
         return {
-            'configuration_version': config.version,
-            'total_sources': len(config.sources),
-            'enabled_sources': len(enabled_sources),
-            'enabled_source_names': enabled_sources,
-            'total_categories': len(config.categories),
-            'category_names': list(config.categories.keys()),
-            'default_category': config.default_category,
-            'smart_routing_enabled': config.routing.enabled,
-            'fallback_enabled': config.routing.fallback_enabled
+            "configuration_version": config.version,
+            "total_sources": len(config.sources),
+            "enabled_sources": len(enabled_sources),
+            "enabled_source_names": enabled_sources,
+            "total_categories": len(config.categories),
+            "category_names": list(config.categories.keys()),
+            "default_category": config.default_category,
+            "smart_routing_enabled": config.routing.enabled,
+            "fallback_enabled": config.routing.fallback_enabled,
         }
 
     def validate_category(self, category_name: str) -> dict[str, Any]:
         """Validate a category and return detailed status."""
         if category_name not in get_current_config().categories:
-            return {
-                'valid': False,
-                'error': f"Category '{category_name}' not found"
-            }
+            return {"valid": False, "error": f"Category '{category_name}' not found"}
 
         sources = self.category_resolver.resolve_category(category_name)
         category_info = self.category_resolver.get_category_info(category_name)
 
         return {
-            'valid': True,
-            'category_info': category_info,
-            'resolved_sources': sources,
-            'available_source_count': len(sources)
+            "valid": True,
+            "category_info": category_info,
+            "resolved_sources": sources,
+            "available_source_count": len(sources),
         }
 
 

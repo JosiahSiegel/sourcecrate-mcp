@@ -16,5 +16,5 @@ __all__ = [
     # clinicaltrials functions removed - now config-based
     "search_google_scholar_fallback",
     "setup_scholarly_proxy",
-    "GenericHTTPClient"
+    "GenericHTTPClient",
 ]

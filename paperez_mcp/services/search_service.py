@@ -37,7 +37,7 @@ class SearchOrchestrationService:
         query: str,
         limit: int,
         api_status: dict[str, bool],
-        force_category: str | None = None
+        force_category: str | None = None,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """
         Perform smart search with downloadable papers prioritization.
@@ -52,7 +52,7 @@ class SearchOrchestrationService:
             Tuple of (papers_list, search_log)
         """
         # Use existing smart_downloadable_search utility
-        result = await self.utils['smart_downloadable_search'](
+        result = await self.utils["smart_downloadable_search"](
             query, limit, self.search_funcs, self.utils, api_status, force_category
         )
         return result  # type: ignore[no-any-return]
@@ -63,7 +63,7 @@ class SearchOrchestrationService:
         limit: int,
         api_status: dict[str, bool],
         force_category: str | None = None,
-        metadata_only: bool = False
+        metadata_only: bool = False,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """
         Perform comprehensive search across all available sources.
@@ -82,7 +82,7 @@ class SearchOrchestrationService:
             "query": query,
             "sources_attempted": [],
             "sources_successful": [],
-            "total_found": 0
+            "total_found": 0,
         }
 
         all_papers = []
@@ -97,7 +97,9 @@ class SearchOrchestrationService:
                     # Determine limit per source (distribute across sources)
                     per_source_limit = max(1, limit // len(sources_to_try))
 
-                    results = await self.search_funcs[source_name](query, per_source_limit)
+                    results = await self.search_funcs[source_name](
+                        query, per_source_limit
+                    )
 
                     if results:
                         search_log["sources_successful"].append(source_name)
@@ -105,14 +107,17 @@ class SearchOrchestrationService:
                         # Filter for downloadable papers if not metadata_only
                         if not metadata_only:
                             downloadable_results = [
-                                paper for paper in results
+                                paper
+                                for paper in results
                                 if paper.get("pdf_url") or paper.get("open_access_pdf")
                             ]
                             all_papers.extend(downloadable_results)
                         else:
                             all_papers.extend(results)
 
-                        self.logger.info(f"✅ {source_name}: Found {len(results)} results")
+                        self.logger.info(
+                            f"✅ {source_name}: Found {len(results)} results"
+                        )
                     else:
                         self.logger.info(f"🔍 {source_name}: No results found")
 
@@ -129,15 +134,13 @@ class SearchOrchestrationService:
         search_log["total_found"] = len(final_papers)
         search_log["deduplication"] = {
             "before": len(all_papers),
-            "after": len(deduplicated_papers)
+            "after": len(deduplicated_papers),
         }
 
         return final_papers, search_log
 
     def _get_sources_for_category(
-        self,
-        force_category: str | None,
-        api_status: dict[str, bool]
+        self, force_category: str | None, api_status: dict[str, bool]
     ) -> list[str]:
         """Get list of sources to search based on category."""
         if force_category == "preprints":
@@ -153,7 +156,8 @@ class SearchOrchestrationService:
         else:
             # Default comprehensive search
             available_sources = [
-                name for name, status in api_status.items()
+                name
+                for name, status in api_status.items()
                 if status and f"search_{name}" in self.search_funcs
             ]
             return [f"search_{name}" for name in available_sources]
@@ -208,16 +212,41 @@ class SearchOrchestrationService:
         query_lower = query.lower()
 
         # Medical/biomedical terms
-        medical_terms = ["medical", "clinical", "patient", "treatment", "therapy",
-                        "disease", "diagnosis", "health", "medicine", "pharmaceutical"]
+        medical_terms = [
+            "medical",
+            "clinical",
+            "patient",
+            "treatment",
+            "therapy",
+            "disease",
+            "diagnosis",
+            "health",
+            "medicine",
+            "pharmaceutical",
+        ]
 
         # Computer science terms
-        cs_terms = ["algorithm", "machine learning", "artificial intelligence",
-                   "computer", "software", "programming", "neural", "deep learning"]
+        cs_terms = [
+            "algorithm",
+            "machine learning",
+            "artificial intelligence",
+            "computer",
+            "software",
+            "programming",
+            "neural",
+            "deep learning",
+        ]
 
         # Physics/engineering terms
-        physics_terms = ["quantum", "physics", "engineering", "materials",
-                        "energy", "electromagnetic", "mechanics"]
+        physics_terms = [
+            "quantum",
+            "physics",
+            "engineering",
+            "materials",
+            "energy",
+            "electromagnetic",
+            "mechanics",
+        ]
 
         # Count domain-specific terms
         medical_score = sum(1 for term in medical_terms if term in query_lower)
@@ -235,10 +264,18 @@ class SearchOrchestrationService:
 
         # Suggest optimal sources
         source_recommendations = {
-            "medical": ["search_pubmed", "search_pubmed_central", "search_clinicaltrials"],
-            "computer_science": ["search_arxiv", "search_semantic_scholar", "search_crossref"],
+            "medical": [
+                "search_pubmed",
+                "search_pubmed_central",
+                "search_clinicaltrials",
+            ],
+            "computer_science": [
+                "search_arxiv",
+                "search_semantic_scholar",
+                "search_crossref",
+            ],
             "physics": ["search_arxiv", "search_crossref", "search_semantic_scholar"],
-            "general": ["search_crossref", "search_semantic_scholar", "search_arxiv"]
+            "general": ["search_crossref", "search_semantic_scholar", "search_arxiv"],
         }
 
         return {
@@ -246,8 +283,8 @@ class SearchOrchestrationService:
             "confidence_scores": {
                 "medical": medical_score,
                 "computer_science": cs_score,
-                "physics": physics_score
+                "physics": physics_score,
             },
             "recommended_sources": source_recommendations.get(domain, []),
-            "suggested_category": domain if domain != "general" else None
+            "suggested_category": domain if domain != "general" else None,
         }

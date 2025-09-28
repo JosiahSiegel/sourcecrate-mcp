@@ -90,7 +90,7 @@ def setup_scholarly_proxy() -> bool:
         ("scraperapi", setup_scraperapi),
         ("free_proxies", setup_free_proxies),
         ("tor", setup_tor_proxy),
-        ("no_proxy", setup_no_proxy)
+        ("no_proxy", setup_no_proxy),
     ]
 
     for name, setup_func in proxy_methods:
@@ -109,6 +109,7 @@ def setup_scholarly_proxy() -> bool:
 
 async def _search_google_scholar(query: str, limit: int) -> list[dict[str, Any]]:
     """Internal Google Scholar search function"""
+
     def _search_scholar() -> list[dict[str, Any]]:
         search_query = scholarly.search_pubs(query)
         results = []
@@ -117,16 +118,16 @@ async def _search_google_scholar(query: str, limit: int) -> list[dict[str, Any]]
             if i >= limit:
                 break
 
-            bib = pub.get('bib', {})
+            bib = pub.get("bib", {})
             result = {
-                "title": bib.get('title', ''),
-                "authors": bib.get('author', []),
-                "year": bib.get('pub_year', ''),
-                "abstract": bib.get('abstract', ''),
-                "venue": bib.get('venue', ''),
-                "citation_count": pub.get('num_citations', 0),
-                "url": pub.get('pub_url', ''),
-                "source": "Google Scholar"
+                "title": bib.get("title", ""),
+                "authors": bib.get("author", []),
+                "year": bib.get("pub_year", ""),
+                "abstract": bib.get("abstract", ""),
+                "venue": bib.get("venue", ""),
+                "citation_count": pub.get("num_citations", 0),
+                "url": pub.get("pub_url", ""),
+                "source": "Google Scholar",
             }
             results.append(result)
         return results
@@ -135,7 +136,9 @@ async def _search_google_scholar(query: str, limit: int) -> list[dict[str, Any]]
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2, min=5, max=30))
-async def search_google_scholar_with_retry(query: str, limit: int = 5) -> list[dict[str, Any]]:
+async def search_google_scholar_with_retry(
+    query: str, limit: int = 5
+) -> list[dict[str, Any]]:
     """Search with automatic proxy rotation on failure"""
     try:
         return await _search_google_scholar(query, limit)
@@ -145,7 +148,9 @@ async def search_google_scholar_with_retry(query: str, limit: int = 5) -> list[d
         raise  # Trigger retry
 
 
-async def search_google_scholar_fallback(query: str, limit: int = 5) -> list[dict[str, Any]]:
+async def search_google_scholar_fallback(
+    query: str, limit: int = 5
+) -> list[dict[str, Any]]:
     """Google Scholar as final fallback with enhanced proxy support"""
     # Initialize proxy if not already done
     if not api_status.get("google_scholar", False):

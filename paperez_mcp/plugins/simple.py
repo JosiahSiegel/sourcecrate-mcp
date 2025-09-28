@@ -33,8 +33,10 @@ def create_plugin(source_name: str, output_dir: str = ".") -> str:
         >>> register_plugin(plugin_path)
     """
     # Clean source name for Python class/module naming
-    class_name = ''.join(word.capitalize() for word in source_name.replace('-', '_').split('_'))
-    module_name = source_name.lower().replace('-', '_')
+    class_name = "".join(
+        word.capitalize() for word in source_name.replace("-", "_").split("_")
+    )
+    module_name = source_name.lower().replace("-", "_")
 
     # Generate simple template
     template = f'''"""
@@ -204,7 +206,7 @@ if __name__ == "__main__":
 
     # Write plugin file
     output_path = Path(output_dir) / f"{module_name}_plugin.py"
-    with open(output_path, 'w') as f:
+    with open(output_path, "w") as f:
         f.write(template)
 
     print(f"✅ Created plugin template: {output_path}")
@@ -212,7 +214,9 @@ if __name__ == "__main__":
     print("Next steps:")
     print(f"1. Edit {output_path} and implement your API logic in _perform_search()")
     print(f"2. Test it: python {output_path}")
-    print(f"3. Register it: python -c 'from paperez_mcp.plugins.simple import register_plugin; register_plugin(\"{output_path}\")'")
+    print(
+        f"3. Register it: python -c 'from paperez_mcp.plugins.simple import register_plugin; register_plugin(\"{output_path}\")'"
+    )
     print("")
     print("Example configuration for your config file:")
     print("```yaml")
@@ -253,6 +257,7 @@ def register_plugin(plugin_file: str) -> bool:
 
         # Load plugin metadata
         import importlib.util
+
         spec = importlib.util.spec_from_file_location("temp_plugin", plugin_path)
         if spec is None or spec.loader is None:
             print(f"❌ Failed to load plugin spec: {plugin_path}")
@@ -260,7 +265,7 @@ def register_plugin(plugin_file: str) -> bool:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
-        if not hasattr(module, 'PLUGIN_INFO'):
+        if not hasattr(module, "PLUGIN_INFO"):
             print(f"❌ Plugin missing PLUGIN_INFO: {plugin_file}")
             return False
 
@@ -274,6 +279,7 @@ def register_plugin(plugin_file: str) -> bool:
         plugin_dest = user_plugins_dir / f"{source_name}_plugin.py"
 
         import shutil
+
         shutil.copy2(plugin_path, plugin_dest)
 
         # Update user configuration
@@ -284,6 +290,7 @@ def register_plugin(plugin_file: str) -> bool:
 
         if config_file.exists():
             import yaml
+
             with open(config_file) as f:
                 config = yaml.safe_load(f) or {}
         else:
@@ -300,13 +307,14 @@ def register_plugin(plugin_file: str) -> bool:
             "module_path": str(plugin_dest.stem),
             "class_name": plugin_info["client_class"],
             "config": {
-                key: f"your-{key}-here" for key in plugin_info.get("required_config", [])
-            }
+                key: f"your-{key}-here"
+                for key in plugin_info.get("required_config", [])
+            },
         }
 
         # Save updated configuration
         config_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(config_file, 'w') as f:
+        with open(config_file, "w") as f:
             yaml.dump(config, f, default_flow_style=False, indent=2)
 
         print(f"✅ Plugin registered: {source_name}")
@@ -342,19 +350,22 @@ def list_plugins() -> dict[str, dict[str, Any]]:
         for plugin_file in user_plugins_dir.glob("*_plugin.py"):
             try:
                 import importlib.util
-                spec = importlib.util.spec_from_file_location("temp_plugin", plugin_file)
+
+                spec = importlib.util.spec_from_file_location(
+                    "temp_plugin", plugin_file
+                )
                 if spec is None or spec.loader is None:
                     continue
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
 
-                if hasattr(module, 'PLUGIN_INFO'):
+                if hasattr(module, "PLUGIN_INFO"):
                     plugin_info = module.PLUGIN_INFO
                     plugins[plugin_info["name"]] = {
                         "file": str(plugin_file),
                         "version": plugin_info.get("version", "unknown"),
                         "description": plugin_info.get("description", ""),
-                        "author": plugin_info.get("author", "unknown")
+                        "author": plugin_info.get("author", "unknown"),
                     }
             except Exception as e:
                 logger.warning(f"Failed to load plugin {plugin_file}: {e}")

@@ -39,7 +39,9 @@ class BaseAPIClient(ABC):
 
     def _get_cache_key(self, query: str, limit: int, **kwargs: Any) -> str:
         """Generate standardized cache key."""
-        extra_params = "_".join(f"{k}:{v}" for k, v in sorted(kwargs.items()) if v is not None)
+        extra_params = "_".join(
+            f"{k}:{v}" for k, v in sorted(kwargs.items()) if v is not None
+        )
         base_key = f"{self.source_name.lower()}:{query}:{limit}"
         return f"{base_key}_{extra_params}" if extra_params else base_key
 
@@ -60,19 +62,27 @@ class BaseAPIClient(ABC):
         """Log successful search with consistent format."""
         extra_info = " ".join(f"{k}={v}" for k, v in kwargs.items() if v is not None)
         extra_str = f" ({extra_info})" if extra_info else ""
-        self.logger.info(f"✅ {self.source_name}: Found {result_count} results for '{query}'{extra_str}")
+        self.logger.info(
+            f"✅ {self.source_name}: Found {result_count} results for '{query}'{extra_str}"
+        )
 
     def _log_failure(self, query: str, error: Exception) -> None:
         """Log search failure and update API status."""
-        self.logger.warning(f"❌ {self.source_name} search failed for '{query}': {error}")
+        self.logger.warning(
+            f"❌ {self.source_name} search failed for '{query}': {error}"
+        )
         api_status[self.source_name.lower().replace(" ", "_")] = False
 
     def _log_no_results(self, query: str) -> None:
         """Log when no results are found."""
         self.logger.info(f"🔍 {self.source_name}: No results found for '{query}'")
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
-    async def search(self, query: str, limit: int = 5, **kwargs: Any) -> list[dict[str, Any]]:
+    @retry(
+        stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10)
+    )
+    async def search(
+        self, query: str, limit: int = 5, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         """
         Main search method with caching and error handling.
 
@@ -108,7 +118,9 @@ class BaseAPIClient(ABC):
             return []
 
     @abstractmethod
-    async def _perform_search(self, query: str, limit: int, **kwargs: Any) -> list[dict[str, Any]]:
+    async def _perform_search(
+        self, query: str, limit: int, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         """
         Perform the actual search implementation.
 
@@ -140,7 +152,22 @@ class BaseAPIClient(ABC):
             "citation_count": paper_data.get("citation_count", 0),
             "source": self.source_name,
             # Include any source-specific fields
-            **{k: v for k, v in paper_data.items()
-               if k not in ["title", "authors", "abstract", "journal", "year", "doi",
-                           "url", "pdf_url", "open_access_pdf", "citation_count", "source"]}
+            **{
+                k: v
+                for k, v in paper_data.items()
+                if k
+                not in [
+                    "title",
+                    "authors",
+                    "abstract",
+                    "journal",
+                    "year",
+                    "doi",
+                    "url",
+                    "pdf_url",
+                    "open_access_pdf",
+                    "citation_count",
+                    "source",
+                ]
+            },
         }

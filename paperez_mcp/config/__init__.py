@@ -49,34 +49,31 @@ __all__ = [
     "config",
     "api_status",
     "cache",
-
     # New configurable system schemas
-    'PaperezConfig',
-    'SourceProviderConfig',
-    'CategoryConfig',
-    'QueryRoutingConfig',
-
+    "PaperezConfig",
+    "SourceProviderConfig",
+    "CategoryConfig",
+    "QueryRoutingConfig",
     # New configuration manager
-    'ConfigManager',
-    'get_config_manager',
-    'get_current_config',
-
+    "ConfigManager",
+    "get_config_manager",
+    "get_current_config",
     # Default configuration now in YAML
-
     # Service registry
-    'SourceRegistry',
-    'CategoryResolver',
-    'ConfigurableSearchService',
-    'get_search_service',
-
+    "SourceRegistry",
+    "CategoryResolver",
+    "ConfigurableSearchService",
+    "get_search_service",
     # Utility functions
-    'initialize_configuration_system',
-    'create_example_config_file',
-    'validate_current_configuration'
+    "initialize_configuration_system",
+    "create_example_config_file",
+    "validate_current_configuration",
 ]
 
 
-def initialize_configuration_system(enable_hot_reload: bool = True) -> ConfigurableSearchService:
+def initialize_configuration_system(
+    enable_hot_reload: bool = True,
+) -> ConfigurableSearchService:
     """
     Initialize the complete configuration system.
 
@@ -95,9 +92,12 @@ def initialize_configuration_system(enable_hot_reload: bool = True) -> Configura
     return search_service
 
 
-def create_example_config_file(output_path: str = "paperez.config.example.yaml") -> None:
+def create_example_config_file(
+    output_path: str = "paperez.config.example.yaml",
+) -> None:
     """Create an example configuration file for users."""
     from pathlib import Path
+
     config_manager = get_config_manager()
     config_manager.create_example_config(Path(output_path))
 
@@ -112,21 +112,19 @@ def validate_current_configuration() -> dict:
         status = search_service.get_service_status()
 
         return {
-            'valid': len(warnings) == 0,
-            'warnings': warnings,
-            'service_status': status,
-            'configuration_summary': {
-                'version': config.version,
-                'total_sources': len(config.sources),
-                'enabled_sources': len([s for s in config.sources.values() if s.enabled]),
-                'total_categories': len(config.categories),
-                'default_category': config.default_category,
-                'smart_routing': config.routing.enabled
-            }
+            "valid": len(warnings) == 0,
+            "warnings": warnings,
+            "service_status": status,
+            "configuration_summary": {
+                "version": config.version,
+                "total_sources": len(config.sources),
+                "enabled_sources": len(
+                    [s for s in config.sources.values() if s.enabled]
+                ),
+                "total_categories": len(config.categories),
+                "default_category": config.default_category,
+                "smart_routing": config.routing.enabled,
+            },
         }
     except Exception as e:
-        return {
-            'valid': False,
-            'error': str(e),
-            'fallback_to_legacy': True
-        }
+        return {"valid": False, "error": str(e), "fallback_to_legacy": True}

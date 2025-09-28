@@ -22,7 +22,7 @@ async def smart_downloadable_search(
     utils: dict[str, Any],
     api_status: dict[str, bool],
     force_category: str | None = None,
-    metadata_only: bool = False
+    metadata_only: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """
     Smart search that prioritizes sources with downloadable PDFs and only counts
@@ -61,15 +61,19 @@ async def smart_downloadable_search(
         source_rankings = bm25_ranker.rank_sources(query)
 
         logger.info(f"🧠 Enhanced Topic Classification: {topic_classification}")
-        logger.info(f"🎯 Query Intent: {intent_analysis.intent.value} (confidence: {intent_analysis.confidence:.2f})")
-        logger.info(f"⏰ Temporal Preference: {intent_analysis.temporal_preference.value}")
+        logger.info(
+            f"🎯 Query Intent: {intent_analysis.intent.value} (confidence: {intent_analysis.confidence:.2f})"
+        )
+        logger.info(
+            f"⏰ Temporal Preference: {intent_analysis.temporal_preference.value}"
+        )
         logger.info(f"🏆 Top Sources: {[s[0] for s in source_rankings[:5]]}")
     except Exception as e:
         logger.warning(f"❌ Enhanced routing failed, falling back to legacy: {e}")
         # Set defaults for fallback
         if topic_classification is None:
             topic_classification = {"primary_topic": "Unknown", "confidence": 0.0}  # type: ignore
-        source_rankings = [('arxiv', 0.8), ('semantic_scholar', 0.7), ('crossref', 0.5)]
+        source_rankings = [("arxiv", 0.8), ("semantic_scholar", 0.7), ("crossref", 0.5)]
 
     # Enhanced routing has replaced legacy topic detection
 
@@ -85,38 +89,43 @@ async def smart_downloadable_search(
         "topic_classification": topic_classification,
         "intent_analysis": {
             "intent": intent_analysis.intent.value if intent_analysis else "unknown",
-            "temporal_preference": intent_analysis.temporal_preference.value if intent_analysis else "neutral",
+            "temporal_preference": (
+                intent_analysis.temporal_preference.value
+                if intent_analysis
+                else "neutral"
+            ),
             "confidence": intent_analysis.confidence if intent_analysis else 0.0,
-            "complexity": intent_analysis.complexity if intent_analysis else "simple"
+            "complexity": intent_analysis.complexity if intent_analysis else "simple",
         },
         "routing_recommendations": routing_recommendations,
         "source_rankings": source_rankings[:5],  # Top 5 sources
         "total_candidates": 0,
         "unique_candidates": 0,
         "download_attempts": 0,
-        "successful_downloads": 0
+        "successful_downloads": 0,
     }
-
 
     # Enhanced strategy using new classification system
     source_descriptions = {
-        'arxiv': 'arXiv has highest PDF availability',
-        'semantic_scholar': 'Semantic Scholar often has open access PDFs',
-        'crossref': 'CrossRef comprehensive but mostly paywalled',
-        'pubmed': 'PubMed for biomedical literature',
-        'pubmed_central': 'PMC for full-text medical papers',
-        'clinicaltrials': 'ClinicalTrials.gov for trial data',
-        'google_scholar': 'Google Scholar fallback',
-        'core': 'CORE open access repository',
-        'doaj': 'DOAJ open access journals',
-        'socarxiv': 'SocArXiv social science preprints',
-        'osf_preprints': 'OSF preprints across disciplines',
-        'europe_pmc': 'Europe PMC biomedical database',
-        'internet_archive': 'Internet Archive historical documents'
+        "arxiv": "arXiv has highest PDF availability",
+        "semantic_scholar": "Semantic Scholar often has open access PDFs",
+        "crossref": "CrossRef comprehensive but mostly paywalled",
+        "pubmed": "PubMed for biomedical literature",
+        "pubmed_central": "PMC for full-text medical papers",
+        "clinicaltrials": "ClinicalTrials.gov for trial data",
+        "google_scholar": "Google Scholar fallback",
+        "core": "CORE open access repository",
+        "doaj": "DOAJ open access journals",
+        "socarxiv": "SocArXiv social science preprints",
+        "osf_preprints": "OSF preprints across disciplines",
+        "europe_pmc": "Europe PMC biomedical database",
+        "internet_archive": "Internet Archive historical documents",
     }
 
     # Get ALL available sources from the configuration
-    all_available_sources = [name for name in search_funcs.keys() if api_status.get(name, True)]
+    all_available_sources = [
+        name for name in search_funcs.keys() if api_status.get(name, True)
+    ]
 
     # Create comprehensive source priority list ensuring ALL sources are included
     source_priority_dict = {}
@@ -125,12 +134,17 @@ async def smart_downloadable_search(
     for source_name, score in source_rankings:
         if source_name in all_available_sources:
             description = source_descriptions.get(source_name, f"Source: {source_name}")
-            source_priority_dict[source_name] = (f"{description} (BM25: {score:.3f})", score)
+            source_priority_dict[source_name] = (
+                f"{description} (BM25: {score:.3f})",
+                score,
+            )
 
     # Second: Add all remaining configured sources with default priority
     for source_name in all_available_sources:
         if source_name not in source_priority_dict:
-            description = source_descriptions.get(source_name, f"Custom source: {source_name}")
+            description = source_descriptions.get(
+                source_name, f"Custom source: {source_name}"
+            )
             # Give default sources a neutral score so they're included but ranked lower
             source_priority_dict[source_name] = (f"{description} (configured)", 0.1)
 
@@ -153,29 +167,57 @@ async def smart_downloadable_search(
         category_sources = {
             "preprints": ["arxiv", "socarxiv", "osf_preprints"],
             "journals": ["crossref", "pubmed", "doaj", "europe_pmc"],
-            "open_access": ["core", "doaj", "arxiv", "pubmed_central", "socarxiv", "osf_preprints", "europe_pmc"],
+            "open_access": [
+                "core",
+                "doaj",
+                "arxiv",
+                "pubmed_central",
+                "socarxiv",
+                "osf_preprints",
+                "europe_pmc",
+            ],
             "historical": ["core", "crossref", "internet_archive"],
-            "recent": ["arxiv", "semantic_scholar", "pubmed_central", "clinicaltrials", "osf_preprints", "europe_pmc"],
-            "medical": ["pubmed", "pubmed_central", "clinicaltrials", "europe_pmc"]
+            "recent": [
+                "arxiv",
+                "semantic_scholar",
+                "pubmed_central",
+                "clinicaltrials",
+                "osf_preprints",
+                "europe_pmc",
+            ],
+            "medical": ["pubmed", "pubmed_central", "clinicaltrials", "europe_pmc"],
         }
 
         if force_category in category_sources:
             # Filter to available sources in this category
-            forced_sources = [s for s in category_sources[force_category] if api_status.get(s, False)]
+            forced_sources = [
+                s for s in category_sources[force_category] if api_status.get(s, False)
+            ]
             if forced_sources:
-                source_priority = [(s, f"{source_descriptions[s]} (FORCED: {force_category})") for s in forced_sources]
-                logger.info(f"🎯 FORCED CATEGORY '{force_category}': Using sources {forced_sources}")
+                source_priority = [
+                    (s, f"{source_descriptions[s]} (FORCED: {force_category})")
+                    for s in forced_sources
+                ]
+                logger.info(
+                    f"🎯 FORCED CATEGORY '{force_category}': Using sources {forced_sources}"
+                )
             else:
-                logger.warning(f"❌ No available sources for category '{force_category}'")
+                logger.warning(
+                    f"❌ No available sources for category '{force_category}'"
+                )
         else:
             available_categories = list(category_sources.keys())
-            logger.warning(f"❌ Unknown category '{force_category}'. Available: {available_categories}")
+            logger.warning(
+                f"❌ Unknown category '{force_category}'. Available: {available_categories}"
+            )
             # Continue with normal routing
 
     logger.info(f"🚀 Source priority: {[s[0] for s in source_priority]}")
 
     # Search each source for more papers than we need
-    search_limit_per_source = max(10, limit * 3)  # Search more to find downloadable ones
+    search_limit_per_source = max(
+        10, limit * 3
+    )  # Search more to find downloadable ones
     search_log["search_limit_per_source"] = search_limit_per_source
 
     logger.info(f"🔍 Starting smart search for '{query}' (limit: {limit})")
@@ -189,7 +231,10 @@ async def smart_downloadable_search(
                 skip_reason = None
 
                 # Check BM25 score threshold for skipping very low-relevance sources
-                source_score = next((score for name, score in source_rankings if name == source_name), 0.0)
+                source_score = next(
+                    (score for name, score in source_rankings if name == source_name),
+                    0.0,
+                )
                 if source_score < 0.1:  # Very low relevance threshold
                     skip_source = True
                     skip_reason = f"Very low BM25 relevance score ({source_score:.3f})"
@@ -198,15 +243,28 @@ async def smart_downloadable_search(
                 intent_preference = intent_preferences.get(source_name, 0.5)
                 if intent_preference < 0.3:  # Low intent-based preference
                     skip_source = True
-                    skip_reason = f"Low intent-based preference ({intent_preference:.3f})"
+                    skip_reason = (
+                        f"Low intent-based preference ({intent_preference:.3f})"
+                    )
 
                 # Domain-specific skipping logic
-                if topic_classification and topic_classification.get('primary_topic') == 'Computer Science':
-                    if source_name == 'pubmed' and topic_classification.get('confidence', 0) > 0.7:
+                if (
+                    topic_classification
+                    and topic_classification.get("primary_topic") == "Computer Science"
+                ):
+                    if (
+                        source_name == "pubmed"
+                        and topic_classification.get("confidence", 0) > 0.7
+                    ):
                         skip_source = True
                         skip_reason = "Computer Science query, PubMed not relevant"
-                elif topic_classification and topic_classification.get('primary_topic') in ['Medicine', 'Biology']:
-                    if source_name in ['socarxiv'] and topic_classification.get('confidence', 0) > 0.7:
+                elif topic_classification and topic_classification.get(
+                    "primary_topic"
+                ) in ["Medicine", "Biology"]:
+                    if (
+                        source_name in ["socarxiv"]
+                        and topic_classification.get("confidence", 0) > 0.7
+                    ):
                         skip_source = True
                         skip_reason = f"Biomedical query, {source_name} not relevant"
 
@@ -217,7 +275,7 @@ async def smart_downloadable_search(
                         "skipped": True,
                         "reason": skip_reason,
                         "bm25_score": source_score,
-                        "intent_preference": intent_preference
+                        "intent_preference": intent_preference,
                     }
                     logger.info(f"⏭️ Skipping {source_name}: {skip_reason}")
                     continue
@@ -228,17 +286,41 @@ async def smart_downloadable_search(
                     optimized_query = query
 
                     # Use query expansions from intent analysis
-                    if routing_recommendations and routing_recommendations.get('query_expansions'):
+                    if routing_recommendations and routing_recommendations.get(
+                        "query_expansions"
+                    ):
                         # Select best expansion for this source based on intent and temporal preference
-                        expansions = routing_recommendations['query_expansions']
-                        if expansions and intent_analysis and intent_analysis.temporal_preference.value == 'recent':
+                        expansions = routing_recommendations["query_expansions"]
+                        if (
+                            expansions
+                            and intent_analysis
+                            and intent_analysis.temporal_preference.value == "recent"
+                        ):
                             # For recent queries, try temporal expansions first
-                            temporal_expansions = [exp for exp in expansions if any(term in exp.lower() for term in ['recent', 'latest', '2024', '2025'])]
+                            temporal_expansions = [
+                                exp
+                                for exp in expansions
+                                if any(
+                                    term in exp.lower()
+                                    for term in ["recent", "latest", "2024", "2025"]
+                                )
+                            ]
                             if temporal_expansions:
                                 optimized_query = temporal_expansions[0]
-                        elif expansions and intent_analysis and intent_analysis.intent.value == 'survey_review':
+                        elif (
+                            expansions
+                            and intent_analysis
+                            and intent_analysis.intent.value == "survey_review"
+                        ):
                             # For review queries, try review-focused expansions
-                            review_expansions = [exp for exp in expansions if any(term in exp.lower() for term in ['review', 'survey', 'state of the art'])]
+                            review_expansions = [
+                                exp
+                                for exp in expansions
+                                if any(
+                                    term in exp.lower()
+                                    for term in ["review", "survey", "state of the art"]
+                                )
+                            ]
                             if review_expansions:
                                 optimized_query = review_expansions[0]
                         elif expansions:
@@ -248,14 +330,22 @@ async def smart_downloadable_search(
                     # Enhanced routing provides intelligent query optimization
 
                     if optimized_query != query:
-                        logger.info(f"🔧 Enhanced query optimization for {source_name}: '{optimized_query}'")
+                        logger.info(
+                            f"🔧 Enhanced query optimization for {source_name}: '{optimized_query}'"
+                        )
 
                     logger.info(f"🔎 Searching {source_name}: {description}")
-                    results = await search_func(optimized_query, search_limit_per_source)
+                    results = await search_func(
+                        optimized_query, search_limit_per_source
+                    )
                     all_candidates.extend(results)
 
                     # Count papers with PDFs
-                    has_pdfs = sum(1 for r in results if r.get("pdf_url") or r.get("open_access_pdf"))
+                    has_pdfs = sum(
+                        1
+                        for r in results
+                        if r.get("pdf_url") or r.get("open_access_pdf")
+                    )
 
                     search_log["sources_searched"].append(source_name)
                     search_log["results_per_source"][source_name] = {
@@ -263,10 +353,14 @@ async def smart_downloadable_search(
                         "has_pdfs": has_pdfs,
                         "sample_title": results[0].get("title") if results else None,
                         "pdf_ratio": f"{has_pdfs}/{len(results)}" if results else "0/0",
-                        "optimized_query": optimized_query if optimized_query != query else None
+                        "optimized_query": (
+                            optimized_query if optimized_query != query else None
+                        ),
                     }
 
-                    logger.info(f"✅ {source_name}: Found {len(results)} papers ({has_pdfs} with PDFs)")
+                    logger.info(
+                        f"✅ {source_name}: Found {len(results)} papers ({has_pdfs} with PDFs)"
+                    )
                 else:
                     search_log["results_per_source"][source_name] = {
                         "error": "Search function not available"
@@ -276,13 +370,13 @@ async def smart_downloadable_search(
             except Exception as e:
                 search_log["results_per_source"][source_name] = {
                     "error": str(e),
-                    "count": 0
+                    "count": 0,
                 }
                 logger.warning(f"❌ {source_name} search failed: {e}")
         else:
             search_log["results_per_source"][source_name] = {
                 "skipped": True,
-                "reason": "API not available"
+                "reason": "API not available",
             }
             logger.info(f"⏭️ Skipping {source_name}: API not available")
 
@@ -331,12 +425,16 @@ async def smart_downloadable_search(
         logger.info("🔝 Top candidates by priority:")
         for i, paper in enumerate(unique_candidates[:5]):
             has_pdf = bool(paper.get("pdf_url") or paper.get("open_access_pdf"))
-            logger.info(f"  {i+1}. [{paper.get('source', 'Unknown')}] {paper.get('title', 'No title')[:50]}... (PDF: {'✓' if has_pdf else '✗'})")
+            logger.info(
+                f"  {i+1}. [{paper.get('source', 'Unknown')}] {paper.get('title', 'No title')[:50]}... (PDF: {'✓' if has_pdf else '✗'})"
+            )
 
     # Handle metadata-only mode vs download testing
     if metadata_only:
         # For metadata-only mode (browse_papers), return papers without download testing
-        logger.info(f"📄 Metadata-only mode: Returning top {limit} papers without download testing")
+        logger.info(
+            f"📄 Metadata-only mode: Returning top {limit} papers without download testing"
+        )
         downloadable_papers = unique_candidates[:limit]
         attempted_downloads = 0
 
@@ -346,7 +444,9 @@ async def smart_downloadable_search(
     else:
         # Original download testing logic for get_papers/download_papers
         attempted_downloads = 0
-        max_attempts = min(50, len(unique_candidates))  # Cap attempts to avoid infinite loops
+        max_attempts = min(
+            50, len(unique_candidates)
+        )  # Cap attempts to avoid infinite loops
 
         logger.info(f"📥 Starting download attempts (max: {max_attempts})")
 
@@ -360,15 +460,24 @@ async def smart_downloadable_search(
                 try:
                     # Test if PDF is actually downloadable using HEAD request (no download)
                     import httpx
-                    async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+
+                    async with httpx.AsyncClient(
+                        timeout=30.0, follow_redirects=True
+                    ) as client:
                         response = await client.head(pdf_url)
                         if response.status_code == 200:
                             paper["download_success"] = True
                             downloadable_papers.append(paper)
-                            logger.info(f"✅ Verified downloadable paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}")
+                            logger.info(
+                                f"✅ Verified downloadable paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}"
+                            )
                         else:
-                            paper["download_error"] = f"PDF not accessible: HTTP {response.status_code}"
-                            logger.debug(f"❌ PDF not accessible: {paper.get('title', '')[:50]} - HTTP {response.status_code}")
+                            paper["download_error"] = (
+                                f"PDF not accessible: HTTP {response.status_code}"
+                            )
+                            logger.debug(
+                                f"❌ PDF not accessible: {paper.get('title', '')[:50]} - HTTP {response.status_code}"
+                            )
                 except Exception as e:
                     paper["download_error"] = str(e)
                     logger.debug(f"❌ Download exception: {e}")
@@ -378,11 +487,17 @@ async def smart_downloadable_search(
     # Final search summary
     search_log["download_attempts"] = attempted_downloads
     search_log["successful_downloads"] = len(downloadable_papers)
-    search_log["success_rate"] = f"{len(downloadable_papers)}/{attempted_downloads}" if attempted_downloads > 0 else "0/0"
+    search_log["success_rate"] = (
+        f"{len(downloadable_papers)}/{attempted_downloads}"
+        if attempted_downloads > 0
+        else "0/0"
+    )
 
     # Intelligent Fallback Strategy: If no results found, try comprehensive sources
     if len(downloadable_papers) == 0 and force_category != "comprehensive":
-        logger.info("🔄 INTELLIGENT FALLBACK: No papers found, retrying with comprehensive sources...")
+        logger.info(
+            "🔄 INTELLIGENT FALLBACK: No papers found, retrying with comprehensive sources..."
+        )
         search_log["fallback_triggered"] = True
         search_log["fallback_reason"] = "Primary search returned 0 results"
 
@@ -394,13 +509,15 @@ async def smart_downloadable_search(
                 search_funcs=search_funcs,
                 utils=utils,
                 api_status=api_status,
-                force_category="comprehensive"
+                force_category="comprehensive",
             )
 
             if len(fallback_results) > 0:
                 search_log["fallback_success"] = True
                 search_log["fallback_results_count"] = len(fallback_results)
-                logger.info(f"✅ FALLBACK SUCCESS: Found {len(fallback_results)} papers using comprehensive sources")
+                logger.info(
+                    f"✅ FALLBACK SUCCESS: Found {len(fallback_results)} papers using comprehensive sources"
+                )
 
                 # Add fallback metadata to each result
                 for paper in fallback_results:
@@ -410,16 +527,20 @@ async def smart_downloadable_search(
                 downloadable_papers = fallback_results
             else:
                 search_log["fallback_success"] = False
-                logger.info("❌ FALLBACK FAILED: No papers found even with comprehensive sources")
+                logger.info(
+                    "❌ FALLBACK FAILED: No papers found even with comprehensive sources"
+                )
 
                 # Generate intelligent error suggestions when even fallback fails
                 error_info = error_handler.generate_error_message(
                     query=query,
                     sources_searched=search_log["sources_searched"],
-                    fallback_used=True
+                    fallback_used=True,
                 )
                 search_log["intelligent_error_suggestions"] = error_info
-                logger.info(f"💡 Generated {len(error_info['suggestions'])} intelligent suggestions for failed search")
+                logger.info(
+                    f"💡 Generated {len(error_info['suggestions'])} intelligent suggestions for failed search"
+                )
 
         except Exception as e:
             search_log["fallback_error"] = str(e)
@@ -429,12 +550,16 @@ async def smart_downloadable_search(
         error_info = error_handler.generate_error_message(
             query=query,
             sources_searched=search_log["sources_searched"],
-            fallback_used=False
+            fallback_used=False,
         )
         search_log["intelligent_error_suggestions"] = error_info
-        logger.info(f"💡 Generated {len(error_info['suggestions'])} intelligent suggestions for failed search")
+        logger.info(
+            f"💡 Generated {len(error_info['suggestions'])} intelligent suggestions for failed search"
+        )
 
-    logger.info(f"🎯 SEARCH COMPLETE: Found {len(downloadable_papers)} downloadable papers out of {attempted_downloads} attempts")
+    logger.info(
+        f"🎯 SEARCH COMPLETE: Found {len(downloadable_papers)} downloadable papers out of {attempted_downloads} attempts"
+    )
     logger.info(f"📈 Search Summary: {json.dumps(search_log, indent=2)}")
 
     # Return both papers and search metadata (including error suggestions)

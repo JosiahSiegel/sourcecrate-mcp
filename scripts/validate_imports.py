@@ -15,7 +15,7 @@ def test_core_imports():
 
     try:
         # Add current directory to path for imports
-        sys.path.insert(0, '.')
+        sys.path.insert(0, ".")
 
         # Test server imports
         from paperez_mcp.server import (
@@ -24,20 +24,24 @@ def test_core_imports():
             get_status,
             get_help,
         )
+
         print("  ✓ Server tools imported successfully")
 
         # Test service imports
         from paperez_mcp.services.search_service import SearchOrchestrationService
+
         print("  ✓ Search service imported successfully")
 
         # Test utility imports
         from paperez_mcp.utils.smart_search import smart_downloadable_search
         from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
         from paperez_mcp.utils.query_intent import QueryIntentDetector
+
         print("  ✓ Utility modules imported successfully")
 
         # Test config imports
         from paperez_mcp.config.manager import ConfigManager
+
         print("  ✓ Configuration manager imported successfully")
 
         print("✓ All core imports successful")
@@ -60,24 +64,27 @@ def test_mcp_server_structure():
         from paperez_mcp.server import mcp
 
         # Check that MCP server is properly initialized
-        assert hasattr(mcp, 'tool'), "MCP server should have tool decorator"
-        assert hasattr(mcp, 'run'), "MCP server should have run method"
+        assert hasattr(mcp, "tool"), "MCP server should have tool decorator"
+        assert hasattr(mcp, "run"), "MCP server should have run method"
         print("  ✓ MCP server object properly structured")
 
         # Check that tool functions exist in the server module
         from paperez_mcp import server
+
         tool_functions = [
-            'browse_papers',
-            'download_papers',
-            'get_status',
-            'get_help',
-            'convert_pdf_to_text',
-            'convert_pdf_to_markdown',
-            'batch_convert_pdfs'
+            "browse_papers",
+            "download_papers",
+            "get_status",
+            "get_help",
+            "convert_pdf_to_text",
+            "convert_pdf_to_markdown",
+            "batch_convert_pdfs",
         ]
 
         for func_name in tool_functions:
-            assert hasattr(server, func_name), f"Server should have {func_name} function"
+            assert hasattr(
+                server, func_name
+            ), f"Server should have {func_name} function"
             # Don't check callable since MCP tools are wrapped
             print(f"  ✓ {func_name} function available")
 

@@ -8,11 +8,13 @@ from dataclasses import dataclass
 from diskcache import Cache
 
 # Global cache instance
-cache = Cache('/tmp/scholarly-mcp-cache', size_limit=1e9)  # 1GB cache
+cache = Cache("/tmp/scholarly-mcp-cache", size_limit=1e9)  # 1GB cache
+
 
 @dataclass
 class APIConfig:
     """Configuration loaded from environment variables"""
+
     semantic_scholar_api_key: str | None = None
     scraperapi_key: str | None = None
     crossref_email: str = "research@example.com"
@@ -38,10 +40,19 @@ class APIConfig:
         self.core_api_key = os.getenv("CORE_API_KEY")
 
         # Feature flags from environment (default to True for new features)
-        self.enable_fallback_search = os.getenv("ENABLE_FALLBACK_SEARCH", "true").lower() == "true"
-        self.enable_topic_detection = os.getenv("ENABLE_TOPIC_DETECTION", "true").lower() == "true"
-        self.enable_query_reformulation = os.getenv("ENABLE_QUERY_REFORMULATION", "true").lower() == "true"
-        self.enable_enhanced_logging = os.getenv("ENABLE_ENHANCED_LOGGING", "true").lower() == "true"
+        self.enable_fallback_search = (
+            os.getenv("ENABLE_FALLBACK_SEARCH", "true").lower() == "true"
+        )
+        self.enable_topic_detection = (
+            os.getenv("ENABLE_TOPIC_DETECTION", "true").lower() == "true"
+        )
+        self.enable_query_reformulation = (
+            os.getenv("ENABLE_QUERY_REFORMULATION", "true").lower() == "true"
+        )
+        self.enable_enhanced_logging = (
+            os.getenv("ENABLE_ENHANCED_LOGGING", "true").lower() == "true"
+        )
+
 
 # Global configuration
 config = APIConfig()
@@ -58,5 +69,5 @@ api_status = {
     "core": True,
     "doaj": True,
     "socarxiv": True,
-    "osf_preprints": True
+    "osf_preprints": True,
 }

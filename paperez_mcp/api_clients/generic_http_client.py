@@ -47,53 +47,58 @@ class GenericHTTPClient(BaseAPIClient):
             source_name: Name of the source
             **config: Source configuration
         """
-        super().__init__(source_name, cache_expire=config.get('cache_expire', 3600))
+        super().__init__(source_name, cache_expire=config.get("cache_expire", 3600))
 
         # Required configuration
-        self.base_url = config.get('base_url')
+        self.base_url = config.get("base_url")
         if not self.base_url:
             raise ValueError(f"base_url is required for {source_name}")
 
         # API endpoint configuration
-        self.search_path = config.get('search_path', '/search')
-        self.query_param = config.get('query_param', 'q')
-        self.limit_param = config.get('limit_param', 'limit')
+        self.search_path = config.get("search_path", "/search")
+        self.query_param = config.get("query_param", "q")
+        self.limit_param = config.get("limit_param", "limit")
 
         # Authentication
-        self.api_key = config.get('api_key')
-        self.auth_header = config.get('auth_header', 'Authorization')
-        self.auth_type = config.get('auth_type', 'Bearer')  # Bearer, Basic, ApiKey
+        self.api_key = config.get("api_key")
+        self.auth_header = config.get("auth_header", "Authorization")
+        self.auth_type = config.get("auth_type", "Bearer")  # Bearer, Basic, ApiKey
 
         # Request configuration
-        self.timeout = config.get('timeout', 30)
-        self.headers = config.get('headers', {})
-        self.extra_params = config.get('extra_params', {})
+        self.timeout = config.get("timeout", 30)
+        self.headers = config.get("headers", {})
+        self.extra_params = config.get("extra_params", {})
 
         # Response parsing
-        self.response_format = config.get('response_format', 'json')
-        self.results_path = config.get('results_path', 'results')  # e.g., "data.results"
-        self.total_path = config.get('total_path', 'total')
+        self.response_format = config.get("response_format", "json")
+        self.results_path = config.get(
+            "results_path", "results"
+        )  # e.g., "data.results"
+        self.total_path = config.get("total_path", "total")
 
         # Field mappings from API response to standard format
-        self.field_mappings = config.get('field_mappings', {
-            'title': 'title',
-            'authors': 'authors',
-            'abstract': 'abstract',
-            'journal': 'journal',
-            'year': 'year',
-            'doi': 'doi',
-            'url': 'url',
-            'pdf_url': 'pdf_url',
-            'citation_count': 'citation_count'
-        })
+        self.field_mappings = config.get(
+            "field_mappings",
+            {
+                "title": "title",
+                "authors": "authors",
+                "abstract": "abstract",
+                "journal": "journal",
+                "year": "year",
+                "doi": "doi",
+                "url": "url",
+                "pdf_url": "pdf_url",
+                "citation_count": "citation_count",
+            },
+        )
 
         # Rate limiting
-        self.rate_limit_delay = config.get('rate_limit_delay', 0.1)
+        self.rate_limit_delay = config.get("rate_limit_delay", 0.1)
 
     def _get_nested_value(self, data: dict[str, Any], path: str) -> Any:
         """Get value from nested dictionary using dot notation path."""
         try:
-            keys = path.split('.')
+            keys = path.split(".")
             value = data
             for key in keys:
                 if isinstance(value, list) and key.isdigit():
@@ -109,15 +114,16 @@ class GenericHTTPClient(BaseAPIClient):
     def _build_headers(self) -> dict[str, str]:
         """Build request headers including authentication."""
         headers = self.headers.copy()
-        headers['User-Agent'] = 'PaperezMCP Academic Research Tool'
+        headers["User-Agent"] = "PaperezMCP Academic Research Tool"
 
         if self.api_key:
-            if self.auth_type == 'Bearer':
+            if self.auth_type == "Bearer":
                 headers[self.auth_header] = f"Bearer {self.api_key}"
-            elif self.auth_type == 'ApiKey':
+            elif self.auth_type == "ApiKey":
                 headers[self.auth_header] = self.api_key
-            elif self.auth_type == 'Basic':
+            elif self.auth_type == "Basic":
                 import base64
+
                 encoded = base64.b64encode(f"{self.api_key}:".encode()).decode()
                 headers[self.auth_header] = f"Basic {encoded}"
 
@@ -129,9 +135,11 @@ class GenericHTTPClient(BaseAPIClient):
 
         # Handle CrossRef-style query formatting
         formatted_query = query
-        if self.source_name == 'crossref':
+        if self.source_name == "crossref":
             # Wrap multi-word queries in quotes for better phrase search
-            if ' ' in query.strip() and not (query.strip().startswith('"') and query.strip().endswith('"')):
+            if " " in query.strip() and not (
+                query.strip().startswith('"') and query.strip().endswith('"')
+            ):
                 formatted_query = f'"{query}"'
 
         params[self.query_param] = formatted_query
@@ -139,7 +147,7 @@ class GenericHTTPClient(BaseAPIClient):
 
         # Add any additional parameters from kwargs
         for key, value in kwargs.items():
-            if key not in ['force_category']:  # Skip internal parameters
+            if key not in ["force_category"]:  # Skip internal parameters
                 params[key] = value
 
         return params  # type: ignore[no-any-return]
@@ -151,7 +159,9 @@ class GenericHTTPClient(BaseAPIClient):
 
         if isinstance(authors_data, str):
             # Handle comma-separated string
-            return [author.strip() for author in authors_data.split(',') if author.strip()]
+            return [
+                author.strip() for author in authors_data.split(",") if author.strip()
+            ]
         elif isinstance(authors_data, list):
             # Handle list of author objects or strings
             result = []
@@ -163,16 +173,18 @@ class GenericHTTPClient(BaseAPIClient):
                     name = None
 
                     # CrossRef format: {"given": "John", "family": "Smith"}
-                    if 'given' in author and 'family' in author:
+                    if "given" in author and "family" in author:
                         name = f"{author.get('given', '')} {author.get('family', '')}".strip()
                     # Semantic Scholar format: {"name": "John Smith"}
-                    elif 'name' in author:
-                        name = author.get('name', '').strip()
+                    elif "name" in author:
+                        name = author.get("name", "").strip()
                     # Other common formats
                     else:
-                        name = (author.get('full_name') or
-                               author.get('display_name') or
-                               f"{author.get('first_name', '')} {author.get('last_name', '')}".strip())
+                        name = (
+                            author.get("full_name")
+                            or author.get("display_name")
+                            or f"{author.get('first_name', '')} {author.get('last_name', '')}".strip()
+                        )
 
                     if name:
                         result.append(name)
@@ -188,28 +200,31 @@ class GenericHTTPClient(BaseAPIClient):
             if api_field:
                 value = self._get_nested_value(item, api_field)
 
-                if standard_field == 'authors':
+                if standard_field == "authors":
                     paper[standard_field] = self._parse_authors(value)
-                elif standard_field == 'year' and value:
+                elif standard_field == "year" and value:
                     # Try to extract year from various date formats
                     try:
                         if isinstance(value, str):
                             # Extract first 4-digit number (likely year)
                             import re
-                            year_match = re.search(r'\b(19|20)\d{2}\b', value)
-                            paper[standard_field] = int(year_match.group()) if year_match else None
+
+                            year_match = re.search(r"\b(19|20)\d{2}\b", value)
+                            paper[standard_field] = (
+                                int(year_match.group()) if year_match else None
+                            )
                         else:
                             paper[standard_field] = int(value)
                     except (ValueError, TypeError):
                         paper[standard_field] = None
-                elif standard_field == 'citation_count' and value:
+                elif standard_field == "citation_count" and value:
                     try:
                         paper[standard_field] = int(value)
                     except (ValueError, TypeError):
                         paper[standard_field] = 0
-                elif standard_field == 'url' and self.source_name == 'crossref':
+                elif standard_field == "url" and self.source_name == "crossref":
                     # CrossRef: Generate DOI URL if no direct URL provided
-                    if not value and paper.get('doi'):
+                    if not value and paper.get("doi"):
                         paper[standard_field] = f"https://doi.org/{paper['doi']}"
                     else:
                         paper[standard_field] = value or ""
@@ -217,16 +232,18 @@ class GenericHTTPClient(BaseAPIClient):
                     paper[standard_field] = value or ""
             else:
                 # Set default values for unmapped fields
-                if standard_field in ['authors']:
+                if standard_field in ["authors"]:
                     paper[standard_field] = []
-                elif standard_field in ['citation_count']:
+                elif standard_field in ["citation_count"]:
                     paper[standard_field] = 0
                 else:
                     paper[standard_field] = ""
 
         return super()._standardize_paper(paper)
 
-    async def _perform_search(self, query: str, limit: int, **kwargs: Any) -> list[dict[str, Any]]:
+    async def _perform_search(
+        self, query: str, limit: int, **kwargs: Any
+    ) -> list[dict[str, Any]]:
         """
         Perform search using generic HTTP API configuration.
 
@@ -256,26 +273,32 @@ class GenericHTTPClient(BaseAPIClient):
 
                 if response.status_code == 429:
                     # Rate limited - wait and retry once
-                    retry_after = int(response.headers.get('Retry-After', 60))
+                    retry_after = int(response.headers.get("Retry-After", 60))
                     self.logger.warning(f"Rate limited, waiting {retry_after}s")
                     await asyncio.sleep(retry_after)
                     response = await client.get(url, headers=headers, params=params)
 
                 if response.status_code != 200:
-                    self.logger.warning(f"API returned {response.status_code}: {response.text[:200]}")
+                    self.logger.warning(
+                        f"API returned {response.status_code}: {response.text[:200]}"
+                    )
                     return []
 
                 # Parse response
-                if self.response_format == 'json':
+                if self.response_format == "json":
                     data = response.json()
                 else:
-                    self.logger.error(f"Unsupported response format: {self.response_format}")
+                    self.logger.error(
+                        f"Unsupported response format: {self.response_format}"
+                    )
                     return []
 
                 # Extract results
                 results = self._get_nested_value(data, self.results_path)
                 if not isinstance(results, list):
-                    self.logger.warning(f"Expected list at {self.results_path}, got {type(results)}")
+                    self.logger.warning(
+                        f"Expected list at {self.results_path}, got {type(results)}"
+                    )
                     return []
 
                 # Convert to standard format
@@ -283,7 +306,7 @@ class GenericHTTPClient(BaseAPIClient):
                 for item in results[:limit]:
                     try:
                         paper = self._standardize_paper(item)
-                        if paper.get('title'):  # Only include papers with titles
+                        if paper.get("title"):  # Only include papers with titles
                             papers.append(paper)
                     except Exception as e:
                         self.logger.warning(f"Failed to parse item: {e}")
