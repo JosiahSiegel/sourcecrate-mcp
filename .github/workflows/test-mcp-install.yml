@@ -244,7 +244,7 @@ jobs:
                     'convert_pdf_to_markdown', 'batch_convert_pdfs', 'get_status', 'get_help'
                 ]
 
-                tool_names = [tool['name'] for tool in tools]
+                tool_names = list(tools.keys())
                 for expected in expected_tools:
                     assert expected in tool_names, f'Missing tool: {expected}'
 
@@ -285,7 +285,7 @@ jobs:
                     'convert_pdf_to_markdown', 'batch_convert_pdfs', 'get_status', 'get_help'
                 ]
 
-                tool_names = [tool['name'] for tool in tools]
+                tool_names = list(tools.keys())
                 for expected in expected_tools:
                     assert expected in tool_names, f'Missing tool: {expected}'
 
