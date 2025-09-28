@@ -225,8 +225,8 @@ class ConfigManager:
         if not directory_path.exists() or not directory_path.is_dir():
             return {}
 
-        merged_config = {}
-        yaml_files = []
+        merged_config: dict[str, Any] = {}
+        yaml_files: list[Path] = []
 
         # Find all YAML files in the directory
         for pattern in ['*.yaml', '*.yml']:
@@ -276,7 +276,7 @@ class ConfigManager:
 
     def _get_env_overrides(self) -> dict[str, Any]:
         """Get configuration overrides from environment variables."""
-        overrides = {}
+        overrides: dict[str, Any] = {}
 
         # Map environment variables to config paths
         env_mappings = {
