@@ -108,12 +108,12 @@ class QueryRoutingConfig(BaseModel):
     )
 
     # Category mapping for domains
-    domain_categories: Dict[str, str] = Field(
+    domain_categories: Dict[str, Optional[str]] = Field(
         default_factory=lambda: {
             "medical": "medical",
             "computer_science": "preprints",
             "physics": "preprints",
-            "general": "comprehensive"
+            "general": None  # Use intelligent routing for general queries
         },
         description="Default categories for detected domains"
     )
@@ -143,7 +143,7 @@ class PaperezConfig(BaseModel):
     )
 
     # Global settings
-    default_category: str = Field("comprehensive", description="Default category when none specified")
+    default_category: Optional[str] = Field(None, description="Default category when none specified (null = intelligent routing)")
     max_concurrent_searches: int = Field(10, description="Maximum concurrent source searches")
 
     # Cache settings
