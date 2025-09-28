@@ -217,10 +217,9 @@ jobs:
         config = ConfigManager().get_config()
         print(f'✓ Found {len(config.sources)} sources for testing')
 
-        # Basic validation that we can instantiate search services
-        from paperez_mcp.services.search_service import SearchOrchestrationService
-        search_service = SearchOrchestrationService()
-        print('✓ Search orchestration service initialized')
+        # Test that smart search functionality is available
+        from paperez_mcp.utils.smart_search import smart_downloadable_search
+        print('✓ Smart search function imported successfully')
         "
 
     - name: Test MCP server startup (basic validation) (Unix)
