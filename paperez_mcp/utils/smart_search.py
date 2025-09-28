@@ -116,28 +116,38 @@ async def smart_downloadable_search(
         'internet_archive': 'Internet Archive historical documents'
     }
 
-    # Use BM25 source rankings as primary strategy
-    source_priority = []
-    for source_name, score in source_rankings:
-        if source_name in source_descriptions:
-            source_priority.append((source_name, f"{source_descriptions[source_name]} (score: {score:.3f})"))
+    # Get ALL available sources from the configuration
+    all_available_sources = [name for name in search_funcs.keys() if api_status.get(name, True)]
 
-    # Apply intent-based source preferences as secondary weighting
+    # Create comprehensive source priority list ensuring ALL sources are included
+    source_priority_dict = {}
+
+    # First: Process BM25 rankings for sources that exist in both BM25 and config
+    for source_name, score in source_rankings:
+        if source_name in all_available_sources:
+            description = source_descriptions.get(source_name, f"Source: {source_name}")
+            source_priority_dict[source_name] = (f"{description} (BM25: {score:.3f})", score)
+
+    # Second: Add all remaining configured sources with default priority
+    for source_name in all_available_sources:
+        if source_name not in source_priority_dict:
+            description = source_descriptions.get(source_name, f"Custom source: {source_name}")
+            # Give default sources a neutral score so they're included but ranked lower
+            source_priority_dict[source_name] = (f"{description} (configured)", 0.1)
+
+    # Apply intent-based preferences and create final priority list
     intent_preferences = intent_analysis.source_preferences if intent_analysis else {}
     adjusted_priority = []
-    for source_name, description in source_priority:
-        preference_score = intent_preferences.get(source_name, 0.5)
-        adjusted_priority.append((source_name, description, preference_score))
 
-    # Sort by combined BM25 + intent preference scores
+    for source_name, (description, base_score) in source_priority_dict.items():
+        preference_score = intent_preferences.get(source_name, 0.5)
+        # Combine BM25 score with intent preference
+        final_score = base_score * 0.7 + preference_score * 0.3
+        adjusted_priority.append((source_name, description, final_score))
+
+    # Sort by final combined scores (highest first)
     adjusted_priority.sort(key=lambda x: x[2], reverse=True)
     source_priority = [(name, desc) for name, desc, _ in adjusted_priority]
-
-    # Enhanced routing is primary - fallback to all available sources if no rankings
-    if not source_priority:
-        # Use all available sources from search_funcs dynamically
-        available_sources = [name for name in search_funcs.keys() if api_status.get(name, True)]
-        source_priority = [(name, f'{name} dynamic priority') for name in available_sources]
 
     # Force category routing if specified
     if force_category:
