@@ -4,8 +4,8 @@ Shared import validation script for both precommit and CI workflow.
 This ensures identical validation across environments.
 """
 
-import sys
 import asyncio
+import sys
 from pathlib import Path
 
 
@@ -18,7 +18,12 @@ def test_core_imports():
         sys.path.insert(0, '.')
 
         # Test server imports
-        from paperez_mcp.server import browse_papers, download_papers, get_status, get_help
+        from paperez_mcp.server import (
+            browse_papers,
+            download_papers,
+            get_status,
+            get_help,
+        )
         print("  ✓ Server tools imported successfully")
 
         # Test service imports
@@ -61,8 +66,15 @@ def test_mcp_server_structure():
 
         # Check that tool functions exist in the server module
         from paperez_mcp import server
-        tool_functions = ['browse_papers', 'download_papers', 'get_status', 'get_help',
-                         'convert_pdf_to_text', 'convert_pdf_to_markdown', 'batch_convert_pdfs']
+        tool_functions = [
+            'browse_papers',
+            'download_papers',
+            'get_status',
+            'get_help',
+            'convert_pdf_to_text',
+            'convert_pdf_to_markdown',
+            'batch_convert_pdfs'
+        ]
 
         for func_name in tool_functions:
             assert hasattr(server, func_name), f"Server should have {func_name} function"
@@ -88,7 +100,9 @@ def test_configuration_loading():
         assert len(config.sources) > 0, "No sources loaded from configuration"
         assert len(config.categories) > 0, "No categories loaded from configuration"
 
-        print(f"  ✓ Loaded {len(config.sources)} sources and {len(config.categories)} categories")
+        print(
+            f"  ✓ Loaded {len(config.sources)} sources and {len(config.categories)} categories"
+        )
         print("✓ Configuration loading successful")
         return True
 

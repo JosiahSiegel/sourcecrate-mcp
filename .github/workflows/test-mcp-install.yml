@@ -123,14 +123,8 @@ jobs:
 
     - name: Install all dependencies (core + PDF + dev)
       run: |
-        # Install ALL core dependencies (including missing ones caught by validation)
-        python -m pip install fastmcp scholarly httpx aiohttp requests tenacity diskcache asyncio-throttle fake-useragent arxiv pymed semanticscholar free-proxy
-
-        # Install PDF processing dependencies (required for MCP server)
-        python -m pip install PyMuPDF pymupdf4llm pdfplumber lxml beautifulsoup4
-
-        # Install development dependencies (required for validation)
-        python -m pip install pytest pytest-asyncio black ruff mypy types-PyYAML types-requests types-beautifulsoup4
+        # Install ALL required dependencies for strict validation
+        python -m pip install fastmcp scholarly httpx aiohttp requests tenacity diskcache asyncio-throttle fake-useragent arxiv pymed semanticscholar free-proxy PyMuPDF pymupdf4llm pdfplumber lxml beautifulsoup4 pytest pytest-asyncio black ruff mypy types-PyYAML types-requests types-beautifulsoup4
 
         # Test direct module import
         python -c "import sys; sys.path.insert(0, '.'); from paperez_mcp import server; print('✓ Direct server import successful')"

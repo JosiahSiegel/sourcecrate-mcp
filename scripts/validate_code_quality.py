@@ -4,9 +4,9 @@ Shared code quality validation script for both precommit and CI workflow.
 This ensures identical validation across environments.
 """
 
-import sys
-import subprocess
 import py_compile
+import subprocess
+import sys
 from pathlib import Path
 
 
@@ -97,12 +97,12 @@ def run_mypy():
 
 
 def run_black_check():
-    """Check Black formatting (optional)."""
+    """Check Black formatting."""
     print("🔍 Checking Black formatting...")
 
     try:
         result = subprocess.run(
-            ["black", "--check", "paperez_mcp/"],
+            ["black", "--check", "paperez_mcp/", "scripts/"],
             capture_output=True,
             text=True,
             check=False
@@ -114,13 +114,12 @@ def run_black_check():
         else:
             print("❌ Black formatting issues found:")
             print(result.stdout)
-            print("Run 'black paperez_mcp/' to fix formatting")
+            print("Run 'black paperez_mcp/ scripts/' to fix formatting")
             return False
 
     except FileNotFoundError:
-        print("⚠️  Black not found (optional) - skipping formatting check")
-        print("   Install with: pip install black")
-        return True  # Don't fail if black is missing
+        print("❌ Black not found! Install with: pip install black")
+        return False
     except Exception as e:
         print(f"❌ Black error: {e}")
         return False

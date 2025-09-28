@@ -41,7 +41,9 @@ def main() -> int:
         all_passed = False
 
     # Run import and functionality validation
-    if not run_validation_script("validate_imports.py", "IMPORT & FUNCTIONALITY VALIDATION"):
+    if not run_validation_script(
+        "validate_imports.py", "IMPORT & FUNCTIONALITY VALIDATION"
+    ):
         all_passed = False
 
     # Run code quality validation
