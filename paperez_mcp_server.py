@@ -286,18 +286,13 @@ async def download_papers(
     This function is designed for when you want to actually GET papers, not just search for them.
     It downloads PDFs with readable filenames and optionally converts them to markdown files.
 
-    Use this when:
-    - User says "get papers", "download papers", "save papers"
-    - You want actual paper content as files (PDF or Markdown)
-    - Need papers for analysis, reading, or citation
+    Use this when users say "get papers", "download papers", or "save papers".
 
     Args:
         query: Search query (keywords, DOI, title, or author)
         limit: Maximum papers to download (default: 5, recommended: 5-10)
         output_dir: Directory to save files (default: ".paperez")
         force_category: 🎯 FORCE SPECIFIC SOURCE TYPES (optional, overrides smart routing)
-        convert_to_markdown: If True (default), convert PDFs to markdown. If False, keep as PDFs only.
-        force_category options:
                        - "preprints" → arXiv, SocArXiv, OSF (latest research, not peer-reviewed)
                        - "journals" → CrossRef, PubMed, DOAJ (peer-reviewed publications)
                        - "open_access" → CORE, DOAJ, arXiv (free full-text available)
@@ -307,6 +302,7 @@ async def download_papers(
 
                        💡 USE WHEN: Smart routing fails to find papers or you need specific types
                        💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
+        convert_to_markdown: If True (default), convert PDFs to markdown. If False, keep as PDFs only.
 
     Returns:
         List containing single dict with:
@@ -316,14 +312,9 @@ async def download_papers(
         - output_directory: Where files were saved
 
     Example Usage:
-        # Get 3 papers as markdown (default)
-        download_papers("machine learning transformers", limit=3)
-
-        # Get papers as PDFs with readable filenames
-        download_papers("neural networks", limit=2, convert_to_markdown=False)
-
-        # Save to specific directory
-        download_papers("climate change", limit=5, output_dir="climate_papers")
+        download_papers("machine learning transformers", limit=3)  # Get as markdown
+        download_papers("neural networks", limit=2, convert_to_markdown=False)  # Keep as PDFs
+        download_papers("climate change", limit=5, output_dir="climate_papers")  # Custom directory
     """
     # Lazy import utilities
     _ensure_scholarly_setup()
@@ -371,23 +362,15 @@ async def convert_pdf_to_text(file_path: str, output_path: Optional[str] = None,
 
     Args:
         file_path: Path to local PDF file
-                   - Supports absolute paths: "/home/user/papers/paper.pdf"
-                   - Supports relative paths: "papers/paper.pdf", "./documents/research.pdf"
-                   - Must be a valid PDF file (will return error for non-PDF files)
-                   - File must exist and be readable
+                   - Supports absolute and relative paths
+                   - Must be a valid PDF file
         output_path: Output path for text file (default: current directory)
-                     - If provided, uses exact path: "/path/to/output.txt"
-                     - If None, creates file in current directory with format: "{filename}_full.txt"
+                     - If None, creates file with format: "{filename}_full.txt"
                      - Automatically creates directories if they don't exist
-                     - Overwrites existing files
         title: Optional title for the document header (default: "")
                - Added as header at top of text file
-               - Example: "Attention Is All You Need"
-               - If empty, no title header is added
         authors: Optional list of authors for the document header (default: None)
                  - Added as author list after title
-                 - Example: ["Ashish Vaswani", "Noam Shazeer", "Niki Parmar"]
-                 - If None or empty, no author section is added
 
     Returns:
         Dictionary containing:
@@ -405,41 +388,14 @@ async def convert_pdf_to_text(file_path: str, output_path: Optional[str] = None,
         - text_path: None
 
     Features:
-        - Creates text files instead of returning content in response
         - Zero context window consumption (content saved to files, not returned)
         - Preserves all text content with page separators
-        - Handles complex academic layouts (multi-column, figures, tables)
-        - Supports Unicode and special characters
         - Fast processing using optimized PyMuPDF engine
 
-    Limitations:
-        - Cannot extract text from image-only PDFs without OCR
-        - May have issues with heavily formatted or corrupted PDFs
-        - Does not extract images, only text content
-        - Password-protected PDFs are not supported
-
     Example Usage:
-        # Basic conversion
         convert_pdf_to_text("research_paper.pdf")
-
-        # With custom title and authors
-        convert_pdf_to_text(
-            "paper.pdf",
-            title="My Research Paper",
-            authors=["John Doe", "Jane Smith"]
-        )
-
-        # Custom output location
-        convert_pdf_to_text(
-            "input.pdf",
-            output_path="/documents/extracted/paper.txt"
-        )
-
-        # Check success and get file path
-        result = convert_pdf_to_text("paper.pdf")
-        if result["success"]:
-            text_file = result["text_path"]
-            char_count = result["text_length"]
+        convert_pdf_to_text("paper.pdf", title="My Research Paper", authors=["John Doe"])
+        convert_pdf_to_text("input.pdf", output_path="/documents/extracted/paper.txt")
     """
     try:
         # First extract the text using existing method
@@ -552,23 +508,15 @@ async def convert_pdf_to_markdown(
 
     Args:
         file_path: Path to the PDF file to convert
-                   - Supports absolute paths: "/home/user/papers/paper.pdf"
-                   - Supports relative paths: "papers/paper.pdf", "./documents/research.pdf"
-                   - Must be a valid PDF file (will return error for non-PDF files)
-                   - File must exist and be readable
+                   - Supports absolute and relative paths
+                   - Must be a valid PDF file
         title: Optional title for the document header (default: "")
                - Added as H1 header at top of markdown
-               - Example: "Attention Is All You Need"
-               - If empty, no title header is added
         authors: Optional list of authors for the document header (default: None)
                  - Added as author list after title
-                 - Example: ["Ashish Vaswani", "Noam Shazeer", "Niki Parmar"]
-                 - If None or empty, no author section is added
         output_path: Output path for markdown file (default: current directory)
-                     - If provided, uses exact path: "/path/to/output.md"
-                     - If None, creates file in current directory with format: "{filename}_full.md"
+                     - If None, creates file with format: "{filename}_full.md"
                      - Automatically creates directories if they don't exist
-                     - Overwrites existing files
 
     Returns:
         Dictionary containing:
@@ -582,13 +530,6 @@ async def convert_pdf_to_markdown(
         Note: The full markdown content is NOT returned to avoid consuming context window space.
         The markdown content is saved to the file specified in markdown_path.
 
-        The generated markdown file contains:
-        - Structured content with preserved headings
-        - Formatted tables and lists
-        - Mathematical notation and special characters
-        - Document metadata (title, authors, page count, etc.)
-        - Page-by-page content with clear separators
-
         On failure, includes:
         - success: false
         - error: Error message explaining the failure
@@ -597,39 +538,12 @@ async def convert_pdf_to_markdown(
         - Zero AI tokens used (direct PDF→markdown conversion)
         - Zero context window consumption (content saved to files, not returned)
         - Preserves document structure and formatting
-        - Handles complex academic layouts
-        - Maintains headings, tables, and lists
-        - Supports Unicode and mathematical notation
         - Fast processing with pymupdf4llm
 
-    Limitations:
-        - Cannot handle image-only PDFs without text layers
-        - Some complex formatting may be simplified
-        - Tables with complex layouts may need manual adjustment
-        - Figures and images are not included in output
-
     Example Usage:
-        # Basic conversion
         convert_pdf_to_markdown("research_paper.pdf")
-
-        # With custom title and authors
-        convert_pdf_to_markdown(
-            "paper.pdf",
-            title="My Research Paper",
-            authors=["John Doe", "Jane Smith"]
-        )
-
-        # Custom output location
-        convert_pdf_to_markdown(
-            "input.pdf",
-            output_path="/documents/converted/paper.md"
-        )
-
-        # Check success and get file path
-        result = convert_pdf_to_markdown("paper.pdf")
-        if result["success"]:
-            markdown_file = result["markdown_path"]
-            char_count = result["markdown_length"]
+        convert_pdf_to_markdown("paper.pdf", title="My Research Paper", authors=["John Doe"])
+        convert_pdf_to_markdown("input.pdf", output_path="/documents/converted/paper.md")
     """
     result = await _convert_pdf_to_markdown_internal(file_path, title, authors, output_path)
 
@@ -736,40 +650,11 @@ async def batch_convert_pdfs(
     Uses zero AI tokens - employs pymupdf4llm for direct PDF-to-markdown conversion
     without text passing through AI context. Preserves document structure and formatting.
 
-    🔗 RESEARCH INTEGRATION:
-    This tool complements search_papers() for bulk workflows:
-
-    1. Use search_papers() to find papers and note PDF URLs
-    2. Download PDFs manually or with individual calls to a directory
-    3. Use batch_convert_pdfs() to convert all PDFs to markdown
-    4. Organize results for analysis
-
-    Example Research Workflow:
-    # Step 1: Search and identify papers
-    papers = search_papers("machine learning", limit=10)
-
-    # Step 2: Download PDFs to directory (manual or scripted)
-    # Create "research_pdfs/" directory and save PDFs there
-
-    # Step 3: Convert all PDFs to markdown
-    batch_convert_pdfs("research_pdfs/", "analysis_markdown/")
-
-    # Alternative: Direct workflow with search_papers download limits
-    # Get 3 papers at a time with automatic download
-    batch1 = search_papers("ML topic A", limit=3, download_and_convert=True)
-    batch2 = search_papers("ML topic B", limit=3, download_and_convert=True)
-    # Then use batch_convert_pdfs if you have additional PDFs
-
     Args:
         directory: Directory containing PDFs (default: "articles")
-                   - Supports absolute paths: "/home/user/research_papers/"
-                   - Supports relative paths: "papers/", "./documents/pdfs/"
-                   - If directory doesn't exist, returns error
+                   - Supports absolute and relative paths
                    - Recursively searches for PDF files (*.pdf, case-insensitive)
-                   - Skips non-PDF files automatically
         output_dir: Output directory for markdown files (default: current directory)
-                    - If None, saves to current working directory
-                    - If provided, uses exact path: "/path/to/output/"
                     - Automatically creates directory if it doesn't exist
                     - Preserves original filenames with "_full.md" suffix
 
@@ -790,48 +675,16 @@ async def batch_convert_pdfs(
         - characters: Character count of generated markdown (if successful)
         - error: Error message (if conversion failed)
 
-        Overall operation fails if:
-        - Input directory doesn't exist
-        - No PDF files found in directory
-        - All individual conversions fail
-
-    Processing Details:
-        - Processes all PDF files found in the directory
-        - Skips files that are already being processed
-        - Creates markdown files with "{original_name}_full.md" format
-        - Overwrites existing markdown files without warning
-        - Continues processing remaining files if individual conversions fail
-        - Provides detailed progress information for each file
-
-    Performance:
+    Features:
         - Zero AI tokens consumed during conversion
         - Zero context window consumption (content saved to files, not returned)
         - Fast processing using optimized pymupdf4llm engine
-        - Parallel processing not implemented (sequential conversion)
         - Memory efficient for large directories
 
     Example Usage:
-        # Convert PDFs from default articles directory
-        batch_convert_pdfs()
-
-        # Convert from specific directory
-        batch_convert_pdfs("research_papers/")
-
-        # Convert with custom output location
-        batch_convert_pdfs(
-            directory="/home/user/papers/",
-            output_dir="/home/user/markdown_output/"
-        )
-
-        # Check results and handle errors
-        result = batch_convert_pdfs("pdfs/")
-        if result["success"]:
-            print(f"Converted {result['successful_conversions']} files")
-            for file in result["files"]:
-                if file["success"]:
-                    print(f"✓ {file['input_file']} → {file['output_file']}")
-                else:
-                    print(f"✗ {file['input_file']}: {file.get('error', 'Unknown error')}")
+        batch_convert_pdfs()  # Convert from default "articles" directory
+        batch_convert_pdfs("research_papers/")  # Convert from specific directory
+        batch_convert_pdfs("pdfs/", "output/")  # Custom input and output directories
     """
     try:
         utils = _lazy_import_utils()
@@ -948,9 +801,6 @@ async def get_status() -> Dict[str, Any]:
         - recommendations: Specific recommendations for system improvements
         - monitoring_enabled: Whether health monitoring is active
 
-        api_status contains:
-        - crossref, semantic_scholar, arxiv, pubmed, google_scholar, etc: Boolean availability
-
         health_report contains:
         - overall_status: "healthy", "degraded", or "critical"
         - sources: Detailed metrics for each source (health scores, response times, success rates)
@@ -962,24 +812,14 @@ async def get_status() -> Dict[str, Any]:
         - recommendation: Suggested action
 
     Use Cases:
-        - Comprehensive system health monitoring
-        - Troubleshooting API connectivity issues
+        - System health monitoring and troubleshooting
         - Performance optimization insights
         - Configuration verification
-        - Proactive maintenance planning
 
     Example Usage:
-        # Get complete system status
         status = get_status()
-
-        # Check overall health
         if status["health_report"]["overall_status"] == "critical":
-            print("System needs immediate attention")
-
-        # Review urgent recommendations
-        for rec in status["recommendations"]:
-            if rec["severity"] == "high":
-                print(f"URGENT: {rec['recommendation']}")
+            print("System needs attention")
     """
     # Get basic status
     basic_status = {
