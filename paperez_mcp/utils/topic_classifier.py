@@ -45,6 +45,13 @@ def classify_query_topic(query: str) -> dict[str, float]:
             "technical",
             "scientific computing",
             "modeling",
+            "deep learning",
+            "neural network",
+            "data mining",
+            "pattern recognition",
+            "automated",
+            "simulation",
+            "digital",
         ],
         "medical": [
             "disease",
@@ -72,6 +79,15 @@ def classify_query_topic(query: str) -> dict[str, float]:
             "biomedical",
             "clinical trial",
             "pharmacology",
+            "drug discovery",
+            "drug development",
+            "therapeutic",
+            "diagnostic",
+            "precision medicine",
+            "personalized medicine",
+            "medical imaging",
+            "radiotherapy",
+            "immunotherapy",
         ],
         "historical": [
             "history",
@@ -198,6 +214,14 @@ def classify_query_topic(query: str) -> dict[str, float]:
             "neuroscience",
             "brain",
             "nervous system",
+            "genomics",
+            "proteomics",
+            "transcriptomics",
+            "systems biology",
+            "computational biology",
+            "structural biology",
+            "molecular biology",
+            "synthetic biology",
         ],
     }
 
@@ -205,8 +229,8 @@ def classify_query_topic(query: str) -> dict[str, float]:
     scores = {}
 
     for domain, keywords in domain_keywords.items():
-        # Count keyword matches
-        matches = sum(1 for keyword in keywords if keyword in query_lower)
+        # Count keyword matches (ensure case-insensitive matching)
+        matches = sum(1 for keyword in keywords if keyword.lower() in query_lower)
         # Normalize by number of keywords in domain
         scores[domain] = matches / len(keywords)
 
@@ -235,7 +259,7 @@ def get_primary_topic(query: str) -> str:
 def get_recommended_sources(query: str) -> list[str]:
     """
     Get recommended sources based on query topic classification.
-    Now configuration-aware to support infinite custom sources.
+    Now configuration-aware to support infinite custom sources with cross-disciplinary routing.
 
     Args:
         query: The search query to analyze
@@ -243,7 +267,7 @@ def get_recommended_sources(query: str) -> list[str]:
     Returns:
         List of recommended source names in priority order
     """
-    classify_query_topic(query)
+    scores = classify_query_topic(query)
     primary_topic = get_primary_topic(query)
 
     # Get available sources from configuration
@@ -281,36 +305,81 @@ def get_recommended_sources(query: str) -> list[str]:
             category = _infer_source_category(source_name, source_config)
             categorized_sources[category].append(source_name)
 
-        # Select sources based on primary topic
+        # Improved cross-disciplinary source selection
         recommended = []
 
-        if primary_topic == "stem":
-            recommended.extend(categorized_sources["stem"])
-            recommended.extend(
-                categorized_sources["general"][:2]
-            )  # Add some general sources
-        elif primary_topic == "medical" or primary_topic == "biological":
-            recommended.extend(categorized_sources["medical"])
+        # Define cross-disciplinary threshold (lowered for better detection)
+        significant_threshold = (
+            0.02  # Much lower threshold for cross-disciplinary detection
+        )
+
+        # Get all significant topics (not just primary)
+        significant_topics = [
+            topic for topic, score in scores.items() if score >= significant_threshold
+        ]
+
+        # Detect cross-disciplinary queries
+        is_cross_disciplinary = len(significant_topics) > 1
+
+        if is_cross_disciplinary:
+            # For cross-disciplinary queries, include sources from all significant topics
+            for topic in significant_topics:
+                if topic == "stem":
+                    recommended.extend(categorized_sources["stem"])
+                elif topic in ["medical", "biological"]:
+                    recommended.extend(categorized_sources["medical"])
+                elif topic == "historical":
+                    recommended.extend(categorized_sources["historical"])
+                elif topic == "social_science":
+                    recommended.extend(categorized_sources["social_science"])
+                elif topic == "humanities":
+                    recommended.extend(categorized_sources["humanities"])
+                elif topic == "business":
+                    recommended.extend(categorized_sources["business"])
+
+            # Add general sources for broader coverage
             recommended.extend(categorized_sources["general"][:2])
-        elif primary_topic == "historical":
-            recommended.extend(categorized_sources["historical"])
-            recommended.extend(categorized_sources["general"][:2])
-        elif primary_topic == "social_science":
-            recommended.extend(categorized_sources["social_science"])
-            recommended.extend(categorized_sources["general"][:2])
-        elif primary_topic == "humanities":
-            recommended.extend(categorized_sources["humanities"])
-            recommended.extend(categorized_sources["general"][:2])
-        elif primary_topic == "business":
-            recommended.extend(categorized_sources["business"])
-            recommended.extend(categorized_sources["general"][:2])
+
         else:
-            # General/mixed queries - prioritize general sources
-            recommended.extend(categorized_sources["general"])
-            # Add some from each category for comprehensive coverage
-            for category_sources in categorized_sources.values():
-                if category_sources and category_sources[0] not in recommended:
-                    recommended.append(category_sources[0])
+            # Single-topic queries - use original logic but add cross-pollination
+            if primary_topic == "stem":
+                recommended.extend(categorized_sources["stem"])
+                recommended.extend(categorized_sources["general"][:2])
+            elif primary_topic == "medical" or primary_topic == "biological":
+                recommended.extend(categorized_sources["medical"])
+                # For medical queries, also include STEM sources for computational approaches
+                if any(
+                    term in query.lower()
+                    for term in [
+                        "machine learning",
+                        "AI",
+                        "algorithm",
+                        "computational",
+                        "modeling",
+                        "bioinformatics",
+                    ]
+                ):
+                    recommended.extend(categorized_sources["stem"][:2])
+                recommended.extend(categorized_sources["general"][:2])
+            elif primary_topic == "historical":
+                recommended.extend(categorized_sources["historical"])
+                recommended.extend(categorized_sources["general"][:2])
+            elif primary_topic == "social_science":
+                recommended.extend(categorized_sources["social_science"])
+                recommended.extend(categorized_sources["general"][:2])
+            elif primary_topic == "humanities":
+                recommended.extend(categorized_sources["humanities"])
+                recommended.extend(categorized_sources["general"][:2])
+            elif primary_topic == "business":
+                recommended.extend(categorized_sources["business"])
+                recommended.extend(categorized_sources["general"][:2])
+            else:
+                # General/mixed queries - prioritize general sources
+                recommended.extend(categorized_sources["general"])
+                # Add some from each category for comprehensive coverage
+                for category_sources in categorized_sources.values():
+                    if category_sources and category_sources[0] not in recommended:
+                        recommended.append(category_sources[0])
 
         # Remove duplicates while preserving order
         unique_recommended = []
@@ -320,7 +389,7 @@ def get_recommended_sources(query: str) -> list[str]:
                 unique_recommended.append(source)
                 seen.add(source)
 
-        return unique_recommended[:6]  # Limit to reasonable number
+        return unique_recommended[:8]  # Increased limit for cross-disciplinary coverage
 
     except Exception:
         # Ultimate fallback - return basic sources if anything fails
@@ -478,11 +547,19 @@ def get_topic_explanation(query: str) -> dict[str, Any]:
     primary_topic = get_primary_topic(query)
     recommended_sources = get_recommended_sources(query)
 
+    # Improved cross-disciplinary detection
+    significant_threshold = 0.02  # Match the threshold used in get_recommended_sources
+    significant_topics = [
+        topic for topic, score in scores.items() if score >= significant_threshold
+    ]
+
     return {
         "query": query,
         "scores": scores,
         "primary_topic": primary_topic,
+        "significant_topics": significant_topics,
         "recommended_sources": recommended_sources,
         "confidence": max(scores.values()) if scores else 0,
-        "is_mixed_topic": len([s for s in scores.values() if s > 0.1]) > 2,
+        "is_mixed_topic": len(significant_topics) > 1,  # Improved detection logic
+        "cross_disciplinary_score": len(significant_topics),
     }

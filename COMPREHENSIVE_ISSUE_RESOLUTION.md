@@ -135,15 +135,19 @@ Comprehensive testing revealed **critical failures in 50%+ of academic sources**
 - **Issue:** Sources scoring 0.000 relevance are completely skipped
 - **Impact:** Relevant sources never searched for appropriate queries
 - **Root Cause:** Simple intent detection instead of BM25 ranking in search engine
-- **Resolution:** Replaced query intent system with full BM25 ranking integration
+- **Resolution:** Replaced query intent system with full BM25 ranking integration + fixed cascading logic
 
 **Solution Steps:** ✅ COMPLETED
 - [x] Review BM25 scoring algorithm parameters
 - [x] Integrate BM25SourceRanker from smart_search into main search engine
 - [x] Replace query intent detection with sophisticated BM25 ranking
 - [x] Implement domain-specific source routing based on term matching
+- [x] Fix cascading logic to ensure minimum 3 sources for diversity
+- [x] Implement fair quota distribution with preference bonuses
 - [x] **Test:** Verified "machine learning" → arXiv, "diabetes treatment" → PubMed
+- [x] **Test:** Confirmed 3 sources used vs 1 before fix (diversity improvement)
 - [x] **Validate:** Confirmed appropriate domain-based source selection
+- [x] **Validate:** Multi-source cascading working after Claude Code restart
 - [x] **Document:** BM25 scoring now shows rankings in search results
 
 **Files to Modify:**
@@ -152,22 +156,27 @@ Comprehensive testing revealed **critical failures in 50%+ of academic sources**
 
 ---
 
-#### 2.2 Cross-Disciplinary Query Routing Failures
+#### 2.2 Cross-Disciplinary Query Routing Failures ✅ RESOLVED
 - **Issue:** Medical ML papers not found when searching medical sources
 - **Impact:** Relevant interdisciplinary content missed
-- **Root Cause:** Too narrow topic classification
+- **Root Cause:** Too narrow topic classification, case-sensitive keyword matching
+- **Resolution:** Implemented multi-topic detection with lowered threshold and cross-disciplinary source inclusion
 
-**Solution Steps:**
-- [ ] Expand topic classification to handle cross-disciplinary terms
-- [ ] Implement multi-category routing for complex queries
-- [ ] Add secondary source routing for broad queries
-- [ ] **Test:** "medical machine learning" finds both CS and medical papers
-- [ ] **Validate:** Verify interdisciplinary results quality
-- [ ] **Document:** Cross-disciplinary routing logic
+**Solution Steps:** ✅ COMPLETED
+- [x] Expand topic classification to handle cross-disciplinary terms
+- [x] Implement multi-category routing for complex queries
+- [x] Add secondary source routing for broad queries
+- [x] Fix case-sensitive keyword matching bug (AI vs ai)
+- [x] Lower significant threshold from 0.1 to 0.02 for better cross-disciplinary detection
+- [x] Add computational keywords (deep learning, neural network, bioinformatics, etc.)
+- [x] **Test:** "medical machine learning" finds both CS and medical papers ✅
+- [x] **Test:** "AI in healthcare" includes both arXiv and PubMed sources ✅
+- [x] **Test:** "computational biology" searches both STEM and biological sources ✅
+- [x] **Validate:** Verified interdisciplinary results quality with end-to-end testing ✅
+- [x] **Document:** Cross-disciplinary routing logic implemented with significant_topics tracking
 
-**Files to Modify:**
-- `paperez_mcp/utils/topic_classifier.py`
-- `paperez_mcp/utils/query_intent.py`
+**Files Modified:**
+- `paperez_mcp/utils/topic_classifier.py` - Enhanced cross-disciplinary detection and routing
 
 ---
 
@@ -412,9 +421,9 @@ Comprehensive testing revealed **critical failures in 50%+ of academic sources**
    - [x] CORE API key registration and configuration
    - [x] Semantic Scholar rate limiting implementation
 
-2. **Fix Query Routing** (2.1-2.2)
-   - [ ] BM25 scoring optimization
-   - [ ] Cross-disciplinary routing implementation
+2. **Fix Query Routing** (2.1-2.2) ✅ COMPLETED
+   - [x] BM25 scoring optimization ✅ COMPLETED
+   - [x] Cross-disciplinary routing implementation ✅ COMPLETED
 
 3. **Implement Comprehensive Testing** (3.1-3.2)
    - [ ] Deploy comprehensive validation framework
@@ -469,15 +478,15 @@ After all issues resolved:
 
 ## 📊 Progress Tracking
 
-### Overall Progress: 16% Complete (4/25 issues resolved)
+### Overall Progress: 24% Complete (6/25 issues resolved)
 
-#### Critical Issues: 50% Complete (4/8 issues)
+#### Critical Issues: 75% Complete (6/8 issues)
 - [x] RePEc API Fix ✅
 - [x] CourtListener Auth Fix ✅
 - [x] CORE API Key Fix ✅
 - [x] Semantic Scholar Rate Limiting ✅
-- [ ] BM25 Scoring Fix
-- [ ] Cross-Disciplinary Routing
+- [x] BM25 Scoring Fix ✅
+- [x] Cross-Disciplinary Routing ✅
 - [ ] False Positive Validation Fix
 - [ ] Content Quality Validation
 
