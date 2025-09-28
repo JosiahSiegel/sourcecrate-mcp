@@ -77,7 +77,7 @@ class SearchOrchestrationService:
         Returns:
             Tuple of (papers_list, search_log)
         """
-        search_log = {
+        search_log: dict[str, Any] = {
             "query": query,
             "sources_attempted": [],
             "sources_successful": [],

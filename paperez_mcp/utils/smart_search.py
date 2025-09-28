@@ -73,7 +73,7 @@ async def smart_downloadable_search(
     # Enhanced routing has replaced legacy topic detection
 
     # Initialize comprehensive search logging with enhanced analytics
-    search_log = {
+    search_log: dict[str, Any] = {
         "query": query,
         "limit": limit,
         "timestamp": datetime.now().isoformat(),
