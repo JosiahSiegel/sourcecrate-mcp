@@ -1,50 +1,31 @@
 repos:
   - repo: local
     hooks:
-      - id: mcp-server-validation
-        name: MCP Server Validation
+      - id: comprehensive-validation
+        name: Comprehensive MCP Validation (matches CI workflow exactly)
         entry: python3
-        args: ["scripts/simple_mcp_check.py"]
-        language: system
-        files: ^paperez_mcp_server\.py$
-        pass_filenames: false
-
-  - repo: local
-    hooks:
-      - id: python-syntax-check
-        name: Python Syntax Check
-        entry: python3
-        args: ["-m", "py_compile"]
-        language: system
-        files: \.py$
-        exclude: ^(venv/|__pycache__/|scripts/)
-
-  - repo: local
-    hooks:
-      - id: ruff-check
-        name: Ruff Linting (matches workflow)
-        entry: ruff
-        args: ["check", "paperez_mcp/"]
+        args: ["scripts/validate_all.py"]
         language: system
         files: ^paperez_mcp/.*\.py$
         pass_filenames: false
+        verbose: true
 
   - repo: local
     hooks:
-      - id: mypy-check
-        name: MyPy Type Checking (matches workflow)
-        entry: mypy
-        args: ["paperez_mcp/", "--ignore-missing-imports"]
+      - id: dependency-check
+        name: Dependency Validation
+        entry: python3
+        args: ["scripts/validate_dependencies.py"]
         language: system
-        files: ^paperez_mcp/.*\.py$
+        files: ^(requirements.*\.txt|pyproject\.toml|setup\.py)$
         pass_filenames: false
 
   - repo: local
     hooks:
       - id: config-validation
-        name: Configuration Validation
+        name: Configuration Validation (on config changes)
         entry: python3
-        args: ["-c", "from paperez_mcp.config.manager import ConfigManager; cm = ConfigManager(enable_hot_reload=False); config = cm.get_config(); print(f'✓ Configuration valid: {len(config.sources)} sources, {len(config.categories)} categories loaded successfully')"]
+        args: ["scripts/validate_imports.py"]
         language: system
         files: \.paperez/config/.*\.ya?ml$
         pass_filenames: false

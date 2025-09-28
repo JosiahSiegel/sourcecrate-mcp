@@ -121,29 +121,27 @@ jobs:
           exit 1
         }
 
-    - name: Install dependencies and test direct import
+    - name: Install all dependencies (core + PDF + dev)
       run: |
-        # Install dependencies directly
-        python -m pip install fastmcp scholarly httpx aiohttp requests PyMuPDF pymupdf4llm pdfplumber lxml beautifulsoup4 asyncio-throttle fake-useragent arxiv pymed semanticscholar tenacity diskcache free-proxy
+        # Install ALL core dependencies (including missing ones caught by validation)
+        python -m pip install fastmcp scholarly httpx aiohttp requests tenacity diskcache asyncio-throttle fake-useragent arxiv pymed semanticscholar free-proxy
+
+        # Install PDF processing dependencies (required for MCP server)
+        python -m pip install PyMuPDF pymupdf4llm pdfplumber lxml beautifulsoup4
+
+        # Install development dependencies (required for validation)
+        python -m pip install pytest pytest-asyncio black ruff mypy types-PyYAML types-requests types-beautifulsoup4
 
         # Test direct module import
         python -c "import sys; sys.path.insert(0, '.'); from paperez_mcp import server; print('✓ Direct server import successful')"
 
-    - name: Install development dependencies
+    - name: Validate dependencies using shared script
       run: |
-        python -m pip install pytest pytest-asyncio black ruff mypy types-PyYAML types-requests types-beautifulsoup4
+        python scripts/validate_dependencies.py
 
-    - name: Test syntax compilation
+    - name: Validate code quality using shared script
       run: |
-        python -m py_compile paperez_mcp/server.py
-
-    - name: Run linting
-      run: |
-        ruff check paperez_mcp/
-
-    - name: Run type checking
-      run: |
-        mypy paperez_mcp/ --ignore-missing-imports
+        python scripts/validate_code_quality.py
 
     - name: Test configuration loading
       run: |
@@ -156,18 +154,9 @@ jobs:
         print('✓ Configuration loading successful')
         "
 
-    - name: Test basic imports and dependencies
+    - name: Validate imports and functionality using shared script
       run: |
-        python -c "
-        try:
-            from paperez_mcp.server import browse_papers, download_papers
-            from paperez_mcp.services.search_service import SearchOrchestrationService
-            from paperez_mcp.utils.smart_search import smart_downloadable_search
-            print('✓ All core imports successful')
-        except ImportError as e:
-            print(f'❌ Import error: {e}')
-            raise
-        "
+        python scripts/validate_imports.py
 
     - name: Test PDF processing capabilities (Unix)
       if: runner.os != 'Windows'
