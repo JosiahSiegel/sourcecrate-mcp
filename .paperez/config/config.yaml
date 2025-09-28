@@ -255,8 +255,8 @@ sources:
     config:
       description: Directory of Open Access Journals
       coverage: peer-reviewed open access articles across all subjects
-      base_url: https://doaj.org/api/search
-      search_path: /articles/_search
+      base_url: https://doaj.org/api/v4
+      search_path: /search/articles/_search
       query_param: q
       limit_param: pageSize
       response_format: json
@@ -274,7 +274,7 @@ sources:
   hathitrust:
     name: hathitrust
     type: http_api
-    enabled: true
+    enabled: false  # Disabled: No keyword search API available, only item lookup by OCLC/ID
     timeout: 30
     max_retries: 3
     cache_expire: 7200
@@ -314,8 +314,7 @@ sources:
       results_path: response.docs
       extra_params:
         output: json
-        mediatype: texts
-        sort: relevance desc
+        fl[]: title,creator,year,publisher,identifier,description
       field_mappings:
         title: title
         authors: creator
@@ -323,7 +322,7 @@ sources:
         journal: publisher
         url: identifier
         abstract: description
-      rate_limit_delay: 0.5
+      rate_limit_delay: 1.0
 
   ssrn:
     name: ssrn

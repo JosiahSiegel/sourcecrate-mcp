@@ -111,7 +111,9 @@ async def smart_downloadable_search(
         'core': 'CORE open access repository',
         'doaj': 'DOAJ open access journals',
         'socarxiv': 'SocArXiv social science preprints',
-        'osf_preprints': 'OSF preprints across disciplines'
+        'osf_preprints': 'OSF preprints across disciplines',
+        'europe_pmc': 'Europe PMC biomedical database',
+        'internet_archive': 'Internet Archive historical documents'
     }
 
     # Use BM25 source rankings as primary strategy
@@ -131,32 +133,22 @@ async def smart_downloadable_search(
     adjusted_priority.sort(key=lambda x: x[2], reverse=True)
     source_priority = [(name, desc) for name, desc, _ in adjusted_priority]
 
-    # Enhanced routing is primary - fallback to default order if no rankings
+    # Enhanced routing is primary - fallback to all available sources if no rankings
     if not source_priority:
-        source_priority = [
-            ('arxiv', 'arXiv default priority'),
-            ('semantic_scholar', 'Semantic Scholar default priority'),
-            ('pubmed_central', 'PMC default priority'),
-            ('pubmed', 'PubMed default priority'),
-            ('clinicaltrials', 'ClinicalTrials.gov default priority'),
-            ('core', 'CORE default priority'),
-            ('crossref', 'CrossRef default priority'),
-            ('doaj', 'DOAJ default priority'),
-            ('socarxiv', 'SocArXiv default priority'),
-            ('google_scholar', 'Google Scholar default priority'),
-            ('osf_preprints', 'OSF Preprints default priority')
-        ]
+        # Use all available sources from search_funcs dynamically
+        available_sources = [name for name in search_funcs.keys() if api_status.get(name, True)]
+        source_priority = [(name, f'{name} dynamic priority') for name in available_sources]
 
     # Force category routing if specified
     if force_category:
         category_sources = {
             "preprints": ["arxiv", "socarxiv", "osf_preprints"],
-            "journals": ["crossref", "pubmed", "doaj"],
-            "open_access": ["core", "doaj", "arxiv", "pubmed_central", "socarxiv", "osf_preprints"],
-            "historical": ["core", "crossref"],
-            "recent": ["arxiv", "semantic_scholar", "pubmed_central", "clinicaltrials", "osf_preprints"],
-            "comprehensive": ["semantic_scholar", "crossref", "core", "pubmed", "pubmed_central"],
-            "medical": ["pubmed", "pubmed_central", "clinicaltrials"]
+            "journals": ["crossref", "pubmed", "doaj", "europe_pmc"],
+            "open_access": ["core", "doaj", "arxiv", "pubmed_central", "socarxiv", "osf_preprints", "europe_pmc"],
+            "historical": ["core", "crossref", "internet_archive"],
+            "recent": ["arxiv", "semantic_scholar", "pubmed_central", "clinicaltrials", "osf_preprints", "europe_pmc"],
+            "comprehensive": list(search_funcs.keys()),  # Use ALL available sources for comprehensive
+            "medical": ["pubmed", "pubmed_central", "clinicaltrials", "europe_pmc"]
         }
 
         if force_category in category_sources:
