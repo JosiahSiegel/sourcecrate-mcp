@@ -81,32 +81,44 @@ jobs:
           echo "Direct uvx path failed"
         }
 
-    - name: Test MCP Installation via uvx (Unix)
+    - name: Test MCP Installation and Server Startup via uvx (Unix)
       if: runner.os != 'Windows'
       run: |
-        # Try uvx installation with fallback approaches
+        # Test uvx installation and verify package can be invoked
         if command -v uvx >/dev/null 2>&1; then
-          uvx --from . paperez-mcp --help || echo "⚠️ uvx installation failed - testing direct approach"
+          echo "✓ Testing uvx installation..."
+          # Test that the package installs and responds to --help
+          uvx --from . paperez-mcp --help > /dev/null
+          echo "✓ uvx installation working"
         elif [ -f "$HOME/.cargo/bin/uvx" ]; then
-          $HOME/.cargo/bin/uvx --from . paperez-mcp --help || echo "⚠️ uvx installation failed - testing direct approach"
+          echo "✓ Testing direct uvx path..."
+          # Test that the package installs and responds to --help
+          "$HOME/.cargo/bin/uvx" --from . paperez-mcp --help > /dev/null
+          echo "✓ Direct uvx path working"
         else
-          echo "⚠️ uvx not available - skipping uvx installation test"
+          echo "❌ uvx not available - this is required for user installation"
+          exit 1
         fi
 
-    - name: Test MCP Installation via uvx (Windows)
+    - name: Test MCP Installation and Server Startup via uvx (Windows)
       if: runner.os == 'Windows'
       run: |
-        # Try uvx installation with fallback approaches
-        try {
-          if (Get-Command uvx -ErrorAction SilentlyContinue) {
-            uvx --from . paperez-mcp --help
-          } elseif (Test-Path "$env:USERPROFILE\.cargo\bin\uvx.exe") {
-            & "$env:USERPROFILE\.cargo\bin\uvx.exe" --from . paperez-mcp --help
-          } else {
-            echo "⚠️ uvx not available - skipping uvx installation test"
-          }
-        } catch {
-          echo "⚠️ uvx installation failed - testing direct approach"
+        # Test uvx installation and verify package can be invoked
+        if (Get-Command uvx -ErrorAction SilentlyContinue) {
+          echo "✓ Testing uvx installation..."
+          # Test that the package installs and responds to --help
+          uvx --from . paperez-mcp --help | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "uvx installation test failed" }
+          echo "✓ uvx installation working"
+        } elseif (Test-Path "$env:USERPROFILE\.cargo\bin\uvx.exe") {
+          echo "✓ Testing direct uvx path..."
+          # Test that the package installs and responds to --help
+          & "$env:USERPROFILE\.cargo\bin\uvx.exe" --from . paperez-mcp --help | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "Direct uvx installation test failed" }
+          echo "✓ Direct uvx path working"
+        } else {
+          echo "❌ uvx not available - this is required for user installation"
+          exit 1
         }
 
     - name: Install dependencies and test direct import
@@ -127,7 +139,7 @@ jobs:
 
     - name: Run linting
       run: |
-        ruff check paperez_mcp/ --exit-zero || echo "⚠️ Linting issues found but not blocking CI"
+        ruff check paperez_mcp/
 
     - name: Run type checking
       run: |
@@ -149,8 +161,8 @@ jobs:
         python -c "
         try:
             from paperez_mcp.server import browse_papers, download_papers
-            from paperez_mcp.services.search_orchestration import SearchOrchestrationService
-            from paperez_mcp.utils.smart_search import SmartSearchAnalyzer
+            from paperez_mcp.services.search_service import SearchOrchestrationService
+            from paperez_mcp.utils.smart_search import smart_downloadable_search
             print('✓ All core imports successful')
         except ImportError as e:
             print(f'❌ Import error: {e}')
@@ -171,13 +183,12 @@ jobs:
             import PyMuPDF
             print('✓ PDF processing dependencies available')
         except ImportError as e:
-            print(f'⚠️  PDF processing not available: {e}')
-            exit(0)
+            print(f'❌ PDF processing dependencies missing: {e}')
+            raise
 
         # Create a minimal test
-        from paperez_mcp.utils.pdf_processor import PDFProcessor
-        processor = PDFProcessor()
-        print('✓ PDF processor initialized')
+        from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
+        print('✓ PDF processor functions available')
         "
 
     - name: Test PDF processing capabilities (Windows)
@@ -194,13 +205,12 @@ jobs:
             import PyMuPDF
             print('✓ PDF processing dependencies available')
         except ImportError as e:
-            print(f'⚠️  PDF processing not available: {e}')
-            exit(0)
+            print(f'❌ PDF processing dependencies missing: {e}')
+            raise
 
         # Create a minimal test
-        from paperez_mcp.utils.pdf_processor import PDFProcessor
-        processor = PDFProcessor()
-        print('✓ PDF processor initialized')
+        from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
+        print('✓ PDF processor functions available')
         "
 
     - name: Test configuration validation (CI-friendly)
@@ -225,7 +235,7 @@ jobs:
         print(f'✓ Found {len(config.sources)} sources for testing')
 
         # Basic validation that we can instantiate search services
-        from paperez_mcp.services.search_orchestration import SearchOrchestrationService
+        from paperez_mcp.services.search_service import SearchOrchestrationService
         search_service = SearchOrchestrationService()
         print('✓ Search orchestration service initialized')
         "
@@ -265,18 +275,12 @@ jobs:
                 traceback.print_exc()
                 return False
 
-        # Set up timeout handler
-        def timeout_handler(signum, frame):
-            print('⚠️  Server startup test timed out (expected in CI)')
-            sys.exit(0)
-
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(25)  # 25 second timeout
-
         result = asyncio.run(test_server_startup())
-        if result:
-            print('✓ MCP server startup validation passed')
-        " || echo "⚠️  Server startup test completed (timeout expected in CI)"
+        if not result:
+            print('❌ MCP server startup validation failed')
+            sys.exit(1)
+        print('✓ MCP server startup validation passed')
+        "
 
     - name: Test MCP server startup (basic validation) (Windows)
       if: runner.os == 'Windows'
@@ -331,12 +335,9 @@ jobs:
 
         async def test_tools():
             # Test get_status (should work offline)
-            try:
-                status = await get_status()
-                print('✓ get_status tool working')
-                assert 'api_status' in status
-            except Exception as e:
-                print(f'⚠️  get_status had issues: {e}')
+            status = await get_status()
+            print('✓ get_status tool working')
+            assert 'api_status' in status
 
             # Test get_help (should always work)
             try:
@@ -350,17 +351,121 @@ jobs:
         asyncio.run(test_tools())
         "
 
+    - name: Test MCP Tools with Realistic Scenarios (Platform-Specific)
+      run: |
+        python -c "
+        import asyncio
+        import sys
+        import os
+        import tempfile
+        from pathlib import Path
+        sys.path.insert(0, '.')
+        from paperez_mcp.server import browse_papers, get_status, get_help
+
+        async def test_comprehensive_tools():
+            print('🧪 Testing MCP tools with realistic scenarios...')
+
+            # Test browse_papers with a simple query
+            print('  📚 Testing browse_papers with basic query...')
+            result = await browse_papers('test query', limit=2)
+            print(f'  ✓ browse_papers returned {len(result)} results')
+            assert isinstance(result, list), 'browse_papers should return a list'
+
+            # Test get_status comprehensive response
+            try:
+                print('  📊 Testing get_status comprehensive response...')
+                status = await get_status()
+                assert 'api_status' in status, 'Missing api_status'
+                assert 'config' in status, 'Missing config'
+                assert 'cache_stats' in status, 'Missing cache_stats'
+                print('  ✓ get_status returned all required fields')
+            except Exception as e:
+                print(f'  ❌ get_status comprehensive test failed: {e}')
+                raise
+
+            # Test get_help comprehensive response
+            try:
+                print('  📖 Testing get_help comprehensive response...')
+                help_info = await get_help()
+                assert 'config_guide' in help_info, 'Missing config_guide'
+                assert 'file_paths' in help_info, 'Missing file_paths'
+                assert 'examples' in help_info, 'Missing examples'
+                print('  ✓ get_help returned all required fields')
+            except Exception as e:
+                print(f'  ❌ get_help comprehensive test failed: {e}')
+                raise
+
+            # Test file path handling (platform-specific)
+            try:
+                print('  📁 Testing file path handling...')
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    test_path = Path(temp_dir) / 'test_file.txt'
+                    test_path.write_text('test content', encoding='utf-8')
+
+                    # Verify file operations work correctly on this platform
+                    assert test_path.exists(), 'Test file creation failed'
+                    content = test_path.read_text(encoding='utf-8')
+                    assert content == 'test content', 'File content mismatch'
+
+                    print(f'  ✓ File operations working correctly on {os.name} platform')
+            except Exception as e:
+                print(f'  ❌ File path handling test failed: {e}')
+                raise
+
+            print('🎉 All comprehensive tool tests passed!')
+
+        asyncio.run(test_comprehensive_tools())
+        "
+
+    - name: Test Error Handling and Edge Cases
+      run: |
+        python -c "
+        import asyncio
+        import sys
+        sys.path.insert(0, '.')
+        from paperez_mcp.server import browse_papers, download_papers
+
+        async def test_error_handling():
+            print('🚨 Testing error handling and edge cases...')
+
+            # Test with empty query (should handle gracefully)
+            print('  📝 Testing browse_papers with empty query...')
+            result = await browse_papers('', limit=1)
+            assert isinstance(result, list), 'Empty query should still return a list'
+            print(f'  ✓ Empty query handled correctly (returned {len(result)} results)')
+
+            # Test with large limit (should handle gracefully)
+            print('  📊 Testing browse_papers with large limit...')
+            result = await browse_papers('test', limit=100)
+            assert isinstance(result, list), 'Large limit should still return a list'
+            print(f'  ✓ Large limit handled correctly (returned {len(result)} results)')
+
+            # Test with special characters (should handle gracefully)
+            print('  🔤 Testing browse_papers with special characters...')
+            result = await browse_papers('test & special <chars>', limit=1)
+            assert isinstance(result, list), 'Special characters should still return a list'
+            print(f'  ✓ Special characters handled correctly (returned {len(result)} results)')
+
+            print('🛡️  Error handling tests completed!')
+
+        asyncio.run(test_error_handling())
+        "
+
     - name: Summary
       run: |
-        echo "=== Test Summary ==="
-        echo "✓ MCP installation via uvx: PASSED"
-        echo "✓ Code compilation and linting: PASSED"
-        echo "✓ Configuration loading: PASSED"
-        echo "✓ Core imports and dependencies: PASSED"
-        echo "✓ PDF processing capabilities: TESTED"
-        echo "✓ MCP tools registration: PASSED"
-        echo "✓ Basic functionality: PASSED"
+        echo "=== Comprehensive MCP Test Summary ==="
+        echo "✅ MCP installation via uvx: VERIFIED"
+        echo "✅ Code compilation and linting: STRICT (no warnings ignored)"
+        echo "✅ Configuration loading: VERIFIED"
+        echo "✅ Core imports and dependencies: VERIFIED"
+        echo "✅ PDF processing capabilities: REQUIRED (fails if missing)"
+        echo "✅ MCP server startup: VERIFIED"
+        echo "✅ All MCP tools registration: VERIFIED"
+        echo "✅ Tool functionality with realistic scenarios: TESTED"
+        echo "✅ Error handling and edge cases: TESTED"
+        echo "✅ Platform-specific file operations: TESTED"
         echo ""
-        echo "Platform: ${{ matrix.os }}"
-        echo "Python: ${{ matrix.python-version }}"
-        echo "Status: ALL TESTS PASSED ✓"
+        echo "🎯 Platform: ${{ matrix.os }}"
+        echo "🐍 Python: ${{ matrix.python-version }}"
+        echo "📋 Test Quality: STRICT (no false positives or excuses)"
+        echo "🚀 Status: ALL COMPREHENSIVE TESTS PASSED ✅"
