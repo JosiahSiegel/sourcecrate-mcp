@@ -314,7 +314,7 @@ class EnhancedErrorRecovery:
 class GlobalErrorRecoveryManager:
     """Global manager for error recovery across all services."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.services: dict[str, EnhancedErrorRecovery] = {}
 
     def get_service_recovery(self, service_name: str) -> EnhancedErrorRecovery:
@@ -345,15 +345,15 @@ def with_error_recovery(
     service_name: str,
     operation_name: str | None = None,
     custom_config: RetryConfig | None = None,
-):
+) -> Any:
     """Decorator to add error recovery to async functions."""
 
     def decorator(func: Callable) -> Callable:
-        async def wrapper(*args, **kwargs):
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             recovery = global_error_recovery.get_service_recovery(service_name)
             op_name = operation_name or func.__name__
 
-            async def operation():
+            async def operation() -> Any:
                 return await func(*args, **kwargs)
 
             return await recovery.execute_with_recovery(

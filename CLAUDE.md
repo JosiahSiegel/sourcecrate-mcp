@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PaperezMCP is a Model Context Protocol (MCP) server for academic paper research with multi-source search capabilities, PDF processing, and intelligent routing. It provides 7 optimized tools for browsing, downloading, and converting academic papers.
+PaperezMCP is a Model Context Protocol (MCP) server for academic paper research with multi-source search capabilities, PDF processing, and intelligent routing. It provides 8 optimized tools for browsing, downloading, and converting academic papers.
 
 ## Development Commands
 
@@ -52,9 +52,9 @@ claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/Josia
 ### Core Components
 
 1. **Main Server** (`paperez_mcp_server.py`)
-   - FastMCP-based MCP server with 7 tools
+   - FastMCP-based MCP server with 8 optimized tools
    - Lazy loading of heavy dependencies for performance
-   - Tool functions: browse_papers, download_papers, convert_pdf_to_text, convert_pdf_to_markdown, batch_convert_pdfs, get_status, get_help
+   - Tool functions: browse_papers, browse_papers_streaming, download_papers, convert_pdf_to_text, convert_pdf_to_markdown, batch_convert_pdfs, get_status, get_help
 
 2. **Configuration System** (`paperez_mcp/config/`)
    - **Dual configuration approach**: Legacy (settings.py) + New configurable system (YAML-based)
@@ -75,6 +75,10 @@ claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/Josia
 5. **Utilities** (`paperez_mcp/utils/`)
    - **Smart search**: BM25 ranking, topic classification, intent analysis
    - **PDF processing**: Text extraction, markdown conversion (zero-token via pymupdf4llm)
+   - **Parallel processing**: Concurrent PDF batch processing with semaphore control
+   - **Performance benchmarking**: Comprehensive timing and metrics collection
+   - **Enhanced error recovery**: Circuit breakers, exponential backoff, intelligent retry
+   - **Fuzzy matching**: Cross-source paper deduplication with advanced algorithms
    - **Health monitoring**: Source performance tracking and recommendations
    - **Error handling**: Intelligent fallback strategies
 
@@ -124,7 +128,7 @@ claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/Josia
 
 ## File Structure Notes
 
-- **Main entry point**: `paperez_mcp_server.py` (contains all 7 MCP tools)
+- **Main entry point**: `paperez_mcp_server.py` (contains all 8 MCP tools)
 - **Config files**: `.paperez/config/` directory (not `.paperez/` root)
 - **Source plugins**: Extensible via `paperez_mcp/plugins/`
 - **Legacy compatibility**: Old settings.py maintained alongside new YAML system

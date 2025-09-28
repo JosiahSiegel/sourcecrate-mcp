@@ -87,7 +87,7 @@ class PerformanceBenchmark:
     @asynccontextmanager
     async def measure_operation(
         self, operation_name: str, metadata: dict[str, Any] | None = None
-    ):
+    ) -> Any:
         """Context manager to measure operation performance."""
         start_time = time.time()
         success = True
@@ -227,7 +227,7 @@ class PerformanceBenchmark:
 class SearchBenchmark(PerformanceBenchmark):
     """Specialized benchmark for search operations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("search_performance")
 
     async def benchmark_search_query(
@@ -266,7 +266,7 @@ class SearchBenchmark(PerformanceBenchmark):
 
                 async def search_with_measurement(
                     q: str, meta: dict[str, Any], idx: int
-                ):
+                ) -> None:
                     async with self.measure_operation(f"concurrent_search_{idx}", meta):
                         await search_func(q)
 
@@ -287,7 +287,7 @@ class SearchBenchmark(PerformanceBenchmark):
 class PDFBenchmark(PerformanceBenchmark):
     """Specialized benchmark for PDF processing operations."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__("pdf_performance")
 
     async def benchmark_pdf_conversion(
@@ -304,7 +304,7 @@ class PDFBenchmark(PerformanceBenchmark):
 
                 async def convert_with_measurement(
                     file: str, meta: dict[str, Any], idx: int
-                ):
+                ) -> None:
                     async with self.measure_operation(f"parallel_convert_{idx}", meta):
                         await convert_func(file)
 

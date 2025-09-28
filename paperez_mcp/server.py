@@ -1053,12 +1053,21 @@ async def batch_convert_pdfs(
                             "error": str(result),
                         }
                     )
-                elif result.get("success"):
+                elif isinstance(result, dict) and result.get("success"):
                     successful += 1
                     results.append(result)
                 else:
                     failed += 1
-                    results.append(result)
+                    if isinstance(result, dict):
+                        results.append(result)
+                    else:
+                        results.append(
+                            {
+                                "input_file": str(pdf_files[i]),
+                                "success": False,
+                                "error": f"Unexpected result type: {type(result)}",
+                            }
+                        )
         else:
             # For single files, process directly
             semaphore = asyncio.Semaphore(1)
