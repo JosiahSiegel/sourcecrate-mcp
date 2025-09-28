@@ -40,8 +40,8 @@ categories:
     description: Federal regulations, policy documents, and government publications
     type: standard
     sources:
-      - federal_register
       - crossref  # From scientific.yaml for policy research papers
+      # federal_register disabled - requires IP-based access approval
     max_results_per_source: 8
     parallel_search: true
 
