@@ -109,30 +109,30 @@ search_papers("topic", limit=3, download_and_convert=True)
 - Don't try to download >3 papers in one call (use multi-step approach)
 - Don't confuse include_full_text (memory) vs download_and_convert (files)
 
-## 6 Essential Tools:
+## 5 Essential Tools:
 
-1. search_papers - Comprehensive search across 5 academic databases
+1. browse_papers / get_papers / download_papers - Comprehensive paper search and download
    - Multi-source search (CrossRef, Semantic Scholar, arXiv, PubMed, Google Scholar)
-   - Optional full-text extraction and PDF download/conversion (MAX 3 papers)
+   - browse_papers: Get metadata/abstracts only for exploration
+   - get_papers/download_papers: Download full papers as markdown files
    - Supports DOI queries, author searches, and keyword searches
 
-2. search_authors - Author profile search with citation metrics
-   - Google Scholar integration for author profiles
-   - Returns citation count, h-index, i10-index, and affiliations
-
-3. convert_pdf_to_text - Local PDF text extraction
+2. convert_pdf_to_text - Local PDF text extraction
    - PyMuPDF-based extraction with unlimited character support
    - Handles complex academic document layouts
+   - Zero context window usage
 
-4. convert_pdf_to_markdown - Single PDF to markdown conversion
+3. convert_pdf_to_markdown - Single PDF to markdown conversion
    - Zero-token conversion using pymupdf4llm
    - Preserves document structure and formatting
+   - Zero context window usage
 
-5. batch_convert_pdfs - Batch PDF to markdown conversion
+4. batch_convert_pdfs - Batch PDF to markdown conversion
    - Processes entire directories of PDFs
    - Zero-token conversion with progress tracking
+   - Zero context window usage
 
-6. get_status - System health and configuration status
+5. get_status - System health and configuration status
    - API operational status for all databases
    - Cache statistics and configuration details
 
@@ -478,112 +478,6 @@ async def get_papers(
     return [result]
 
 
-@mcp.tool
-async def search_authors(name: str, limit: int = 5) -> List[Dict[str, Any]]:
-    """
-    Search for academic authors by name.
-
-    Returns author profiles with affiliation, research interests, citation metrics,
-    and publication indices from Google Scholar.
-
-    Args:
-        name: Author name to search for
-              - Full names work best: "Geoffrey Hinton", "Yoshua Bengio"
-              - Partial names: "Hinton", "LeCun"
-              - Names with special characters: "Jürgen Schmidhuber"
-              - Institution-qualified: "Andrew Ng Stanford"
-        limit: Maximum number of authors to return (default: 5, max recommended: 10)
-               Higher limits may increase response time significantly
-
-    Returns:
-        List of author profile dictionaries, each containing:
-        - name: Full author name as listed on Google Scholar
-        - affiliation: Current institutional affiliation
-        - email: Email address (if publicly available)
-        - interests: List of research interests/keywords
-        - citation_count: Total number of citations across all publications
-        - h_index: h-index metric (papers with h or more citations)
-        - i10_index: i10-index metric (papers with 10 or more citations)
-        - source: Always "Google Scholar" for this tool
-
-        Returns empty list if:
-        - No authors found matching the search query
-        - Google Scholar API is unavailable
-        - Network connectivity issues
-
-    Notes:
-        - Google Scholar is the primary source for comprehensive author metrics
-        - Results may vary based on author name variants and Google Scholar indexing
-        - Citation metrics are updated by Google Scholar periodically
-        - Some author profiles may be incomplete or restricted
-
-    Example Usage:
-        # Search for specific researcher
-        search_authors("Geoffrey Hinton")
-
-        # Search with broader terms
-        search_authors("Bengio deep learning", limit=3)
-
-        # Find authors by institution
-        search_authors("OpenAI research", limit=5)
-    """
-    # Try Google Scholar for author search (attempt connection even if api_status is false)
-    try:
-        def _search_author() -> List[Dict[str, Any]]:
-            from scholarly import scholarly
-
-            # Ensure scholarly proxy is set up
-            _ensure_scholarly_setup()
-
-            search_query = scholarly.search_author(name)
-            results = []
-
-            try:
-                for i, author in enumerate(search_query):
-                    if i >= limit:
-                        break
-
-                    filled = scholarly.fill(author, sections=['basics', 'indices'])
-                    result = {
-                        "name": filled.get('name', ''),
-                        "affiliation": filled.get('affiliation', ''),
-                        "email": filled.get('email', ''),
-                        "interests": filled.get('interests', []),
-                        "citation_count": filled.get('citedby', 0),
-                        "h_index": filled.get('hindex', 0),
-                        "i10_index": filled.get('i10index', 0),
-                        "source": "Google Scholar"
-                    }
-                    results.append(result)
-            except StopIteration:
-                # No results found - this is normal, not an error
-                pass
-
-            # If we got results, update api_status
-            if results:
-                api_status["google_scholar"] = True
-            else:
-                # Return helpful message when no results found
-                return [{
-                    "name": name,
-                    "message": "No author results found. Google Scholar access may be limited in this environment.",
-                    "suggestion": "Try searching for papers by this author using browse_papers or get_papers instead.",
-                    "source": "Google Scholar (no results)"
-                }]
-
-            return results
-
-        results = await asyncio.to_thread(_search_author)
-        return results
-
-    except Exception as e:
-        logger.error(f"Author search failed: {e}")
-        # Mark Google Scholar as unavailable if it consistently fails
-        api_status["google_scholar"] = False
-        # Return error info for debugging
-        return [{"error": f"Author search failed: {str(e)}", "name": name, "source": "error"}]
-
-    return []
 
 
 
@@ -1320,7 +1214,6 @@ def main() -> None:
     print("  📄 get_papers: Get full papers as files (most users want this)")
     print("  📄 download_papers: Same as get_papers but more explicit")
     print("  🔍 browse_papers: Quick metadata overview (titles/abstracts only)")
-    print("  👤 search_authors: Find author profiles with citation metrics")
     print("  📝 convert_pdf_to_text: Convert PDF to plain text files")
     print("  🔄 convert_pdf_to_markdown: Convert PDF to markdown format")
     print("  📁 batch_convert_pdfs: Convert multiple PDFs in a directory")

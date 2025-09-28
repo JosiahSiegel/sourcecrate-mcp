@@ -31,10 +31,6 @@
           "description": "🔍 BROWSE: Explore papers (metadata/abstracts only). For quick overview before downloading. Use get_papers() if you want actual papers."
         },
         {
-          "name": "search_authors",
-          "description": "Search for academic authors by name with citation metrics, h-index, and publication data from Google Scholar."
-        },
-        {
           "name": "convert_pdf_to_text",
           "description": "Convert PDF to plain text files using PyMuPDF with unlimited character support for academic papers."
         },

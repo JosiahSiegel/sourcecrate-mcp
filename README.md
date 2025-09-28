@@ -76,7 +76,6 @@ or
 | Tool | Description | Key Parameters |
 |------|-------------|----------------|
 | **`search_papers`** | 🚨 **MAIN TOOL** - Search academic papers across 5 databases | `download_and_convert=True` for files<br/>`include_full_text=True` for memory |
-| **`search_authors`** | Find author profiles with citation metrics from Google Scholar | `limit` (max 10 recommended) |
 
 ### 📄 PDF Processing
 
@@ -141,8 +140,8 @@ for paper in papers[0]["results"]:
 # Search for papers
 /mcp call paperez-mcp search_papers '{"query": "machine learning", "limit": 3}'
 
-# Find an author
-/mcp call paperez-mcp search_authors '{"name": "Geoffrey Hinton", "limit": 1}'
+# Find papers by author (use author name in search)
+/mcp call paperez-mcp browse_papers '{"query": "Geoffrey Hinton", "limit": 5}'
 ```
 
 ### Full-Text Retrieval & Processing
