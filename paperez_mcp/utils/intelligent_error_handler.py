@@ -6,6 +6,7 @@ Provides helpful suggestions when searches fail to find results.
 import logging
 import re
 from dataclasses import dataclass
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -146,7 +147,7 @@ class IntelligentErrorHandler:
                 domain_scores[domain] = score
 
         if domain_scores:
-            return max(domain_scores, key=domain_scores.get)
+            return max(domain_scores, key=lambda x: domain_scores[x])
         return None
 
     def suggest_query_refinements(self, query: str) -> list[str]:

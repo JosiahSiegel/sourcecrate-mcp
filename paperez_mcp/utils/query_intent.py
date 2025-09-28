@@ -6,6 +6,7 @@ Uses pattern matching and statistical analysis to understand user intent.
 import re
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 
 class QueryIntent(Enum):
@@ -462,12 +463,12 @@ class QueryIntentDetector:
         """
         # Calculate intent scores
         intent_scores = self._calculate_intent_scores(query)
-        primary_intent = max(intent_scores, key=intent_scores.get) if intent_scores else QueryIntent.GENERAL
+        primary_intent = max(intent_scores, key=lambda x: intent_scores[x]) if intent_scores else QueryIntent.GENERAL
         intent_confidence = intent_scores.get(primary_intent, 0.0)
 
         # Calculate temporal scores
         temporal_scores = self._calculate_temporal_scores(query)
-        primary_temporal = max(temporal_scores, key=temporal_scores.get) if temporal_scores else TemporalPreference.NEUTRAL
+        primary_temporal = max(temporal_scores, key=lambda x: temporal_scores[x]) if temporal_scores else TemporalPreference.NEUTRAL
 
         # If no strong temporal preference, default to neutral
         if temporal_scores.get(primary_temporal, 0.0) < 0.1:

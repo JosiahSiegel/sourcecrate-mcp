@@ -6,6 +6,7 @@ Uses BM25 algorithm to rank academic sources based on query relevance.
 import math
 from collections import Counter
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -509,7 +510,7 @@ class BM25SourceRanker:
 
         return score
 
-    def rank_sources(self, query: str, available_sources: list[str] = None) -> list[tuple[str, float]]:
+    def rank_sources(self, query: str, available_sources: list[str] | None = None) -> list[tuple[str, float]]:
         """
         Rank sources based on BM25 relevance to the query.
 
@@ -655,7 +656,7 @@ class BM25SourceRanker:
         return alternatives
 
 # Convenience functions
-def rank_sources_bm25(query: str, available_sources: list[str] = None) -> list[tuple[str, float]]:
+def rank_sources_bm25(query: str, available_sources: list[str] | None = None) -> list[tuple[str, float]]:
     """Rank sources using BM25 algorithm."""
     ranker = BM25SourceRanker()
     return ranker.rank_sources(query, available_sources)

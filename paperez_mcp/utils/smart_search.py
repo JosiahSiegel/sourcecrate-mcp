@@ -21,7 +21,7 @@ async def smart_downloadable_search(
     search_funcs: dict[str, Any],
     utils: dict[str, Any],
     api_status: dict[str, bool],
-    force_category: str = None,
+    force_category: str | None = None,
     metadata_only: bool = False
 ) -> list[dict[str, Any]]:
     """

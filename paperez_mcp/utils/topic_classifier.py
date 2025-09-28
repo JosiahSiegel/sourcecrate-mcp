@@ -2,6 +2,8 @@
 Topic classification system for academic queries.
 """
 
+from typing import Any
+
 
 
 def classify_query_topic(query: str) -> dict[str, float]:
@@ -98,7 +100,7 @@ def get_primary_topic(query: str) -> str:
     if not scores or max(scores.values()) == 0:
         return "general"
 
-    return max(scores, key=scores.get)
+    return max(scores, key=lambda x: scores[x])
 
 
 def get_recommended_sources(query: str) -> list[str]:

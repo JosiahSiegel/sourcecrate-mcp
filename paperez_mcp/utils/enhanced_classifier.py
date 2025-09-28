@@ -390,7 +390,7 @@ class EnhancedTopicClassifier:
         if not scores or max(scores.values()) == 0:
             return "general"
 
-        return max(scores, key=scores.get)
+        return max(scores, key=lambda x: scores[x])
 
     def get_subcategory_analysis(self, query: str, primary_domain: str) -> dict[str, float]:
         """Analyze subcategories within the primary domain."""
