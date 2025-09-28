@@ -98,20 +98,30 @@ def check_dev_dependencies():
 
     for dep_name, import_name in required_deps:
         if import_name is None:
-            # For type stubs, just check if they're installed via pip
+            # For type stubs, check if they're installed using importlib.metadata
             try:
-                result = subprocess.run(
-                    [
-                        sys.executable,
-                        "-c",
-                        f"import pkg_resources; pkg_resources.get_distribution('{dep_name}')",
-                    ],
-                    capture_output=True,
-                    text=True,
-                )
-                if result.returncode == 0:
-                    print(f"  ✓ {dep_name} available")
-                else:
+                import importlib.metadata as metadata
+
+                metadata.distribution(dep_name)
+                print(f"  ✓ {dep_name} available")
+            except ImportError:
+                # Fallback to pkg_resources for older Python versions
+                try:
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            "-c",
+                            f"import pkg_resources; pkg_resources.get_distribution('{dep_name}')",
+                        ],
+                        capture_output=True,
+                        text=True,
+                    )
+                    if result.returncode == 0:
+                        print(f"  ✓ {dep_name} available")
+                    else:
+                        print(f"  ❌ {dep_name} missing")
+                        missing_deps.append(dep_name)
+                except Exception:
                     print(f"  ❌ {dep_name} missing")
                     missing_deps.append(dep_name)
             except Exception:
