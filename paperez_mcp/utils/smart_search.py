@@ -289,7 +289,7 @@ async def smart_downloadable_search(
     logger.info(f"📊 Total candidates from all sources: {len(all_candidates)}")
 
     # Sort by PDF availability first, then citation count
-    def pdf_priority_score(paper):
+    def pdf_priority_score(paper: dict[str, Any]) -> tuple[int, int, int]:
         has_pdf = bool(paper.get("pdf_url") or paper.get("open_access_pdf"))
         is_arxiv = paper.get("source") == "arXiv"
 
