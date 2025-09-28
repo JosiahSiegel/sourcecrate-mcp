@@ -22,6 +22,7 @@ from paperez_mcp.utils.result_streaming import (
 # Import global instances for cleanup
 from paperez_mcp.utils.enhanced_error_recovery import global_error_recovery
 from paperez_mcp.utils.search_analytics import search_analytics
+from paperez_mcp.utils.result_streaming import result_streamer
 
 
 class TestStreamingSearchIntegration:
@@ -32,6 +33,7 @@ class TestStreamingSearchIntegration:
         # Reset global state for test isolation
         global_error_recovery.reset_all_error_states()
         search_analytics.reset_analytics_state()
+        result_streamer.reset_streaming_state()
 
         self.streamer = ResultStreamer(
             enable_early_results=True,
@@ -438,6 +440,7 @@ class TestStreamingWithMockMCPServer:
         # Reset global state for test isolation
         global_error_recovery.reset_all_error_states()
         search_analytics.reset_analytics_state()
+        result_streamer.reset_streaming_state()
 
     @pytest.mark.asyncio
     async def test_browse_papers_streaming_simulation(self):
@@ -673,33 +676,42 @@ class TestStreamingPerformanceIntegration:
         # Reset global state for test isolation
         global_error_recovery.reset_all_error_states()
         search_analytics.reset_analytics_state()
+        result_streamer.reset_streaming_state()
 
     @pytest.mark.asyncio
     async def test_streaming_early_delivery_timing(self):
         """Test that early delivery happens within expected timeframes."""
-        # Configure for aggressive early delivery
-        fast_streamer = ResultStreamer(
-            enable_early_results=True,
-            min_results_for_early_delivery=1,
-            max_wait_time=2.0,
-        )
 
         async def instant_source(query: str, limit: int) -> list[dict[str, Any]]:
-            return [{"title": "Instant Result", "source": "InstantSource"}]
+            return [
+                {"title": "Instant Result 1", "source": "InstantSource"},
+                {"title": "Instant Result 2", "source": "InstantSource"},
+            ]
+
+        async def quick_source(query: str, limit: int) -> list[dict[str, Any]]:
+            await asyncio.sleep(0.1)  # Quick response
+            return [{"title": "Quick Result", "source": "QuickSource"}]
 
         async def delayed_source(query: str, limit: int) -> list[dict[str, Any]]:
             await asyncio.sleep(1.0)  # 1 second delay
-            return [{"title": "Delayed Result", "source": "DelayedSource"}]
+            return [
+                {"title": "Delayed Result 1", "source": "DelayedSource"},
+                {"title": "Delayed Result 2", "source": "DelayedSource"},
+            ]
 
-        search_tasks = [instant_source, delayed_source]
-        source_names = ["instant", "delayed"]
+        search_functions = {
+            "instant": instant_source,
+            "quick": quick_source,
+            "delayed": delayed_source,
+        }
+        api_status = {"instant": True, "quick": True, "delayed": True}
 
         start_time = time.time()
         early_delivery_time = None
         final_delivery_time = None
 
-        async for update in fast_streamer.stream_search_results(
-            search_tasks, source_names
+        async for update in create_streaming_search(
+            search_functions, "test query", 5, api_status
         ):
             if (
                 update.type == "result"

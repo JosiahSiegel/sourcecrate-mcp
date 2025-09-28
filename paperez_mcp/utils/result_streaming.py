@@ -441,6 +441,28 @@ class ResultStreamer:
             ),
         }
 
+    def reset_streaming_state(self) -> None:
+        """Reset streaming state for test isolation."""
+        # Clear streaming state
+        self.completed_sources.clear()
+        self.error_sources.clear()
+        self.source_results.clear()
+
+        # Reset timing
+        self.start_time = 0.0
+        self.first_result_time = None
+
+        # Reset statistics
+        self.streaming_stats = {
+            "total_results": 0,
+            "sources_completed": 0,
+            "sources_failed": 0,
+            "average_latency": 0.0,
+        }
+
+        # Create new queue to avoid any lingering tasks
+        self.result_queue = asyncio.Queue(maxsize=self.result_buffer_size)
+
 
 # Global streaming instance
 result_streamer = ResultStreamer()
