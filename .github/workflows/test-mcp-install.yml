@@ -148,7 +148,7 @@ jobs:
       run: |
         python -c "
         try:
-            from paperez_mcp_server import browse_papers_impl, download_papers_impl
+            from paperez_mcp.server import browse_papers, download_papers
             from paperez_mcp.services.search_orchestration import SearchOrchestrationService
             from paperez_mcp.utils.smart_search import SmartSearchAnalyzer
             print('✓ All core imports successful')
@@ -327,22 +327,22 @@ jobs:
         import asyncio
         import sys
         sys.path.insert(0, '.')
-        from paperez_mcp.server import get_status_impl, get_help_impl
+        from paperez_mcp.server import get_status, get_help
 
         async def test_tools():
             # Test get_status (should work offline)
             try:
-                status = await get_status_impl()
+                status = await get_status()
                 print('✓ get_status tool working')
-                assert 'api_status' in status[0]
+                assert 'api_status' in status
             except Exception as e:
                 print(f'⚠️  get_status had issues: {e}')
 
             # Test get_help (should always work)
             try:
-                help_info = await get_help_impl()
+                help_info = await get_help()
                 print('✓ get_help tool working')
-                assert 'config_guide' in help_info[0]
+                assert 'config_guide' in help_info
             except Exception as e:
                 print(f'❌ get_help failed: {e}')
                 raise
