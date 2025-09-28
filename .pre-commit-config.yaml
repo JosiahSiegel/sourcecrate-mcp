@@ -21,6 +21,26 @@ repos:
 
   - repo: local
     hooks:
+      - id: ruff-check
+        name: Ruff Linting (matches workflow)
+        entry: ruff
+        args: ["check", "paperez_mcp/"]
+        language: system
+        files: ^paperez_mcp/.*\.py$
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: mypy-check
+        name: MyPy Type Checking (matches workflow)
+        entry: mypy
+        args: ["paperez_mcp/", "--ignore-missing-imports"]
+        language: system
+        files: ^paperez_mcp/.*\.py$
+        pass_filenames: false
+
+  - repo: local
+    hooks:
       - id: config-validation
         name: Configuration Validation
         entry: python3
