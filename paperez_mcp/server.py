@@ -819,7 +819,7 @@ async def get_status() -> dict[str, Any]:
             print("System needs attention")
     """
     # Get basic status
-    basic_status = {
+    basic_status: dict[str, Any] = {
         "api_status": api_status.copy(),
         "cache_stats": {
             "size": len(cache),
