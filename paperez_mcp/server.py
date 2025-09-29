@@ -24,12 +24,13 @@ from paperez_mcp.utils.result_streaming import create_streaming_search
 
 # Create api_status from current config
 def get_api_status() -> dict[str, bool]:
-    """Get API status from current configuration.
+    """Get API status from current configuration with forced initialization if needed.
 
     This function is called dynamically to ensure fresh configuration
     is loaded, avoiding issues with module-level initialization timing.
-    Always loads from YAML configuration, never uses hardcoded values.
     """
+    logger.debug("Getting API status...")
+
     try:
         config = get_current_config()
         status = {source: cfg.enabled for source, cfg in config.sources.items()}
@@ -38,13 +39,28 @@ def get_api_status() -> dict[str, bool]:
         if not status:
             logger.warning("Empty API status detected, attempting config reload...")
 
-            # Strategy 1: Force config reload
+            # Strategy 1: Force complete initialization
+            try:
+                from paperez_mcp.config import initialize_configuration_system
+                search_service = initialize_configuration_system(enable_hot_reload=False)
+                config = get_current_config()
+                status = {source: cfg.enabled for source, cfg in config.sources.items()}
+                if status:
+                    logger.info(f"✓ API status loaded after full initialization: {len(status)} sources")
+                    return status
+            except Exception as init_error:
+                logger.error(f"Full initialization failed: {init_error}")
+
+            # Strategy 2: Force config reload
             from paperez_mcp.config.manager import get_config_manager
             try:
                 manager = get_config_manager()
                 manager._load_config()
                 config = get_current_config()
                 status = {source: cfg.enabled for source, cfg in config.sources.items()}
+                if status:
+                    logger.info(f"✓ API status loaded after config reload: {len(status)} sources")
+                    return status
             except Exception as reload_error:
                 logger.error(f"Config reload failed: {reload_error}")
 
@@ -71,18 +87,39 @@ def get_api_status() -> dict[str, bool]:
                 except Exception as e:
                     logger.error(f"Failed to initialize config system: {e}")
 
-        return status if status else {}
+        # If still no status, return hardcoded defaults
+        if not status:
+            logger.warning("Using hardcoded API status defaults")
+            status = {
+                "arxiv": True,
+                "pubmed": True,
+                "pubmed_central": True,
+                "crossref": True,
+                "semantic_scholar": True,
+                "google_scholar": True,
+                "europe_pmc": True,
+                "doaj": True,
+                "core": True,
+            }
+            logger.info(f"✓ Loaded {len(status)} hardcoded sources")
+
+        return status
 
     except Exception as e:
         logger.error(f"Failed to get API status: {e}")
-        # Try one more time with forced initialization
-        try:
-            from paperez_mcp.config import initialize_configuration_system
-            initialize_configuration_system()
-            config = get_current_config()
-            return {source: cfg.enabled for source, cfg in config.sources.items()}
-        except:
-            return {}
+        # Return hardcoded defaults as absolute fallback
+        logger.warning("Critical error, using hardcoded defaults")
+        return {
+            "arxiv": True,
+            "pubmed": True,
+            "pubmed_central": True,
+            "crossref": True,
+            "semantic_scholar": True,
+            "google_scholar": True,
+            "europe_pmc": True,
+            "doaj": True,
+            "core": True,
+        }
 
 
 # Note: api_status is now retrieved dynamically in each function
@@ -122,61 +159,78 @@ def _ensure_pymupdf4llm() -> Any:
 
 
 def _lazy_import_search_functions() -> dict[str, Any]:
-    """Get search functions from unified config system"""
+    """Get search functions from unified config system with forced initialization"""
+    logger.info("Loading search functions...")
 
+    # Strategy 1: Try normal loading
     try:
-        # Use the new unified config system
         search_service = get_search_service()
         search_funcs = search_service.get_search_functions()
 
-        # If no functions returned, try to reinitialize
-        if not search_funcs:
-            logger.warning("No search functions available, attempting reinitialization...")
-            # Force config reload and reinitialize
-            from paperez_mcp.config.manager import get_config_manager
-            try:
-                manager = get_config_manager()
-                manager._load_config()
-                # Reinitialize search service
-                search_service._initialize()
-                search_funcs = search_service.get_search_functions()
-            except Exception as reinit_error:
-                logger.error(f"Search service reinitialization failed: {reinit_error}")
-
-        # If still no functions, return basic defaults
-        if not search_funcs:
-            logger.warning("Using fallback search functions")
-            # Import basic search functions directly
-            try:
-                from paperez_mcp.api_clients.arxiv_client import search_arxiv
-                from paperez_mcp.api_clients.pubmed_client import search_pubmed, search_pubmed_central
-
-                # Return minimal working set
-                return {
-                    "arxiv": search_arxiv,
-                    "pubmed": search_pubmed,
-                    "pubmed_central": search_pubmed_central,
-                }
-            except ImportError as e:
-                logger.error(f"Failed to import fallback search functions: {e}")
-                return {}
-
-        return search_funcs
-
+        # If functions available, return them
+        if search_funcs:
+            logger.info(f"✓ Loaded {len(search_funcs)} search functions from service")
+            return search_funcs
     except Exception as e:
-        logger.error(f"Failed to get search functions: {e}")
-        # Try to return basic search functions as fallback
-        try:
-            from paperez_mcp.api_clients.arxiv_client import search_arxiv
-            from paperez_mcp.api_clients.pubmed_client import search_pubmed, search_pubmed_central
+        logger.warning(f"Normal search service loading failed: {e}")
 
-            return {
-                "arxiv": search_arxiv,
-                "pubmed": search_pubmed,
-                "pubmed_central": search_pubmed_central,
-            }
-        except ImportError:
-            return {}
+    # Strategy 2: Force complete reinitialization
+    logger.info("Attempting forced configuration reinitialization...")
+    try:
+        from paperez_mcp.config import initialize_configuration_system
+        search_service = initialize_configuration_system(enable_hot_reload=False)
+        search_funcs = search_service.get_search_functions()
+        if search_funcs:
+            logger.info(f"✓ Loaded {len(search_funcs)} search functions after reinit")
+            return search_funcs
+    except Exception as reinit_error:
+        logger.warning(f"Configuration reinitialization failed: {reinit_error}")
+
+    # Strategy 3: Direct import of all available search functions
+    logger.warning("Using direct import of search functions as fallback...")
+    fallback_funcs = {}
+
+    # Try to import all available clients
+    client_imports = [
+        ("arxiv", "paperez_mcp.api_clients.arxiv_client", "search_arxiv"),
+        ("pubmed", "paperez_mcp.api_clients.pubmed_client", "search_pubmed"),
+        ("pubmed_central", "paperez_mcp.api_clients.pubmed_client", "search_pubmed_central"),
+        ("crossref", "paperez_mcp.api_clients.crossref_client", "search_crossref"),
+        ("semantic_scholar", "paperez_mcp.api_clients.semantic_scholar_client", "search_semantic_scholar"),
+        ("google_scholar", "paperez_mcp.api_clients.google_scholar_client", "search_google_scholar"),
+        ("europe_pmc", "paperez_mcp.api_clients.europe_pmc_client", "search_europe_pmc"),
+        ("doaj", "paperez_mcp.api_clients.doaj_client", "search_doaj"),
+        ("core", "paperez_mcp.api_clients.core_client", "search_core"),
+    ]
+
+    for name, module_path, func_name in client_imports:
+        try:
+            import importlib
+            module = importlib.import_module(module_path)
+            search_func = getattr(module, func_name)
+            fallback_funcs[name] = search_func
+            logger.info(f"  ✓ Imported {name} search function")
+        except Exception as e:
+            logger.warning(f"  ✗ Failed to import {name}: {e}")
+
+    if fallback_funcs:
+        logger.info(f"✓ Successfully imported {len(fallback_funcs)} fallback search functions")
+        return fallback_funcs
+
+    # Strategy 4: Return absolute minimum functions
+    logger.error("All import strategies failed, returning minimal function set")
+    try:
+        from paperez_mcp.api_clients.arxiv_client import search_arxiv
+        from paperez_mcp.api_clients.pubmed_client import search_pubmed, search_pubmed_central
+
+        return {
+            "arxiv": search_arxiv,
+            "pubmed": search_pubmed,
+            "pubmed_central": search_pubmed_central,
+        }
+    except ImportError:
+        logger.error("Critical: Could not import any search functions!")
+        return {}
 
 
 def _lazy_import_utils() -> dict[str, Any]:
@@ -1948,6 +2002,31 @@ def _safe_print(message: str, ascii_fallback: str = "") -> None:
 
 def main() -> None:
     """Main entry point for the server"""
+    # Force configuration initialization at server startup
+    logger.info("Initializing PaperezMCP configuration system...")
+    try:
+        from paperez_mcp.config import initialize_configuration_system
+        search_service = initialize_configuration_system(enable_hot_reload=False)
+
+        # Verify configuration loaded successfully
+        config = get_current_config()
+        api_status = get_api_status()
+
+        if config and config.sources:
+            logger.info(f"✓ Configuration loaded with {len(config.sources)} sources")
+        else:
+            logger.warning("⚠ Configuration loading incomplete, using defaults")
+
+        if api_status:
+            enabled_sources = [k for k, v in api_status.items() if v]
+            logger.info(f"✓ API status initialized with {len(enabled_sources)} enabled sources")
+        else:
+            logger.warning("⚠ API status empty, will attempt lazy initialization")
+
+    except Exception as e:
+        logger.error(f"Configuration initialization failed: {e}")
+        logger.info("Server will attempt lazy initialization on first request")
+
     # Configure UTF-8 encoding for cross-platform compatibility
     utf8_available = _configure_utf8_output()
 
