@@ -1252,6 +1252,44 @@ async def batch_convert_pdfs(
         return {"success": False, "error": f"Batch conversion failed: {str(e)}"}
 
 
+async def _get_current_categories_and_sources() -> dict[str, Any]:
+    """Get current categories and sources for dynamic help information."""
+    try:
+        search_service = get_search_service()
+        category_resolver = search_service.category_resolver
+        config = get_current_config()
+
+        # Get available categories with descriptions
+        available_categories = {}
+        for cat_name in category_resolver.get_available_categories():
+            cat_info = category_resolver.get_category_info(cat_name)
+            available_categories[cat_name] = cat_info.get('description', 'Custom category')
+
+        # Get available sources with descriptions
+        available_sources = {}
+        for source_name, source_config in config.sources.items():
+            if source_config.enabled:
+                description = getattr(source_config.config, 'description', f'{source_name} academic database')
+                available_sources[source_name] = description
+
+        return {
+            "available_categories": available_categories,
+            "available_sources": available_sources,
+            "category_count": len(available_categories),
+            "source_count": len(available_sources),
+            "note": "This data is loaded dynamically from your current configuration"
+        }
+
+    except Exception as e:
+        return {
+            "available_categories": {"error": f"Could not load categories: {str(e)}"},
+            "available_sources": {"error": f"Could not load sources: {str(e)}"},
+            "category_count": 0,
+            "source_count": 0,
+            "note": "Error loading dynamic configuration data"
+        }
+
+
 async def _get_comprehensive_config_info() -> dict[str, Any]:
     """Get comprehensive configuration information including all categories."""
     try:
@@ -1351,7 +1389,7 @@ async def get_status() -> dict[str, Any]:
     Get comprehensive system status including API health, source monitoring, and configuration details.
 
     Reports operational status of all academic databases, detailed health metrics, performance data,
-    cache usage, and configuration details with recommendations for system improvements.
+    cache usage, and comprehensive configuration details with category verification for AI users.
 
     Args:
         None - This tool takes no parameters
@@ -1360,30 +1398,38 @@ async def get_status() -> dict[str, Any]:
         Dictionary containing:
         - api_status: Basic status of all academic database APIs
         - cache_stats: Cache usage and configuration information
-        - config: System configuration details
+        - config: Comprehensive configuration details including:
+          * categories.total_categories: Total number of loaded categories
+          * categories.functional_categories: Categories with available sources
+          * categories.available_categories: List of all category names
+          * categories.category_details: Detailed info for each category (type, sources, functionality)
+          * sources: Summary of available sources and their status
         - health_report: Detailed health monitoring with performance metrics
         - recommendations: Specific recommendations for system improvements
         - monitoring_enabled: Whether health monitoring is active
 
-        health_report contains:
-        - overall_status: "healthy", "degraded", or "critical"
-        - sources: Detailed metrics for each source (health scores, response times, success rates)
-        - summary: Count of healthy/unhealthy/disabled sources
-
-        recommendations include:
-        - severity: "high", "medium", or "low"
-        - issue: Description of the problem
-        - recommendation: Suggested action
+    AI User Configuration Verification:
+        Use config.categories.category_details to verify your custom categories:
+        - Check if your custom category appears in available_categories
+        - Verify 'functional': True for your category
+        - Confirm correct source count in 'sources_available'
+        - Review 'resolved_sources' matches your category definition
 
     Use Cases:
         - System health monitoring and troubleshooting
         - Performance optimization insights
-        - Configuration verification
+        - Custom configuration verification (especially for AI users)
+        - Debugging category and source resolution issues
 
     Example Usage:
         status = get_status()
-        if status["health_report"]["overall_status"] == "critical":
-            print("System needs attention")
+        if status["config"]["categories"]["total_categories"] > 10:
+            print("Custom categories detected")
+
+        # Verify custom category
+        my_category = status["config"]["categories"]["category_details"].get("my_ai_research")
+        if my_category and my_category["functional"]:
+            print("Custom category working correctly")
     """
     # Get basic status
     basic_status: dict[str, Any] = {
@@ -1469,17 +1515,32 @@ async def get_help() -> dict[str, Any]:
 
     help_info = {
         "config_guide": {
-            "overview": "PaperezMCP uses YAML configuration files to customize sources, categories, and behavior.",
+            "overview": "PaperezMCP uses YAML configuration files to customize sources, categories, and behavior. Changes are detected dynamically - no restart required!",
+            "setup_approaches": {
+                "single_file": {
+                    "description": "Traditional single config.yaml approach",
+                    "path": ".paperez/config/config.yaml",
+                    "use_case": "Complete custom configuration"
+                },
+                "multi_file": {
+                    "description": "RECOMMENDED: Individual YAML files for different purposes",
+                    "path": ".paperez/config/my-custom-category.yaml",
+                    "use_case": "Adding custom categories without complex source definitions"
+                }
+            },
             "setup_steps": [
-                "1. Create the configuration directory: .paperez/config/",
-                "2. Place your config.yaml file in that directory",
-                "3. Restart Claude Code after making changes for them to take effect",
-                "4. Use get_status() to verify your configuration is working",
+                "1. Create the configuration directory: mkdir -p .paperez/config/",
+                "2. Choose approach: single config.yaml OR individual .yaml files",
+                "3. Create your configuration file(s) using examples below",
+                "4. Use get_status() immediately to verify - changes are detected instantly!",
+                "5. Check 'categories.category_details' in get_status() output to confirm your categories are loaded"
             ],
             "important_notes": [
-                "Changes only take effect after pushing to GitHub and restarting Claude Code",
-                "User configs override defaults - same-name sources/categories replace entirely",
-                "Set use_default_sources: false to disable all built-in sources",
+                "🔥 DYNAMIC LOADING: Changes take effect immediately - no restart needed!",
+                "📁 MULTI-FILE SUPPORT: Create separate .yaml files for different categories",
+                "🔄 SMART MERGING: All .yaml files in .paperez/config/ are automatically merged",
+                "✅ INSTANT VERIFICATION: Use get_status() to see your changes immediately",
+                "⚠️ SOURCE VALIDATION: Only reference sources that exist (see available_sources below)"
             ],
         },
         "file_paths": {
@@ -1530,8 +1591,56 @@ async def get_help() -> dict[str, Any]:
             },
         },
         "examples": {
+            "custom_category_only": {
+                "description": "RECOMMENDED: Add custom category using existing sources (file: .paperez/config/my-research.yaml)",
+                "content": """# Custom Research Category
+# This creates a new category without defining sources
+# Uses existing sources: arxiv, semantic_scholar, crossref
+
+categories:
+  my_ai_research:
+    name: my_ai_research
+    display_name: "My AI Research"
+    description: "Custom category for my specific AI research needs"
+    type: standard
+    sources:
+      - arxiv
+      - semantic_scholar
+      - crossref
+    max_results_per_source: 8
+    parallel_search: true""",
+            },
+            "multiple_custom_categories": {
+                "description": "Add multiple categories in one file (file: .paperez/config/research-categories.yaml)",
+                "content": """# Multiple Custom Categories
+# Each category uses different combinations of existing sources
+
+categories:
+  quantum_computing:
+    name: quantum_computing
+    display_name: "Quantum Computing Research"
+    description: "Focus on quantum computing and quantum information"
+    type: standard
+    sources:
+      - arxiv
+      - semantic_scholar
+    max_results_per_source: 5
+    parallel_search: true
+
+  biomedical_ai:
+    name: biomedical_ai
+    display_name: "Biomedical AI"
+    description: "AI applications in medicine and biology"
+    type: standard
+    sources:
+      - pubmed
+      - pubmed_central
+      - semantic_scholar
+    max_results_per_source: 10
+    parallel_search: true""",
+            },
             "minimal_config": {
-                "description": "Basic configuration with just one source",
+                "description": "Complete custom configuration (file: .paperez/config/config.yaml)",
                 "content": """version: "1.0"
 use_default_sources: false
 sources:
@@ -1612,61 +1721,69 @@ categories:
     # custom category configuration""",
             },
         },
-        "available_categories": {
-            "academic_premium": "High-quality peer-reviewed sources",
-            "preprints": "Latest research from preprint repositories",
-            "medical": "Medical and biomedical research sources",
-            "open_access": "Freely available full-text articles",
-            "historical": "Historical and archival content",
-            "business": "Business, economics, and finance research",
-        },
-        "available_sources": {
-            "crossref": "Primary academic publisher database",
-            "semantic_scholar": "AI-powered academic search engine",
-            "arxiv": "Preprint repository for STEM fields",
-            "pubmed": "Biomedical literature database",
-            "pubmed_central": "Full-text biomedical repository",
-            "europe_pmc": "European life sciences database",
-            "doaj": "Directory of Open Access Journals",
-            "hathitrust": "Historical books and documents",
-            "internet_archive": "Historical documents and archives",
-            "clinicaltrials": "Clinical trials database",
-        },
+        # Get dynamic category and source information from actual configuration
+        "dynamic_info": await _get_current_categories_and_sources(),
         "troubleshooting": {
+            "validation_errors": {
+                "sources_must_be_dict": {
+                    "error": "1 validation error for PaperezConfig: sources - Input should be a valid dictionary",
+                    "cause": "Empty or missing sources section when using category-only config",
+                    "solution": "Remove 'sources:' line completely OR use existing sources in categories",
+                    "example": "Instead of defining new sources, reference existing ones like: sources: [arxiv, crossref]"
+                },
+                "category_not_appearing": {
+                    "error": "Custom category doesn't show in get_status()",
+                    "cause": "YAML syntax error or invalid source references",
+                    "solution": "Check YAML indentation, ensure sources exist in available_sources list below"
+                }
+            },
             "config_not_loading": [
-                "Ensure file is at correct path: .paperez/config/config.yaml",
-                "Check YAML syntax is valid (use online YAML validator)",
-                "Restart Claude Code after configuration changes",
-                "Use get_status() to check if config loaded successfully",
+                "✅ FIRST: Run get_status() - config loads dynamically, check 'configuration_loaded' field",
+                "📁 Check file path: .paperez/config/ directory with .yaml extension",
+                "📝 Validate YAML syntax (use online YAML validator)",
+                "🔍 Check 'categories.total_categories' in get_status() - should increase with your additions",
+                "⚠️ Ensure source names match exactly those in 'available_sources' below"
             ],
             "sources_not_working": [
-                "Check source 'enabled' field is set to true",
-                "Verify API endpoints are accessible",
-                "Check timeout and retry settings",
-                "Review rate limiting delays",
-                "Use get_status() to check API health",
-            ],
-            "permission_errors": [
-                "Ensure .paperez directory is writable",
-                "Check file permissions on config.yaml",
-                "Verify directory exists before creating config file",
+                "🔍 Run get_status() and check 'config.categories.category_details.YOUR_CATEGORY.functional'",
+                "✅ Verify sources in your category exist in 'available_sources' list below",
+                "📊 Check 'sources_available' vs 'sources_unavailable' in get_status() output",
+                "⚡ API issues are temporary - categories remain functional when APIs recover"
             ],
             "yaml_syntax_errors": [
-                "Use consistent indentation (spaces, not tabs)",
-                "Quote string values that contain special characters",
-                "Ensure proper list formatting with dashes",
-                "Check for unclosed brackets or quotes",
+                "🔤 Use spaces for indentation, never tabs",
+                "📝 Quote strings with special characters: display_name: \"My Research & Analysis\"",
+                "📋 List format: sources: [arxiv, crossref] OR sources:\\n  - arxiv\\n  - crossref",
+                "🔍 Check brackets, quotes, and colons are properly closed",
+                "🧪 Test immediately with get_status() after each change"
             ],
+            "verification_workflow": [
+                "1. Create your .yaml file in .paperez/config/",
+                "2. Immediately run get_status() - no restart needed!",
+                "3. Check 'config.categories.total_categories' increased",
+                "4. Find your category in 'config.categories.category_details'",
+                "5. Verify 'functional: true' and correct source count",
+                "6. Test with browse_papers(force_category='your_category_name')"
+            ]
         },
         "quick_start": {
-            "basic_setup": [
-                "mkdir -p .paperez/config/",
-                "Create .paperez/config/config.yaml with your desired sources",
-                "Use examples above as starting points",
-                "Test with get_status() and browse_papers()",
-                "Push changes and restart Claude Code",
+            "ai_user_workflow": [
+                "🚀 FASTEST: Use 'custom_category_only' example above",
+                "1. mkdir -p .paperez/config/",
+                "2. Create .paperez/config/my-research.yaml (use example above)",
+                "3. Immediately run get_status() to verify",
+                "4. Your category appears instantly in 'categories.category_details'",
+                "5. Test with browse_papers(force_category='my_ai_research')"
             ],
-            "recommended_first_config": "Start with 'enhance_defaults_config' example to keep built-in sources while adding custom ones",
+            "recommended_approach": "Start with 'custom_category_only' - uses existing sources, no complex setup required",
+            "verification_command": "get_status()['config']['categories']['total_categories'] should increase after adding your config",
+            "success_indicators": [
+                "✅ 'configuration_loaded': True in get_status()",
+                "✅ 'total_categories' increased by number of categories you added",
+                "✅ Your category name appears in 'available_categories' list",
+                "✅ 'functional': True in your category's details",
+                "✅ 'sources_available' > 0 for your category"
+            ]
         },
     }
 
