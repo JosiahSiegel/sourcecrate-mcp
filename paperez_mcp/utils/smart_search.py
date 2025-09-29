@@ -163,11 +163,11 @@ async def smart_downloadable_search(
     adjusted_priority.sort(key=lambda x: x[2], reverse=True)
     source_priority = [(name, desc) for name, desc, _ in adjusted_priority]
 
-    # Force category routing if specified
+    # Priority-based category routing if specified
     if force_category:
         category_sources = {
             "preprints": ["arxiv", "socarxiv", "osf_preprints"],
-            "journals": ["crossref", "pubmed", "doaj", "europe_pmc"],
+            "journals": ["crossref", "pubmed", "doaj", "europe_pmc", "semantic_scholar", "openalex", "pubmed_central"],  # Expanded to include more journal sources
             "open_access": [
                 "core",
                 "doaj",
@@ -190,22 +190,39 @@ async def smart_downloadable_search(
         }
 
         if force_category in category_sources:
-            # Filter to available sources in this category
-            forced_sources = [
+            # Get priority sources that are available
+            priority_sources = [
                 s for s in category_sources[force_category] if api_status.get(s, False)
             ]
-            if forced_sources:
-                source_priority = [
-                    (s, f"{source_descriptions[s]} (FORCED: {force_category})")
-                    for s in forced_sources
-                ]
+
+            # Get remaining sources not in the priority category
+            remaining_sources = [
+                s for s in all_available_sources
+                if s not in priority_sources and api_status.get(s, False)
+            ]
+
+            if priority_sources:
+                # Create priority list: category sources first, then others
+                source_priority = []
+
+                # Add priority sources with high priority descriptions
+                for s in priority_sources:
+                    description = source_descriptions.get(s, f"Source: {s}")
+                    source_priority.append((s, f"{description} (PRIORITY: {force_category})"))
+
+                # Add remaining sources as backup
+                for s in remaining_sources:
+                    description = source_descriptions.get(s, f"Source: {s}")
+                    source_priority.append((s, f"{description} (additional)"))
+
                 logger.info(
-                    f"🎯 FORCED CATEGORY '{force_category}': Using sources {forced_sources}"
+                    f"🎯 Category '{force_category}': Prioritizing {priority_sources}, then expanding to {remaining_sources[:5]}..."
                 )
             else:
                 logger.warning(
-                    f"❌ No available sources for category '{force_category}'"
+                    f"❌ No available sources for category '{force_category}', using all sources"
                 )
+                # Continue with normal routing if no priority sources available
         else:
             available_categories = list(category_sources.keys())
             logger.warning(
@@ -483,29 +500,113 @@ async def smart_downloadable_search(
             if pdf_url:
                 attempted_downloads += 1
                 try:
-                    # Test if PDF is actually downloadable using HEAD request (no download)
-                    import httpx
+                    # Check if this is a DOI URL or trusted academic domain - skip HEAD verification
+                    trusted_domains = [
+                        "doi.org",
+                        "arxiv.org",
+                        "nature.com",
+                        "sciencedirect.com",
+                        "journals.plos.org",
+                        "link.springer.com",
+                        "tandfonline.com",
+                        "journals.sagepub.com",
+                        "science.org",
+                        "aacrjournals.org",
+                        "jamanetwork.com",
+                        "nejm.org",
+                        "bmj.com",
+                        "cell.com",
+                        "thelancet.com"
+                    ]
 
-                    async with httpx.AsyncClient(
-                        timeout=30.0, follow_redirects=True
-                    ) as client:
-                        response = await client.head(pdf_url)
-                        if response.status_code == 200:
-                            paper["download_success"] = True
-                            downloadable_papers.append(paper)
-                            logger.info(
-                                f"✅ Verified downloadable paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}"
-                            )
-                        else:
-                            paper["download_error"] = (
-                                f"PDF not accessible: HTTP {response.status_code}"
-                            )
-                            logger.debug(
-                                f"❌ PDF not accessible: {paper.get('title', '')[:50]} - HTTP {response.status_code}"
-                            )
+                    is_trusted_domain = any(domain in pdf_url for domain in trusted_domains)
+
+                    if is_trusted_domain:
+                        # Skip HEAD verification for trusted academic domains
+                        paper["download_success"] = True
+                        paper["download_note"] = "Trusted academic domain - skipping HEAD verification"
+                        downloadable_papers.append(paper)
+                        logger.info(
+                            f"✅ Trusted domain paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}"
+                        )
+                    else:
+                        # Test if PDF is actually downloadable using HEAD request (no download)
+                        import httpx
+                        import asyncio
+
+                        # Improved verification with retry logic and better tolerance
+                        max_retries = 2
+                        headers = {
+                            "User-Agent": "Mozilla/5.0 (compatible; PaperezMCP/1.0; +https://github.com/JosiahSiegel/paperez-mcp) Academic Research Bot"
+                        }
+
+                        last_exception = None
+                        for attempt in range(max_retries):
+                            try:
+                                async with httpx.AsyncClient(
+                                    timeout=30.0,
+                                    follow_redirects=True,
+                                    headers=headers
+                                ) as client:
+                                    response = await client.head(pdf_url)
+
+                                    # Accept more status codes as potentially downloadable
+                                    if response.status_code in [200, 301, 302, 303, 307, 308]:
+                                        paper["download_success"] = True
+                                        downloadable_papers.append(paper)
+                                        logger.info(
+                                            f"✅ Verified downloadable paper {len(downloadable_papers)}: {paper.get('title', '')[:50]} (HTTP {response.status_code})"
+                                        )
+                                        break
+                                    elif response.status_code in [403, 405]:
+                                        # 403 Forbidden or 405 Method Not Allowed might still be downloadable with GET request
+                                        # Many journals block HEAD but allow GET
+                                        paper["download_success"] = True
+                                        paper["download_note"] = f"HTTP {response.status_code} response - may require authentication but downloadable"
+                                        downloadable_papers.append(paper)
+                                        logger.info(
+                                            f"⚠️ Possibly downloadable paper {len(downloadable_papers)} (HTTP {response.status_code}): {paper.get('title', '')[:50]}"
+                                        )
+                                        break
+                                    else:
+                                        if attempt == max_retries - 1:  # Last attempt
+                                            paper["download_error"] = (
+                                                f"PDF not accessible: HTTP {response.status_code}"
+                                            )
+                                            logger.debug(
+                                                f"❌ PDF not accessible after {max_retries} attempts: {paper.get('title', '')[:50]} - HTTP {response.status_code}"
+                                            )
+                                        else:
+                                            logger.debug(f"🔄 Retrying HEAD request (attempt {attempt + 1}/{max_retries})")
+                                            await asyncio.sleep(1)  # Brief pause before retry
+                                            continue
+                                    break
+
+                            except (httpx.TimeoutException, httpx.ConnectError) as e:
+                                last_exception = e
+                                if attempt < max_retries - 1:
+                                    logger.debug(f"🔄 Retrying after timeout/connection error (attempt {attempt + 1}/{max_retries})")
+                                    await asyncio.sleep(1)  # Brief pause before retry
+                                else:
+                                    # On final retry failure, still add to downloadable if it's a network issue
+                                    paper["download_success"] = True
+                                    paper["download_note"] = f"Network timeout - will attempt actual download: {str(e)}"
+                                    downloadable_papers.append(paper)
+                                    logger.info(
+                                        f"⚠️ Network timeout for paper {len(downloadable_papers)}, will attempt download: {paper.get('title', '')[:50]}"
+                                    )
+                            except Exception as e:
+                                last_exception = e
+                                if attempt < max_retries - 1:
+                                    logger.debug(f"🔄 Retrying after exception (attempt {attempt + 1}/{max_retries}): {str(e)}")
+                                    await asyncio.sleep(1)
+                                else:
+                                    paper["download_error"] = f"Verification failed: {str(e)}"
+                                    logger.debug(f"❌ Download verification exception: {e}")
+
                 except Exception as e:
                     paper["download_error"] = str(e)
-                    logger.debug(f"❌ Download exception: {e}")
+                    logger.debug(f"❌ Download verification outer exception: {e}")
             else:
                 paper["download_error"] = "No PDF URL available"
 
@@ -518,64 +619,12 @@ async def smart_downloadable_search(
         else "0/0"
     )
 
-    # Intelligent Fallback Strategy: If no results found, try all sources without category restriction
-    if len(downloadable_papers) == 0 and force_category is not None:
-        logger.info(
-            "🔄 INTELLIGENT FALLBACK: No papers found, retrying with all available sources..."
-        )
-        search_log["fallback_triggered"] = True
-        search_log["fallback_reason"] = "Primary search returned 0 results"
-
-        try:
-            # Recursive call without category restriction (fallback to all sources)
-            fallback_results, fallback_log = await smart_downloadable_search(
-                query=query,
-                limit=limit,
-                search_funcs=search_funcs,
-                utils=utils,
-                api_status=api_status,
-                force_category=None,
-            )
-
-            if len(fallback_results) > 0:
-                search_log["fallback_success"] = True
-                search_log["fallback_results_count"] = len(fallback_results)
-                logger.info(
-                    f"✅ FALLBACK SUCCESS: Found {len(fallback_results)} papers using all available sources"
-                )
-
-                # Add fallback metadata to each result
-                for paper in fallback_results:
-                    paper["_fallback_used"] = True
-                    paper["_original_category"] = force_category or "smart_routing"
-
-                downloadable_papers = fallback_results
-            else:
-                search_log["fallback_success"] = False
-                logger.info(
-                    "❌ FALLBACK FAILED: No papers found even with all available sources"
-                )
-
-                # Generate intelligent error suggestions when even fallback fails
-                error_info = error_handler.generate_error_message(
-                    query=query,
-                    sources_searched=search_log["sources_searched"],
-                    fallback_used=True,
-                )
-                search_log["intelligent_error_suggestions"] = error_info
-                logger.info(
-                    f"💡 Generated {len(error_info['suggestions'])} intelligent suggestions for failed search"
-                )
-
-        except Exception as e:
-            search_log["fallback_error"] = str(e)
-            logger.warning(f"❌ FALLBACK ERROR: {e}")
-    elif len(downloadable_papers) == 0:
-        # No fallback used but still no results - generate suggestions
+    # Generate intelligent error suggestions if no results found
+    if len(downloadable_papers) == 0:
         error_info = error_handler.generate_error_message(
             query=query,
             sources_searched=search_log["sources_searched"],
-            fallback_used=False,
+            fallback_used=False,  # No separate fallback needed since we already search all sources
         )
         search_log["intelligent_error_suggestions"] = error_info
         logger.info(

@@ -86,8 +86,8 @@ class ConfigManager:
         self._reload_callbacks: list[Callable[[PaperezConfig], None]] = []
 
         # Configuration directory paths (load ALL YAML files from these directories)
-        # Get the root directory of the paperez-mcp package
-        package_root = Path(__file__).parent.parent.parent
+        # Get the root directory of the paperez-mcp package with fallback search
+        package_root = self._find_package_root()
         self.config_directories = {
             "mcp_default": package_root / ".paperez" / "config",
             "user_home": Path.home() / ".paperez" / "config",
@@ -103,6 +103,70 @@ class ConfigManager:
         self._load_config()
         if self.enable_hot_reload and WATCHDOG_AVAILABLE:
             self._setup_file_watching()
+
+    def _find_package_root(self) -> Path:
+        """Find the package root directory with robust fallback search.
+
+        This handles cases where the package is installed via uvx or other methods
+        that may place files in temporary/cache directories.
+        """
+        # Start with the standard calculation
+        standard_root = Path(__file__).parent.parent.parent
+        config_dir = standard_root / ".paperez" / "config"
+
+        # If the standard path has the config directory, use it
+        if config_dir.exists():
+            logger.debug(f"Found config directory at standard location: {config_dir}")
+            return standard_root
+
+        # Fallback 1: Check common development/deployment locations
+        potential_roots = [
+            Path.cwd(),  # Current working directory
+            Path.cwd().parent,  # Parent of current directory
+            Path("/app"),  # Docker container location
+            Path.home() / "paperez-mcp",  # User home location
+        ]
+
+        # Also search mounted drives and common development paths
+        if "paperez-mcp" in str(standard_root):
+            import glob
+
+            # Search for paperez-mcp directories in common locations
+            search_patterns = [
+                "/mnt/*/repos/paperez-mcp",  # WSL mounted drives
+                "/mnt/*/*/paperez-mcp",  # Deep mounted paths
+                "/home/*/paperez-mcp",  # User directories
+                "/opt/paperez-mcp",  # System installation
+                "/usr/local/paperez-mcp",  # Local installation
+                "*/paperez-mcp",  # Any parent directory
+            ]
+            for pattern in search_patterns:
+                try:
+                    matches = glob.glob(pattern)
+                    for match in matches:
+                        potential_roots.append(Path(match))
+                except Exception:
+                    continue  # Skip patterns that fail
+
+        for potential_root in potential_roots:
+            config_dir = potential_root / ".paperez" / "config"
+            if config_dir.exists() and config_dir.is_dir():
+                logger.info(f"Found config directory via fallback search: {config_dir}")
+                return potential_root
+
+        # Fallback 2: Look for any .paperez/config directory in parent directories
+        current_path = Path(__file__).resolve()
+        for parent in current_path.parents:
+            config_dir = parent / ".paperez" / "config"
+            if config_dir.exists() and config_dir.is_dir():
+                logger.info(f"Found config directory in parent directory: {config_dir}")
+                return parent
+
+        # Ultimate fallback: Use standard root (even if config doesn't exist)
+        logger.warning(
+            f"No config directory found, using standard root: {standard_root}"
+        )
+        return standard_root
 
     def _get_env_config_path(self) -> Path | None:
         """Get configuration path from environment variable."""
@@ -159,7 +223,7 @@ class ConfigManager:
                         logger.error(
                             f"MCP default config directory not found: {mcp_default_dir}"
                         )
-                        # Ultimate fallback
+                        # Ultimate fallback - should not happen with enhanced path finding
                         config_dict = {
                             "version": "1.0",
                             "default_category": None,

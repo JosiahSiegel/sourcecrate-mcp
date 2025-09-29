@@ -8,6 +8,7 @@ robust caching, and graceful error handling. Built with modular architecture.
 
 import logging
 import os
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -1581,25 +1582,133 @@ categories:
     return help_info
 
 
+def _configure_utf8_output() -> bool:
+    """Configure UTF-8 output for cross-platform compatibility.
+
+    Returns:
+        bool: True if UTF-8 encoding is available, False if fallback needed
+    """
+    try:
+        # For Python 3.7+, reconfigure stdout/stderr to UTF-8
+        if hasattr(sys.stdout, "reconfigure") and callable(
+            getattr(sys.stdout, "reconfigure", None)
+        ):
+            # Type: ignore because mypy doesn't recognize reconfigure on TextIO
+            sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+            sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+            return True
+        # For older Python versions, check if UTF-8 is supported
+        elif hasattr(sys.stdout, "encoding"):
+            # Test if we can encode emojis
+            test_str = "🚀"
+            encoding = getattr(sys.stdout, "encoding", "utf-8")
+            if encoding:
+                test_str.encode(encoding)
+            else:
+                test_str.encode("utf-8")
+            return True
+    except (UnicodeEncodeError, LookupError, AttributeError):
+        pass
+    return False
+
+
+def _safe_print(message: str, ascii_fallback: str = "") -> None:
+    """Print message with Unicode support and ASCII fallback.
+
+    Args:
+        message: Message with potential Unicode characters
+        ascii_fallback: ASCII-only version (optional)
+    """
+    try:
+        print(message)
+    except UnicodeEncodeError:
+        # Fall back to ASCII version if provided, otherwise strip non-ASCII
+        if ascii_fallback:
+            print(ascii_fallback)
+        else:
+            # Remove non-ASCII characters
+            ascii_msg = message.encode("ascii", errors="ignore").decode("ascii")
+            print(ascii_msg)
+
+
 def main() -> None:
     """Main entry point for the server"""
-    print("🚀 Starting PaperezMCP Server...")
-    print("📚 Primary tools:")
-    print(
-        "  📄 download_papers: Get/download full papers as files (most users want this)"
-    )
-    print("  🔍 browse_papers: Quick metadata overview (titles/abstracts only)")
-    print("  📝 convert_pdf_to_text: Convert PDF to plain text files")
-    print("  🔄 convert_pdf_to_markdown: Convert PDF to markdown format")
-    print("  📁 batch_convert_pdfs: Convert multiple PDFs in a directory")
-    print("  🔧 get_status: Check system health and API status")
-    print("  ❓ get_help: Configuration guide and setup instructions")
-    print("")
-    print("🎯 QUICK START: Use download_papers('topic') to get/download full papers!")
-    print("   Only use browse_papers() if you just want to explore titles/abstracts.")
-    print("   Use get_help() for configuration guidance and setup instructions.")
-    print("")
-    print("🔗 PaperezMCP ready at: stdio")
+    # Configure UTF-8 encoding for cross-platform compatibility
+    utf8_available = _configure_utf8_output()
+
+    if utf8_available:
+        # Use emoji version if UTF-8 is available
+        _safe_print(
+            "🚀 Starting PaperezMCP Server...", "[*] Starting PaperezMCP Server..."
+        )
+        _safe_print("📚 Primary tools:", "Primary tools:")
+        _safe_print(
+            "  📄 download_papers: Get/download full papers as files (most users want this)",
+            "  [PDF] download_papers: Get/download full papers as files (most users want this)",
+        )
+        _safe_print(
+            "  🔍 browse_papers: Quick metadata overview (titles/abstracts only)",
+            "  [SEARCH] browse_papers: Quick metadata overview (titles/abstracts only)",
+        )
+        _safe_print(
+            "  📝 convert_pdf_to_text: Convert PDF to plain text files",
+            "  [TEXT] convert_pdf_to_text: Convert PDF to plain text files",
+        )
+        _safe_print(
+            "  🔄 convert_pdf_to_markdown: Convert PDF to markdown format",
+            "  [CONVERT] convert_pdf_to_markdown: Convert PDF to markdown format",
+        )
+        _safe_print(
+            "  📁 batch_convert_pdfs: Convert multiple PDFs in a directory",
+            "  [BATCH] batch_convert_pdfs: Convert multiple PDFs in a directory",
+        )
+        _safe_print(
+            "  🔧 get_status: Check system health and API status",
+            "  [STATUS] get_status: Check system health and API status",
+        )
+        _safe_print(
+            "  ❓ get_help: Configuration guide and setup instructions",
+            "  [HELP] get_help: Configuration guide and setup instructions",
+        )
+        print("")
+        _safe_print(
+            "🎯 QUICK START: Use download_papers('topic') to get/download full papers!",
+            "[START] QUICK START: Use download_papers('topic') to get/download full papers!",
+        )
+        print(
+            "   Only use browse_papers() if you just want to explore titles/abstracts."
+        )
+        print("   Use get_help() for configuration guidance and setup instructions.")
+        print("")
+        _safe_print(
+            "🔗 PaperezMCP ready at: stdio", "[READY] PaperezMCP ready at: stdio"
+        )
+    else:
+        # Use ASCII-only version
+        print("[*] Starting PaperezMCP Server...")
+        print("Primary tools:")
+        print(
+            "  [PDF] download_papers: Get/download full papers as files (most users want this)"
+        )
+        print(
+            "  [SEARCH] browse_papers: Quick metadata overview (titles/abstracts only)"
+        )
+        print("  [TEXT] convert_pdf_to_text: Convert PDF to plain text files")
+        print("  [CONVERT] convert_pdf_to_markdown: Convert PDF to markdown format")
+        print("  [BATCH] batch_convert_pdfs: Convert multiple PDFs in a directory")
+        print("  [STATUS] get_status: Check system health and API status")
+        print("  [HELP] get_help: Configuration guide and setup instructions")
+        print("")
+        print(
+            "[START] QUICK START: Use download_papers('topic') to get/download full papers!"
+        )
+        print(
+            "   Only use browse_papers() if you just want to explore titles/abstracts."
+        )
+        print("   Use get_help() for configuration guidance and setup instructions.")
+        print("")
+        print("[READY] PaperezMCP ready at: stdio")
+
     mcp.run()
 
 
