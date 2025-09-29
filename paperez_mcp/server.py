@@ -28,70 +28,61 @@ def get_api_status() -> dict[str, bool]:
 
     This function is called dynamically to ensure fresh configuration
     is loaded, avoiding issues with module-level initialization timing.
+    Always loads from YAML configuration, never uses hardcoded values.
     """
     try:
         config = get_current_config()
         status = {source: cfg.enabled for source, cfg in config.sources.items()}
 
-        # If empty, something went wrong - try to reload
+        # If empty, something went wrong - try multiple reload strategies
         if not status:
             logger.warning("Empty API status detected, attempting config reload...")
-            # Force config reload
+
+            # Strategy 1: Force config reload
             from paperez_mcp.config.manager import get_config_manager
             try:
-                get_config_manager()._load_config()
+                manager = get_config_manager()
+                manager._load_config()
                 config = get_current_config()
                 status = {source: cfg.enabled for source, cfg in config.sources.items()}
             except Exception as reload_error:
                 logger.error(f"Config reload failed: {reload_error}")
 
-        # If still empty, return sensible defaults
-        if not status:
-            logger.warning("Using default API status as fallback")
-            return {
-                "arxiv": True,
-                "crossref": True,
-                "semantic_scholar": True,
-                "pubmed": True,
-                "pubmed_central": True,
-                "openalex": True,
-                "doaj": True,
-                "europe_pmc": True,
-                "clinicaltrials": True,
-                "openlibrary": True,
-                # Disabled by default
-                "repec": False,
-                "federal_register": False,
-                "hathitrust": False,
-                "internet_archive": False,
-                "courtlistener": False,
-                "core_repository": False,
-            }
+            # Strategy 2: Try loading embedded configs
+            if not status:
+                try:
+                    embedded_configs = manager._load_embedded_configs()
+                    if embedded_configs and "sources" in embedded_configs:
+                        status = {
+                            name: src_cfg.get("enabled", True)
+                            for name, src_cfg in embedded_configs["sources"].items()
+                        }
+                        logger.info(f"Loaded {len(status)} sources from embedded configs")
+                except Exception as e:
+                    logger.error(f"Failed to load embedded configs: {e}")
 
-        return status
+            # Strategy 3: Force initialization of config system
+            if not status:
+                try:
+                    from paperez_mcp.config import initialize_configuration_system
+                    initialize_configuration_system()
+                    config = get_current_config()
+                    status = {source: cfg.enabled for source, cfg in config.sources.items()}
+                except Exception as e:
+                    logger.error(f"Failed to initialize config system: {e}")
+
+        return status if status else {}
 
     except Exception as e:
         logger.error(f"Failed to get API status: {e}")
-        # Return sensible defaults instead of empty dict
-        return {
-            "arxiv": True,
-            "crossref": True,
-            "semantic_scholar": True,
-            "pubmed": True,
-            "pubmed_central": True,
-            "openalex": True,
-            "doaj": True,
-            "europe_pmc": True,
-            "clinicaltrials": True,
-            "openlibrary": True,
-            # Disabled by default
-            "repec": False,
-            "federal_register": False,
-            "hathitrust": False,
-            "internet_archive": False,
-            "courtlistener": False,
-            "core_repository": False,
-        }
+        # Try one more time with forced initialization
+        try:
+            from paperez_mcp.config import initialize_configuration_system
+            initialize_configuration_system()
+            config = get_current_config()
+            return {source: cfg.enabled for source, cfg in config.sources.items()}
+        except:
+            return {}
 
 
 # Note: api_status is now retrieved dynamically in each function

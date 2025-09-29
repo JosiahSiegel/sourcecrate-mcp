@@ -39,6 +39,43 @@ async def process_papers(
     # Ensure output directory exists
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+    # Validate api_status and search_funcs before proceeding
+    if not api_status:
+        logger.warning("Empty api_status provided to process_papers, attempting to load from config")
+        try:
+            from paperez_mcp.config import get_current_config
+            config = get_current_config()
+            if config and config.sources:
+                api_status = {source: cfg.enabled for source, cfg in config.sources.items()}
+                logger.info(f"Loaded {len(api_status)} sources from config")
+        except Exception as e:
+            logger.error(f"Failed to load api_status from config: {e}")
+
+    if not search_funcs:
+        logger.error("No search functions provided to process_papers")
+        return {
+            "results": [],
+            "total_found": 0,
+            "downloaded_count": 0,
+            "output_directory": output_dir,
+            "query": query,
+            "error_suggestions": {
+                "message": f"Search system initialization failed. No search functions available.",
+                "domain_detected": None,
+                "suggestions": [
+                    {
+                        "text": "Try restarting the MCP server",
+                        "reason": "Configuration may need to be reloaded",
+                        "confidence": 0.9,
+                        "suggested_category": None,
+                    }
+                ],
+                "suggested_categories": [],
+                "help_text": "The search system could not initialize properly. Please restart and try again.",
+                "query_refinements": [],
+            },
+        }
+
     # Use enhanced routing for intelligent source selection and download
     downloadable_papers, search_log = await utils["smart_downloadable_search"](
         query, limit, search_funcs, utils, api_status, force_category
