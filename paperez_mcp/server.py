@@ -133,9 +133,59 @@ def _ensure_pymupdf4llm() -> Any:
 def _lazy_import_search_functions() -> dict[str, Any]:
     """Get search functions from unified config system"""
 
-    # Use the new unified config system
-    search_service = get_search_service()
-    return search_service.get_search_functions()
+    try:
+        # Use the new unified config system
+        search_service = get_search_service()
+        search_funcs = search_service.get_search_functions()
+
+        # If no functions returned, try to reinitialize
+        if not search_funcs:
+            logger.warning("No search functions available, attempting reinitialization...")
+            # Force config reload and reinitialize
+            from paperez_mcp.config.manager import get_config_manager
+            try:
+                manager = get_config_manager()
+                manager._load_config()
+                # Reinitialize search service
+                search_service._initialize()
+                search_funcs = search_service.get_search_functions()
+            except Exception as reinit_error:
+                logger.error(f"Search service reinitialization failed: {reinit_error}")
+
+        # If still no functions, return basic defaults
+        if not search_funcs:
+            logger.warning("Using fallback search functions")
+            # Import basic search functions directly
+            try:
+                from paperez_mcp.api_clients.arxiv_client import search_arxiv
+                from paperez_mcp.api_clients.pubmed_client import search_pubmed, search_pubmed_central
+
+                # Return minimal working set
+                return {
+                    "arxiv": search_arxiv,
+                    "pubmed": search_pubmed,
+                    "pubmed_central": search_pubmed_central,
+                }
+            except ImportError as e:
+                logger.error(f"Failed to import fallback search functions: {e}")
+                return {}
+
+        return search_funcs
+
+    except Exception as e:
+        logger.error(f"Failed to get search functions: {e}")
+        # Try to return basic search functions as fallback
+        try:
+            from paperez_mcp.api_clients.arxiv_client import search_arxiv
+            from paperez_mcp.api_clients.pubmed_client import search_pubmed, search_pubmed_central
+
+            return {
+                "arxiv": search_arxiv,
+                "pubmed": search_pubmed,
+                "pubmed_central": search_pubmed_central,
+            }
+        except ImportError:
+            return {}
 
 
 def _lazy_import_utils() -> dict[str, Any]:
