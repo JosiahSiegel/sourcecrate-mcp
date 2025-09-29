@@ -222,9 +222,16 @@ def launch_server(venv_path: Path) -> None:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(repo_root)
 
-    # Execute the server
+    # Execute the server with proper stdio passthrough for MCP protocol
     try:
-        subprocess.run([str(python_executable), str(server_script)], env=env, check=False)
+        subprocess.run(
+            [str(python_executable), str(server_script)],
+            env=env,
+            stdin=sys.stdin,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
+            check=False
+        )
     except KeyboardInterrupt:
         log("Server stopped by user")
         sys.exit(0)
@@ -249,8 +256,15 @@ def main() -> None:
         #             env = os.environ.copy()
         #             env["PYTHONPATH"] = str(repo_root)
 
-        #             # Execute the server directly
-        #             subprocess.run([sys.executable, str(server_script)], env=env, check=False)
+        #             # Execute the server directly with proper stdio passthrough
+        #             subprocess.run(
+        #                 [sys.executable, str(server_script)],
+        #                 env=env,
+        #                 stdin=sys.stdin,
+        #                 stdout=sys.stdout,
+        #                 stderr=sys.stderr,
+        #                 check=False
+        #             )
         #             return
         #     except Exception as e:
         #         log(f"Direct execution failed: {e}, falling back to venv setup")
