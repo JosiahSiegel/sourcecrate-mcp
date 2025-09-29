@@ -22,8 +22,8 @@ from pathlib import Path
 
 
 def log(message: str) -> None:
-    """Print a log message."""
-    print(f"[PaperezMCP Setup] {message}", flush=True)
+    """Print a log message to stderr to avoid MCP protocol interference."""
+    print(f"[PaperezMCP Setup] {message}", file=sys.stderr, flush=True)
 
 
 def get_venv_path() -> Path:
