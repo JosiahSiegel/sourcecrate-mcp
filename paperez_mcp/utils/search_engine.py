@@ -6,27 +6,13 @@ import logging
 from typing import Any
 
 # Note: Source functions are now handled by the registry system
-from ..config import api_status, get_search_service
-from ..config.settings import config
+from ..config import get_search_service
 from .adaptive_concurrency import adaptive_concurrency_manager
 from .pdf_processor import extract_pdf_text
 from .query_cache import query_cache
 from .source_health_monitor import health_monitor
 
 logger = logging.getLogger(__name__)
-
-
-# Placeholder functions for missing search clients
-async def search_semantic_scholar(query: str, limit: int = 5) -> list[dict[str, Any]]:
-    """Placeholder for semantic scholar search - to be implemented"""
-    logger.warning("Semantic Scholar search not implemented yet")
-    return []
-
-
-async def search_clinicaltrials(query: str, limit: int = 5) -> list[dict[str, Any]]:
-    """Placeholder for clinical trials search - to be implemented"""
-    logger.warning("Clinical trials search not implemented yet")
-    return []
 
 
 async def comprehensive_search_internal(

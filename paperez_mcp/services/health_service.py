@@ -42,7 +42,8 @@ class HealthMonitoringService:
         Returns:
             Dictionary with API status, cache stats, and configuration
         """
-        from ..config import cache, config
+        from diskcache import Cache
+        cache = Cache("/tmp/paperez-mcp-cache", size_limit=1e9)
 
         # Perform active health checks
         health_check_results = await self._perform_health_checks()
@@ -57,12 +58,7 @@ class HealthMonitoringService:
                 ),  # 1GB default
             },
             "config": {
-                "has_semantic_scholar_key": bool(
-                    getattr(config, "semantic_scholar_api_key", None)
-                ),
-                "has_scraperapi_key": bool(getattr(config, "scraperapi_key", None)),
-                "crossref_email": getattr(config, "crossref_email", ""),
-                "max_retries": 3,
+                "configuration": "YAML-based configuration system",
             },
             "health_checks": health_check_results,
         }

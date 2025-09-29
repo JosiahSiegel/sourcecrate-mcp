@@ -54,8 +54,6 @@ else:
         def __init__(self, config_manager: Any) -> None:
             pass
 
-    # Alias for compatibility
-    ConfigFileHandler = DummyConfigFileHandler  # type: ignore[misc,assignment]
 
 
 class ConfigManager:
@@ -97,7 +95,7 @@ class ConfigManager:
             "project_local": Path.cwd() / ".paperez" / "config",
         }
 
-        # Legacy single file paths for backward compatibility and environment override
+        # Single file paths and environment override
         self.config_paths = {
             "environment": self._get_env_config_path(),
             "user_home": Path.home() / ".paperez" / "config" / "config.yaml",

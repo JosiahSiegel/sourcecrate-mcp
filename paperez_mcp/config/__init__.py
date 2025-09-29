@@ -1,12 +1,7 @@
 """
 Configuration system for PaperezMCP - Comprehensive configuration management.
 
-This module provides both legacy and new configuration systems:
-
-Legacy (for backward compatibility):
-- APIConfig, config, api_status, cache from settings.py
-
-New configurable system:
+This module provides the YAML-based configuration system:
 - Type-safe configuration schemas with Pydantic validation
 - Multi-tier configuration loading (builtin → user → project → environment)
 - Hot-reloading with file system watching
@@ -14,16 +9,11 @@ New configurable system:
 - Meta-category support for searching across multiple categories
 
 Usage:
-    # Legacy configuration (backward compatibility)
-    from paperez_mcp.config import config, api_status, cache
-
-    # New configurable system
     from paperez_mcp.config import get_current_config, get_search_service
     config = get_current_config()
     search_service = get_search_service()
 """
 
-# Legacy configuration system (backward compatibility)
 from .manager import ConfigManager, get_config_manager, get_current_config
 
 # Default config now loaded from YAML - no utility functions needed
@@ -34,31 +24,24 @@ from .registry import (
     get_search_service,
 )
 
-# New configurable system
+# Configurable system schemas
 from .schemas import (
     CategoryConfig,
     PaperezConfig,
     QueryRoutingConfig,
     SourceProviderConfig,
 )
-from .settings import APIConfig, api_status, cache, config
 
 __all__ = [
-    # Legacy exports (backward compatibility)
-    "APIConfig",
-    "config",
-    "api_status",
-    "cache",
-    # New configurable system schemas
+    # Configuration schemas
     "PaperezConfig",
     "SourceProviderConfig",
     "CategoryConfig",
     "QueryRoutingConfig",
-    # New configuration manager
+    # Configuration manager
     "ConfigManager",
     "get_config_manager",
     "get_current_config",
-    # Default configuration now in YAML
     # Service registry
     "SourceRegistry",
     "CategoryResolver",
@@ -127,4 +110,4 @@ def validate_current_configuration() -> dict:
             },
         }
     except Exception as e:
-        return {"valid": False, "error": str(e), "fallback_to_legacy": True}
+        return {"valid": False, "error": str(e)}

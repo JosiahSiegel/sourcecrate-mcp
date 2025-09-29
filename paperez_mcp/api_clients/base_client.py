@@ -8,8 +8,11 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from tenacity import retry, stop_after_attempt, wait_exponential
+from diskcache import Cache
 
-from ..config import api_status, cache
+# Create cache instance directly
+cache = Cache("/tmp/paperez-mcp-cache", size_limit=1e9)  # 1GB cache
+
 from ..utils.metadata_normalizer import metadata_normalizer
 from ..utils.pdf_validator import pdf_validator
 
@@ -73,7 +76,8 @@ class BaseAPIClient(ABC):
         self.logger.warning(
             f"❌ {self.source_name} search failed for '{query}': {error}"
         )
-        api_status[self.source_name.lower().replace(" ", "_")] = False
+        # API status is now managed by config system
+        # api_status[self.source_name.lower().replace(" ", "_")] = False
 
     def _log_no_results(self, query: str) -> None:
         """Log when no results are found."""

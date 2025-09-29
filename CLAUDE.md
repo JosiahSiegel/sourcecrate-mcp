@@ -21,17 +21,29 @@ mypy paperez_mcp_server.py paperez_mcp/
 
 # Install development dependencies
 pip install -e .[dev]
+
+# Pre-commit validation (runs automatically on commit)
+# To bypass in special cases: git commit --no-verify
 ```
 
 ### Testing
 ```bash
-# Run all tests
+# Run all tests (target: 100% pass rate)
 pytest
 
-# Run tests with async support
-pytest-asyncio
+# Run specific test file
+pytest tests/test_fuzzy_matching.py
 
-# Test syntax compilation
+# Run single test
+pytest tests/test_fuzzy_matching.py::TestFuzzyPaperMatcher::test_normalize_title
+
+# Run with verbose output
+pytest -v
+
+# Run with coverage
+pytest --cov=paperez_mcp --cov-report=term-missing
+
+# Test syntax compilation before commit
 python3 -m py_compile paperez_mcp_server.py
 ```
 
@@ -40,11 +52,17 @@ python3 -m py_compile paperez_mcp_server.py
 # Run the MCP server locally
 python paperez_mcp_server.py
 
+# Run with debug output
+DEBUG=1 python paperez_mcp_server.py
+
 # Test MCP server via uvx
 uvx --from . paperez-mcp
 
 # Install as MCP server in Claude Code
 claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp
+
+# Test specific MCP tools locally
+python -c "from paperez_mcp_server import browse_papers; import asyncio; print(asyncio.run(browse_papers('machine learning', 5)))"
 ```
 
 ## Architecture Overview
@@ -78,9 +96,10 @@ claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/Josia
    - **Parallel processing**: Concurrent PDF batch processing with semaphore control
    - **Performance benchmarking**: Comprehensive timing and metrics collection
    - **Enhanced error recovery**: Circuit breakers, exponential backoff, intelligent retry
-   - **Fuzzy matching**: Cross-source paper deduplication with advanced algorithms
+   - **Fuzzy matching**: Cross-source paper deduplication with deterministic source ordering
    - **Health monitoring**: Source performance tracking and recommendations
-   - **Error handling**: Intelligent fallback strategies
+   - **Result streaming**: Async streaming with completion queue pattern for race condition handling
+   - **Global singletons**: `result_streamer`, `search_analytics` (require reset in tests)
 
 ### Data Flow
 
@@ -120,15 +139,22 @@ claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/Josia
 - **Fallback strategies**: Graceful degradation when sources fail
 - **Health monitoring**: Adaptive routing based on source performance
 
+### Test Suite Architecture
+- **Test isolation critical**: Global singletons (`result_streamer`, `search_analytics`, `global_error_recovery`) must be reset in setup_method
+- **Deterministic ordering**: Fuzzy matching uses ordered lists instead of sets for predictable source ordering
+- **Race condition handling**: Streaming uses completion queue draining to catch simultaneous errors
+- **Target**: Maintain 100% test pass rate (235 tests)
+
 ### Performance Considerations
 - **Disk caching**: 1GB cache for improved performance
 - **Parallel search**: Concurrent queries across multiple sources
 - **Lazy imports**: Heavy dependencies loaded on demand
 - **Token optimization**: Tool descriptions optimized for minimal context usage
+- **Streaming architecture**: ResultStreamer manages async result delivery with early results capability
 
 ## File Structure Notes
 
 - **Main entry point**: `paperez_mcp_server.py` (contains all 8 MCP tools)
 - **Config files**: `.paperez/config/` directory (not `.paperez/` root)
 - **Source plugins**: Extensible via `paperez_mcp/plugins/`
-- **Legacy compatibility**: Old settings.py maintained alongside new YAML system
+- **Configuration**: YAML-based configuration system with multi-tier loading

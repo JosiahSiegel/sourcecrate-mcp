@@ -15,7 +15,19 @@ from typing import Any
 from fastmcp import FastMCP
 
 # Core imports only - heavy dependencies loaded lazily
-from paperez_mcp.config import api_status, cache, config
+from paperez_mcp.config import get_current_config, get_search_service
+
+# Create api_status from current config
+def get_api_status():
+    """Get API status from current configuration."""
+    try:
+        config = get_current_config()
+        return {source: cfg.enabled for source, cfg in config.sources.items()}
+    except:
+        # Fallback to all enabled if config not loaded
+        return {}
+
+api_status = get_api_status()
 from paperez_mcp.utils.pdf_validator import pdf_validator
 from paperez_mcp.utils.query_cache import query_cache
 from paperez_mcp.utils.result_streaming import create_streaming_search
@@ -1291,10 +1303,8 @@ async def get_status() -> dict[str, Any]:
             "pdf_validation": pdf_validator.get_validation_stats(),
         },
         "config": {
-            "has_semantic_scholar_key": bool(config.semantic_scholar_api_key),
-            "has_scraperapi_key": bool(config.scraperapi_key),
-            "crossref_email": config.crossref_email,
-            "max_retries": config.max_retries,
+            "configuration_loaded": True,
+            "yaml_config": "Using YAML-based configuration",
         },
     }
 

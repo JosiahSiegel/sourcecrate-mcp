@@ -9,7 +9,10 @@ import logging
 import time
 from typing import Any
 
-from ..config import cache
+from diskcache import Cache
+
+# Create cache instance directly
+cache = Cache("/tmp/paperez-mcp-cache", size_limit=1e9)  # 1GB cache
 
 logger = logging.getLogger(__name__)
 

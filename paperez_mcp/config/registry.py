@@ -71,7 +71,7 @@ class SourceRegistry:
             plugin_instance = plugin_class(**source_config.config)
             self._plugin_instances[source_name] = plugin_instance
 
-            # Create wrapper function for compatibility (fix closure bug)
+            # Create wrapper function (fix closure bug)
             async def plugin_wrapper(
                 query: str,
                 limit: int = 5,
@@ -98,7 +98,7 @@ class SourceRegistry:
             api_instance = GenericHTTPClient(source_name, **source_config.config)
             self._plugin_instances[source_name] = api_instance
 
-            # Create wrapper function for compatibility (fix closure bug)
+            # Create wrapper function (fix closure bug)
             async def api_wrapper(
                 query: str, limit: int = 5, instance: Any = api_instance, **kwargs: Any
             ) -> list[dict[str, Any]]:
@@ -264,7 +264,7 @@ class ConfigurableSearchService:
         logger.info("Search service configuration reloaded")
 
     def get_search_functions(self) -> dict[str, Callable]:
-        """Get dictionary of search functions for compatibility with existing code."""
+        """Get dictionary of search functions."""
         search_funcs = {}
         for source_name in self.source_registry.get_enabled_sources():
             search_func = self.source_registry.get_source_function(source_name)
