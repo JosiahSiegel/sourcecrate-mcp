@@ -1513,6 +1513,9 @@ async def get_help() -> dict[str, Any]:
 
     from pathlib import Path
 
+    # Get dynamic category and source information first
+    dynamic_info = await _get_current_categories_and_sources()
+
     help_info = {
         "config_guide": {
             "overview": "PaperezMCP uses YAML configuration files to customize sources, categories, and behavior. Changes are detected dynamically - no restart required!",
@@ -1722,7 +1725,7 @@ categories:
             },
         },
         # Get dynamic category and source information from actual configuration
-        "dynamic_info": await _get_current_categories_and_sources(),
+        "dynamic_info": dynamic_info,
         "troubleshooting": {
             "validation_errors": {
                 "sources_must_be_dict": {
