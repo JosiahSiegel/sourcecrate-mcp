@@ -71,6 +71,36 @@ routing:
       - document
       - policy
       - genealogy
+      - archaeology
+      - archaeological
+      - ancient
+      - civilization
+      - egypt
+      - egyptian
+      - pharaoh
+      - pyramid
+      - rome
+      - roman
+      - greece
+      - greek
+      - mesopotamia
+      - babylon
+      - assyria
+      - persia
+      - byzantine
+      - ottoman
+      - antiquity
+      - artifact
+      - excavation
+      - ruins
+      - temple
+      - tomb
+      - hieroglyph
+      - papyrus
+      - manuscript
+      - medieval
+      - renaissance
+      - colonial
     business:
       - business
       - economics

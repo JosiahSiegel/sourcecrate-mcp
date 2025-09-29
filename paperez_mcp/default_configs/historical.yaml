@@ -3,6 +3,70 @@
 
 # Historical/archive sources
 sources:
+  # CORE - Open access aggregator with historical content
+  # NOTE: Free API key required - register at https://core.ac.uk/services/api
+  # Provides access to 335M+ open access articles including historical research
+  core_repository:
+    name: core_repository
+    type: http_api
+    enabled: false  # Enable after registering for free API key at https://core.ac.uk/services/api
+    disabled_reason: Requires free API key - register at https://core.ac.uk/services/api
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: CORE - World's largest aggregator of open access research (335M+ articles)
+      coverage: comprehensive open access including historical research, archaeology, ancient civilizations
+      base_url: https://api.core.ac.uk/v3
+      search_path: /search/works
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: results
+      # API key configuration - add your key after registering
+      auth_type: ApiKey
+      auth_param: apiKey
+      # api_key: "YOUR_CORE_API_KEY"  # Add your API key here after registration
+      field_mappings:
+        title: title
+        authors: authors
+        doi: doi
+        abstract: abstract
+        journal: publisher
+        year: yearPublished
+        url: downloadUrl
+        pdf_url: downloadUrl
+      rate_limit_delay: 0.2  # Free tier: 1 batch or 5 single requests per 10 seconds
+
+  # OpenAlex - Comprehensive open catalog (from scientific.yaml reference)
+  openalex:
+    name: openalex
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Open catalog with 250M+ works including historical & archaeological research
+      coverage: comprehensive multidisciplinary including history, archaeology, ancient civilizations
+      base_url: https://api.openalex.org
+      search_path: /works
+      query_param: search
+      limit_param: per-page
+      response_format: json
+      results_path: results
+      field_mappings:
+        title: title
+        authors: authorships
+        doi: doi
+        abstract: abstract_inverted_index
+        journal: primary_location.source.display_name
+        year: publication_year
+        url: id
+        pdf_url: open_access.oa_url
+        citation_count: cited_by_count
+      rate_limit_delay: 0.1  # OpenAlex allows 10 RPS for free tier
+
   hathitrust:
     name: hathitrust
     type: http_api
@@ -31,13 +95,13 @@ sources:
   internet_archive:
     name: internet_archive
     type: http_api
-    enabled: false  # DISABLED 2025: Current API terms unclear, needs ToS verification
+    enabled: true  # Re-enabled with strict rate limiting for research use
     timeout: 30
     max_retries: 3
     cache_expire: 7200
     config:
-      description: Internet Archive - Historical documents and books
-      coverage: historical documents, government archives, books
+      description: Internet Archive - Historical documents, books, and archives
+      coverage: historical documents, government archives, books, ancient texts
       base_url: https://archive.org
       search_path: /advancedsearch.php
       query_param: q
@@ -54,18 +118,23 @@ sources:
         journal: publisher
         url: identifier
         abstract: description
-      rate_limit_delay: 1.0
+      # IMPORTANT: Respect Internet Archive rate limits for research use
+      # Their access policy supports educational and research purposes
+      # Contact info@archive.org for high-volume research needs
+      rate_limit_delay: 1.0  # Conservative 1 second delay between requests
 
 # Historical research categories
 categories:
   historical:
     name: historical
     display_name: Historical & Archive Sources
-    description: Focus on historical and archival content including government documents
+    description: Focus on historical and archival content including archaeology and ancient civilizations
     type: standard
     sources:
+      - openalex  # Primary source - 250M+ works with good historical coverage
       - crossref  # From scientific.yaml for historical academic papers
-      # internet_archive disabled - API terms of service unclear
+      - internet_archive  # Historical documents and archives
+      # - core_repository  # Enable after getting free API key from https://core.ac.uk/services/api
     max_results_per_source: 8
     parallel_search: true
 

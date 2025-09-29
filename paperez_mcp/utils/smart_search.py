@@ -121,6 +121,7 @@ async def smart_downloadable_search(
         "osf_preprints": "OSF preprints across disciplines",
         "europe_pmc": "Europe PMC biomedical database",
         "internet_archive": "Internet Archive historical documents",
+        "openalex": "OpenAlex comprehensive multidisciplinary catalog",
     }
 
     # Get ALL available sources from the configuration
@@ -181,7 +182,7 @@ async def smart_downloadable_search(
                 "osf_preprints",
                 "europe_pmc",
             ],
-            "historical": ["core", "crossref", "internet_archive"],
+            "historical": ["openalex", "crossref", "internet_archive", "core"],  # OpenAlex first (always available), CORE last (needs API key)
             "recent": [
                 "arxiv",
                 "semantic_scholar",
