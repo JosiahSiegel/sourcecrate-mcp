@@ -254,19 +254,8 @@ def install_dependencies(venv_path: Path) -> None:
 
 def launch_server(venv_path: Path) -> None:
     """Launch the paperez-mcp server."""
-    # Ensure no bytecode is written (reinforced)
+    # Ensure no bytecode is written
     os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
-
-    # Clear any cached paperez_mcp modules BEFORE any imports
-    import sys
-    modules_to_clear = [mod for mod in list(sys.modules.keys()) if mod.startswith('paperez_mcp')]
-    for module in modules_to_clear:
-        log(f"Clearing cached module: {module}")
-        del sys.modules[module]
-
-    # Also invalidate import caches
-    import importlib
-    importlib.invalidate_caches()
 
     # Try package-based execution first (for installed packages like uvx)
     try:

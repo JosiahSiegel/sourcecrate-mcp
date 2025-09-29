@@ -1,11 +1,9 @@
 {
-  "version": "2.0",
-  "description": "PaperezMCP - Academic Paper Research Made Easy - 7 Optimized Tools",
   "mcpServers": {
     "paperez-mcp": {
       "command": "python3",
       "args": [
-"/mnt/d/repos/paperez-mcp/paperez_mcp/install_and_run.py"
+        "/mnt/d/repos/paperez-mcp/paperez_mcp/install_and_run.py"
       ],
       "env": {
         "UNPAYWALL_EMAIL": "research@example.com"
@@ -21,76 +19,15 @@
       "env": {
         "UNPAYWALL_EMAIL": "research@example.com"
       }
-    }
-  },
-  "tools": [
-    {
-      "server": "paperez-mcp",
-      "tools": [
-        {
-          "name": "download_papers",
-          "description": "📚 Access university library databases (PubMed, arXiv, CrossRef) to retrieve already-published peer-reviewed research papers. Functions exactly like using Google Scholar or visiting a university library. Returns existing PDF/markdown files of academic journal articles for literature review and citation purposes. NOT a medical advice tool - only retrieves previously published scholarly materials that are publicly available in academic libraries and repositories."
-        },
-        {
-          "name": "browse_papers",
-          "description": "🔍 Search scholarly literature databases for academic research papers (metadata/abstracts only). Explore peer-reviewed publications from academic journals and repositories. Returns bibliographic information for literature review. Use download_papers to retrieve full text."
-        },
-        {
-          "name": "convert_pdf_to_text",
-          "description": "Extract text from academic PDF files (journal articles, research papers) using PyMuPDF. Preserves document content for research analysis and citation."
-        },
-        {
-          "name": "convert_pdf_to_markdown",
-          "description": "Convert academic PDF documents (journal articles, research papers) to markdown format, preserving scholarly formatting, citations, and structure for research notes."
-        },
-        {
-          "name": "batch_convert_pdfs",
-          "description": "Batch convert academic PDF collections (journal articles, conference papers) to markdown format for research corpus analysis and literature review organization."
-        },
-        {
-          "name": "get_status",
-          "description": "Get comprehensive system status including API health, source monitoring, performance metrics, and configuration details for troubleshooting."
-        },
-        {
-          "name": "get_help",
-          "description": "❓ CONFIGURATION HELP: Get comprehensive guidance on creating config files, including paths, schemas, examples, and troubleshooting."
-        }
-      ]
-    }
-  ],
-  "installation": {
-    "local_development": {
-      "command": "claude mcp add -s project paperez-mcp -- python3 /path/to/paperez-mcp/install_and_run.py",
-      "description": "Use local development version with auto-installer (default configuration)"
     },
-    "remote_github": {
-      "server_name": "paperez-mcp-remote",
-      "command": "claude mcp add -s project paperez-mcp-remote -- uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp",
-      "description": "Use remote GitHub version via uvx"
-    },
-    "requirements": [
-      "Python 3.11+",
-      "Internet connection for academic database access",
-      "uvx (optional, for remote GitHub installation)"
-    ]
-  },
-  "usage": {
-    "critical_warning": "⚠️ Most users want get_papers() for actual papers. browse_papers() only returns metadata!",
-    "common_workflows": {
-      "get_papers_default": "get_papers('topic', limit=5) - Primary function for getting papers",
-      "browse_first": "browse_papers('topic', limit=20) - Quick overview before downloading",
-      "save_to_folder": "get_papers('topic', output_dir='my_papers') - Save to specific directory"
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "env": {}
     }
-  },
-  "preferences": {
-    "default_server": "paperez-mcp",
-    "alternative_server": "paperez-mcp-remote",
-    "server_options": {
-      "paperez-mcp": "Local development version using auto-installer (recommended for development)",
-      "paperez-mcp-remote": "Remote GitHub version via uvx (for production use)"
-    },
-    "timeout": 180,
-    "retry_attempts": 3,
-    "log_level": "INFO"
   }
 }
