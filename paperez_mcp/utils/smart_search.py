@@ -241,162 +241,179 @@ async def smart_downloadable_search(
     logger.info(f"🔍 Starting smart search for '{query}' (limit: {limit})")
     logger.info(f"📊 API Status: {json.dumps(api_status.copy(), indent=2)}")
 
-    for source_name, description in source_priority:
-        if api_status.get(source_name, False):
-            try:
-                # Enhanced source skipping using new classification system
-                skip_source = False
-                skip_reason = None
+    # First pass: Check which sources would be skipped by BM25 and other criteria
+    available_sources = [(name, desc) for name, desc in source_priority if api_status.get(name, False)]
+    sources_to_skip = []
+    sources_to_search = []
 
-                # Check BM25 score threshold for skipping very low-relevance sources
-                source_score = next(
-                    (score for name, score in source_rankings if name == source_name),
-                    0.0,
-                )
-                if source_score < 0.1:  # Very low relevance threshold
-                    skip_source = True
-                    skip_reason = f"Very low BM25 relevance score ({source_score:.3f})"
+    for source_name, description in available_sources:
+        # Enhanced source skipping using new classification system
+        skip_source = False
+        skip_reason = None
 
-                # Check intent-based source preferences
-                intent_preference = intent_preferences.get(source_name, 0.5)
-                if intent_preference < 0.3:  # Low intent-based preference
-                    skip_source = True
-                    skip_reason = (
-                        f"Low intent-based preference ({intent_preference:.3f})"
-                    )
+        # Check BM25 score threshold for skipping very low-relevance sources
+        source_score = next(
+            (score for name, score in source_rankings if name == source_name),
+            0.0,
+        )
+        if source_score < 0.1:  # Very low relevance threshold
+            skip_source = True
+            skip_reason = f"Very low BM25 relevance score ({source_score:.3f})"
 
-                # Domain-specific skipping logic
-                if (
-                    topic_classification
-                    and topic_classification.get("primary_topic") == "Computer Science"
-                ):
-                    if (
-                        source_name == "pubmed"
-                        and topic_classification.get("confidence", 0) > 0.7
-                    ):
-                        skip_source = True
-                        skip_reason = "Computer Science query, PubMed not relevant"
-                elif topic_classification and topic_classification.get(
-                    "primary_topic"
-                ) in ["Medicine", "Biology"]:
-                    if (
-                        source_name in ["socarxiv"]
-                        and topic_classification.get("confidence", 0) > 0.7
-                    ):
-                        skip_source = True
-                        skip_reason = f"Biomedical query, {source_name} not relevant"
+        # Check intent-based source preferences
+        intent_preference = intent_preferences.get(source_name, 0.5)
+        if intent_preference < 0.3:  # Low intent-based preference
+            skip_source = True
+            skip_reason = (
+                f"Low intent-based preference ({intent_preference:.3f})"
+            )
 
-                # Enhanced routing handles all source selection intelligently
+        # Domain-specific skipping logic
+        if (
+            topic_classification
+            and topic_classification.get("primary_topic") == "Computer Science"
+        ):
+            if (
+                source_name == "pubmed"
+                and topic_classification.get("confidence", 0) > 0.7
+            ):
+                skip_source = True
+                skip_reason = "Computer Science query, PubMed not relevant"
+        elif topic_classification and topic_classification.get(
+            "primary_topic"
+        ) in ["Medicine", "Biology"]:
+            if (
+                source_name in ["socarxiv"]
+                and topic_classification.get("confidence", 0) > 0.7
+            ):
+                skip_source = True
+                skip_reason = f"Biomedical query, {source_name} not relevant"
 
-                if skip_source:
-                    search_log["results_per_source"][source_name] = {
-                        "skipped": True,
-                        "reason": skip_reason,
-                        "bm25_score": source_score,
-                        "intent_preference": intent_preference,
-                    }
-                    logger.info(f"⏭️ Skipping {source_name}: {skip_reason}")
-                    continue
-
-                search_func = search_funcs.get(source_name)
-                if search_func:
-                    # Enhanced query optimization using routing recommendations
-                    optimized_query = query
-
-                    # Use query expansions from intent analysis
-                    if routing_recommendations and routing_recommendations.get(
-                        "query_expansions"
-                    ):
-                        # Select best expansion for this source based on intent and temporal preference
-                        expansions = routing_recommendations["query_expansions"]
-                        if (
-                            expansions
-                            and intent_analysis
-                            and intent_analysis.temporal_preference.value == "recent"
-                        ):
-                            # For recent queries, try temporal expansions first
-                            temporal_expansions = [
-                                exp
-                                for exp in expansions
-                                if any(
-                                    term in exp.lower()
-                                    for term in ["recent", "latest", "2024", "2025"]
-                                )
-                            ]
-                            if temporal_expansions:
-                                optimized_query = temporal_expansions[0]
-                        elif (
-                            expansions
-                            and intent_analysis
-                            and intent_analysis.intent.value == "survey_review"
-                        ):
-                            # For review queries, try review-focused expansions
-                            review_expansions = [
-                                exp
-                                for exp in expansions
-                                if any(
-                                    term in exp.lower()
-                                    for term in ["review", "survey", "state of the art"]
-                                )
-                            ]
-                            if review_expansions:
-                                optimized_query = review_expansions[0]
-                        elif expansions:
-                            # Use first expansion as fallback
-                            optimized_query = expansions[0]
-
-                    # Enhanced routing provides intelligent query optimization
-
-                    if optimized_query != query:
-                        logger.info(
-                            f"🔧 Enhanced query optimization for {source_name}: '{optimized_query}'"
-                        )
-
-                    logger.info(f"🔎 Searching {source_name}: {description}")
-                    results = await search_func(
-                        optimized_query, search_limit_per_source
-                    )
-                    all_candidates.extend(results)
-
-                    # Count papers with PDFs
-                    has_pdfs = sum(
-                        1
-                        for r in results
-                        if r.get("pdf_url") or r.get("open_access_pdf")
-                    )
-
-                    search_log["sources_searched"].append(source_name)
-                    search_log["results_per_source"][source_name] = {
-                        "count": len(results),
-                        "has_pdfs": has_pdfs,
-                        "sample_title": results[0].get("title") if results else None,
-                        "pdf_ratio": f"{has_pdfs}/{len(results)}" if results else "0/0",
-                        "optimized_query": (
-                            optimized_query if optimized_query != query else None
-                        ),
-                    }
-
-                    logger.info(
-                        f"✅ {source_name}: Found {len(results)} papers ({has_pdfs} with PDFs)"
-                    )
-                else:
-                    search_log["results_per_source"][source_name] = {
-                        "error": "Search function not available"
-                    }
-                    logger.warning(f"❌ {source_name}: Search function not available")
-
-            except Exception as e:
-                search_log["results_per_source"][source_name] = {
-                    "error": str(e),
-                    "count": 0,
-                }
-                logger.warning(f"❌ {source_name} search failed: {e}")
+        if skip_source:
+            sources_to_skip.append((source_name, skip_reason, source_score, intent_preference))
         else:
+            sources_to_search.append((source_name, description))
+
+    # Fallback mechanism: If ALL sources would be skipped, force search the top sources
+    if len(sources_to_search) == 0 and len(available_sources) > 0:
+        # Force search at least the top 3 available sources
+        min_sources_to_search = min(3, len(available_sources))
+        logger.warning(f"🚨 All sources would be skipped! Using fallback: searching top {min_sources_to_search} sources")
+
+        # Take the top sources by priority order
+        for i in range(min_sources_to_search):
+            source_name, description = available_sources[i]
+            sources_to_search.append((source_name, description))
+
+            # Remove from skip list if it was there
+            sources_to_skip = [(name, reason, score, pref) for name, reason, score, pref in sources_to_skip if name != source_name]
+
+    # Log skipped sources
+    for source_name, skip_reason, source_score, intent_preference in sources_to_skip:
+        search_log["results_per_source"][source_name] = {
+            "skipped": True,
+            "reason": skip_reason,
+            "bm25_score": source_score,
+            "intent_preference": intent_preference,
+        }
+        logger.info(f"⏭️ Skipping {source_name}: {skip_reason}")
+
+    # Now search the sources that weren't skipped (or were forced by fallback)
+    for source_name, description in sources_to_search:
+        try:
+            search_func = search_funcs.get(source_name)
+            if search_func:
+                # Enhanced query optimization using routing recommendations
+                optimized_query = query
+
+                # Use query expansions from intent analysis
+                if routing_recommendations and routing_recommendations.get(
+                    "query_expansions"
+                ):
+                    # Select best expansion for this source based on intent and temporal preference
+                    expansions = routing_recommendations["query_expansions"]
+                    if (
+                        expansions
+                        and intent_analysis
+                        and intent_analysis.temporal_preference.value == "recent"
+                    ):
+                        # For recent queries, try temporal expansions first
+                        temporal_expansions = [
+                            exp
+                            for exp in expansions
+                            if any(
+                                term in exp.lower()
+                                for term in ["recent", "latest", "2024", "2025"]
+                            )
+                        ]
+                        if temporal_expansions:
+                            optimized_query = temporal_expansions[0]
+                    elif (
+                        expansions
+                        and intent_analysis
+                        and intent_analysis.intent.value == "survey_review"
+                    ):
+                        # For review queries, try review-focused expansions
+                        review_expansions = [
+                            exp
+                            for exp in expansions
+                            if any(
+                                term in exp.lower()
+                                for term in ["review", "survey", "state of the art"]
+                            )
+                        ]
+                        if review_expansions:
+                            optimized_query = review_expansions[0]
+                    elif expansions:
+                        # Use first expansion as fallback
+                        optimized_query = expansions[0]
+
+                # Enhanced routing provides intelligent query optimization
+
+                if optimized_query != query:
+                    logger.info(
+                        f"🔧 Enhanced query optimization for {source_name}: '{optimized_query}'"
+                    )
+
+                logger.info(f"🔎 Searching {source_name}: {description}")
+                results = await search_func(
+                    optimized_query, search_limit_per_source
+                )
+                all_candidates.extend(results)
+
+                # Count papers with PDFs
+                has_pdfs = sum(
+                    1
+                    for r in results
+                    if r.get("pdf_url") or r.get("open_access_pdf")
+                )
+
+                search_log["sources_searched"].append(source_name)
+                search_log["results_per_source"][source_name] = {
+                    "count": len(results),
+                    "has_pdfs": has_pdfs,
+                    "sample_title": results[0].get("title") if results else None,
+                    "pdf_ratio": f"{has_pdfs}/{len(results)}" if results else "0/0",
+                    "optimized_query": (
+                        optimized_query if optimized_query != query else None
+                    ),
+                }
+
+                logger.info(
+                    f"✅ {source_name}: Found {len(results)} papers ({has_pdfs} with PDFs)"
+                )
+            else:
+                search_log["results_per_source"][source_name] = {
+                    "error": "Search function not available"
+                }
+                logger.warning(f"❌ {source_name}: Search function not available")
+
+        except Exception as e:
             search_log["results_per_source"][source_name] = {
-                "skipped": True,
-                "reason": "API not available",
+                "error": str(e),
+                "count": 0,
             }
-            logger.info(f"⏭️ Skipping {source_name}: API not available")
+            logger.warning(f"❌ {source_name} search failed: {e}")
 
     search_log["total_candidates"] = len(all_candidates)
     logger.info(f"📊 Total candidates from all sources: {len(all_candidates)}")
