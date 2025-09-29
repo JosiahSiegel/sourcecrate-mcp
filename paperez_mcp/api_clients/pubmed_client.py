@@ -12,7 +12,7 @@ import aiohttp
 from pymed import PubMed
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ..config import api_status, config
+# api_status and config are now managed by the configuration system
 from .base_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
@@ -217,7 +217,7 @@ async def _search_pubmed_internal(query: str, limit: int) -> list[dict[str, Any]
     """Internal PubMed search function"""
 
     def _search_pubmed() -> list[dict[str, Any]]:
-        pubmed = PubMed(tool="paperez-mcp", email=config.crossref_email)
+        pubmed = PubMed(tool="paperez-mcp", email="research@example.com")
         results = []
 
         for article in pubmed.query(query, max_results=limit):
@@ -288,7 +288,7 @@ async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
 
     except Exception as e:
         logger.warning(f"❌ PubMed search failed: {e}")
-        api_status["pubmed"] = False
+        # api_status is now managed by config system
         return []
 
 

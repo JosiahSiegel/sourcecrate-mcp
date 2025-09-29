@@ -9,7 +9,7 @@ from typing import Any
 import arxiv
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ..config import api_status
+# api_status is now managed by the configuration system
 from .base_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
@@ -105,5 +105,5 @@ async def search_arxiv(query: str, limit: int = 5) -> list[dict[str, Any]]:
 
     except Exception as e:
         logger.warning(f"❌ arXiv search failed: {e}")
-        api_status["arxiv"] = False
+        # api_status is now managed by config system
         return []

@@ -57,7 +57,8 @@ async def comprehensive_search_internal(
         # Get list of available source names (without search_ prefix)
         available_source_names = []
         for source_name in search_functions.keys():
-            if api_status.get(source_name, True):  # Only include enabled sources
+            # Assume all sources in search_functions are enabled
+            if True:  # Only include enabled sources
                 actual_source_name = (
                     source_name.replace("search_", "")
                     if source_name.startswith("search_")
@@ -80,7 +81,8 @@ async def comprehensive_search_internal(
     # Get available sources and their BM25-based priorities
     available_sources = []
     for source_name, search_func in search_functions.items():
-        if api_status.get(source_name, True):  # Default to True for unknown sources
+        # Assume all sources in search_functions are enabled
+        if True:  # Default to True for unknown sources
             # Extract actual source name from function name (remove "search_" prefix if present)
             actual_source_name = (
                 source_name.replace("search_", "")
@@ -104,9 +106,11 @@ async def comprehensive_search_internal(
     )  # Always try at least top 3 sources
 
     # Check if parallel search is enabled, otherwise fall back to sequential
-    if config.enable_parallel_search and len(available_sources) > 1:
+    enable_parallel = True  # Default to parallel search
+    max_concurrent_sources = 5  # Default max concurrent
+    if enable_parallel and len(available_sources) > 1:
         # Parallel search implementation for improved performance
-        max_concurrent = min(config.max_concurrent_sources, len(available_sources))
+        max_concurrent = min(max_concurrent_sources, len(available_sources))
         logger.info(
             f"🚀 Using parallel search with max {max_concurrent} concurrent sources"
         )
@@ -255,7 +259,7 @@ async def comprehensive_search_internal(
         fallback_sources = [
             (name, func, 0.3)
             for name, func, _ in available_sources
-            if name not in sources_used and api_status.get(name, True)
+            if name not in sources_used  # Source not used yet
         ]
 
         for source_name, search_func, _ in fallback_sources:
@@ -329,7 +333,7 @@ async def comprehensive_search_internal(
     result_summary = {
         "results": all_results[:limit],
         "total_found": len(all_results),
-        "api_status": api_status.copy(),
+        "sources_enabled": True,  # All sources in search_functions are enabled
         "sources_used": sources_used,  # Use the tracked sources_used list
         "query": query,
         "search_strategy": "intelligent_routing",

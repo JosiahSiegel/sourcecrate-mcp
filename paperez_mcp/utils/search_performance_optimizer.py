@@ -106,8 +106,8 @@ class IntelligentResultCache:
             return 0.0
 
         # Basic stemming for common plural forms
-        def simple_stem(word):
-            if word.endswith('s') and len(word) > 3 and not word.endswith('ss'):
+        def simple_stem(word: str) -> str:
+            if word.endswith("s") and len(word) > 3 and not word.endswith("ss"):
                 return word[:-1]
             return word
 
@@ -616,7 +616,9 @@ class ConcurrentSearchOptimizer:
 
         semaphore = asyncio.Semaphore(concurrency)
 
-        async def execute_with_semaphore(task: tuple[str, Any, Any]) -> tuple[str, list[Any], bool]:
+        async def execute_with_semaphore(
+            task: tuple[str, Any, Any],
+        ) -> tuple[str, list[Any], bool]:
             async with semaphore:
                 return await self._execute_single_task(task)
 

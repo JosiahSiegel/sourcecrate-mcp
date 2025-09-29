@@ -55,7 +55,6 @@ else:
             pass
 
 
-
 class ConfigManager:
     """
     Manages PaperezMCP configuration with multi-tier loading and hot-reloading.

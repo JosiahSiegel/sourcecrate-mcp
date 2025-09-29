@@ -266,7 +266,9 @@ class EnhancedErrorRecovery:
                         f"{attempt} attempts: {e}"
                     )
                     # Record multiple failures for circuit breaker when operation exhausts retries
-                    for _ in range(min(attempt, self.circuit_breaker.failure_threshold)):
+                    for _ in range(
+                        min(attempt, self.circuit_breaker.failure_threshold)
+                    ):
                         self.circuit_breaker.record_failure()
                     break
 

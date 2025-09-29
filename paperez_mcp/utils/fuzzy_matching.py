@@ -70,7 +70,9 @@ class FuzzyPaperMatcher:
             "meta",
         }
         words = normalized.split()
-        words = [w for w in words if w not in stop_words and len(w) > 1]  # Also remove single letters
+        words = [
+            w for w in words if w not in stop_words and len(w) > 1
+        ]  # Also remove single letters
 
         return " ".join(words)
 
@@ -238,7 +240,9 @@ class FuzzyPaperMatcher:
 
         # If DOI exists and matches perfectly, boost the score but don't override completely
         if doi_score == 1.0:
-            overall_score = min(1.0, overall_score + 0.1)  # Slight boost for matching DOI
+            overall_score = min(
+                1.0, overall_score + 0.1
+            )  # Slight boost for matching DOI
 
         # Determine confidence level
         if overall_score >= 0.9:

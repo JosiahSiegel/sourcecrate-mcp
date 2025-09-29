@@ -43,6 +43,7 @@ class HealthMonitoringService:
             Dictionary with API status, cache stats, and configuration
         """
         from diskcache import Cache
+
         cache = Cache("/tmp/paperez-mcp-cache", size_limit=1e9)
 
         # Perform active health checks

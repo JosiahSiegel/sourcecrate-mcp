@@ -7,14 +7,14 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from tenacity import retry, stop_after_attempt, wait_exponential
 from diskcache import Cache
-
-# Create cache instance directly
-cache = Cache("/tmp/paperez-mcp-cache", size_limit=1e9)  # 1GB cache
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from ..utils.metadata_normalizer import metadata_normalizer
 from ..utils.pdf_validator import pdf_validator
+
+# Create cache instance directly
+cache = Cache("/tmp/paperez-mcp-cache", size_limit=1e9)  # 1GB cache
 
 logger = logging.getLogger(__name__)
 

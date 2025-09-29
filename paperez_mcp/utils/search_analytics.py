@@ -510,9 +510,9 @@ class SearchAnalyticsCollector:
         for source_name in self.source_metrics.keys():
             source_summaries = export_data["source_summaries"]
             if isinstance(source_summaries, dict):
-                source_summaries[source_name] = (
-                    self.get_source_performance_snapshot(source_name).__dict__
-                )
+                source_summaries[source_name] = self.get_source_performance_snapshot(
+                    source_name
+                ).__dict__
 
         # Include raw data if requested
         if include_raw_data:

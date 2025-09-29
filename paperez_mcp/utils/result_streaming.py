@@ -191,7 +191,7 @@ class ResultStreamer:
         individual_tasks = [asyncio.create_task(coro) for coro in search_coroutines]
 
         # Create a task that gathers all individual tasks
-        async def gather_all():
+        async def gather_all() -> list[Any]:
             return await asyncio.gather(*individual_tasks, return_exceptions=True)
 
         search_task: Any = asyncio.create_task(gather_all())

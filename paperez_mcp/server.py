@@ -16,21 +16,23 @@ from fastmcp import FastMCP
 
 # Core imports only - heavy dependencies loaded lazily
 from paperez_mcp.config import get_current_config, get_search_service
+from paperez_mcp.utils.pdf_validator import pdf_validator
+from paperez_mcp.utils.query_cache import query_cache
+from paperez_mcp.utils.result_streaming import create_streaming_search
+
 
 # Create api_status from current config
-def get_api_status():
+def get_api_status() -> dict[str, bool]:
     """Get API status from current configuration."""
     try:
         config = get_current_config()
         return {source: cfg.enabled for source, cfg in config.sources.items()}
-    except:
+    except Exception:
         # Fallback to all enabled if config not loaded
         return {}
 
+
 api_status = get_api_status()
-from paperez_mcp.utils.pdf_validator import pdf_validator
-from paperez_mcp.utils.query_cache import query_cache
-from paperez_mcp.utils.result_streaming import create_streaming_search
 
 # Lazy import flags
 _PYMUPDF4LLM_AVAILABLE = None
@@ -67,7 +69,6 @@ def _ensure_pymupdf4llm() -> Any:
 
 def _lazy_import_search_functions() -> dict[str, Any]:
     """Get search functions from unified config system"""
-    from paperez_mcp.config import get_search_service
 
     # Use the new unified config system
     search_service = get_search_service()
@@ -1293,9 +1294,6 @@ async def get_status() -> dict[str, Any]:
     basic_status: dict[str, Any] = {
         "api_status": api_status.copy(),
         "cache_stats": {
-            "size": len(cache),
-            "cache_dir": cache.directory,
-            "size_limit": cache.size_limit,
             "query_cache": {
                 **query_cache.get_cache_stats(),
                 **query_cache.get_cache_size_info(),
