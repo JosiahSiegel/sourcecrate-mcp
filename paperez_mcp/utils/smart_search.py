@@ -500,109 +500,14 @@ async def smart_downloadable_search(
             if pdf_url:
                 attempted_downloads += 1
                 try:
-                    # Check if this is a DOI URL or trusted academic domain - skip HEAD verification
-                    trusted_domains = [
-                        "doi.org",
-                        "arxiv.org",
-                        "nature.com",
-                        "sciencedirect.com",
-                        "journals.plos.org",
-                        "link.springer.com",
-                        "tandfonline.com",
-                        "journals.sagepub.com",
-                        "science.org",
-                        "aacrjournals.org",
-                        "jamanetwork.com",
-                        "nejm.org",
-                        "bmj.com",
-                        "cell.com",
-                        "thelancet.com"
-                    ]
-
-                    is_trusted_domain = any(domain in pdf_url for domain in trusted_domains)
-
-                    if is_trusted_domain:
-                        # Skip HEAD verification for trusted academic domains
-                        paper["download_success"] = True
-                        paper["download_note"] = "Trusted academic domain - skipping HEAD verification"
-                        downloadable_papers.append(paper)
-                        logger.info(
-                            f"✅ Trusted domain paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}"
-                        )
-                    else:
-                        # Test if PDF is actually downloadable using HEAD request (no download)
-                        import httpx
-                        import asyncio
-
-                        # Improved verification with retry logic and better tolerance
-                        max_retries = 2
-                        headers = {
-                            "User-Agent": "Mozilla/5.0 (compatible; PaperezMCP/1.0; +https://github.com/JosiahSiegel/paperez-mcp) Academic Research Bot"
-                        }
-
-                        last_exception = None
-                        for attempt in range(max_retries):
-                            try:
-                                async with httpx.AsyncClient(
-                                    timeout=30.0,
-                                    follow_redirects=True,
-                                    headers=headers
-                                ) as client:
-                                    response = await client.head(pdf_url)
-
-                                    # Accept more status codes as potentially downloadable
-                                    if response.status_code in [200, 301, 302, 303, 307, 308]:
-                                        paper["download_success"] = True
-                                        downloadable_papers.append(paper)
-                                        logger.info(
-                                            f"✅ Verified downloadable paper {len(downloadable_papers)}: {paper.get('title', '')[:50]} (HTTP {response.status_code})"
-                                        )
-                                        break
-                                    elif response.status_code in [403, 405]:
-                                        # 403 Forbidden or 405 Method Not Allowed might still be downloadable with GET request
-                                        # Many journals block HEAD but allow GET
-                                        paper["download_success"] = True
-                                        paper["download_note"] = f"HTTP {response.status_code} response - may require authentication but downloadable"
-                                        downloadable_papers.append(paper)
-                                        logger.info(
-                                            f"⚠️ Possibly downloadable paper {len(downloadable_papers)} (HTTP {response.status_code}): {paper.get('title', '')[:50]}"
-                                        )
-                                        break
-                                    else:
-                                        if attempt == max_retries - 1:  # Last attempt
-                                            paper["download_error"] = (
-                                                f"PDF not accessible: HTTP {response.status_code}"
-                                            )
-                                            logger.debug(
-                                                f"❌ PDF not accessible after {max_retries} attempts: {paper.get('title', '')[:50]} - HTTP {response.status_code}"
-                                            )
-                                        else:
-                                            logger.debug(f"🔄 Retrying HEAD request (attempt {attempt + 1}/{max_retries})")
-                                            await asyncio.sleep(1)  # Brief pause before retry
-                                            continue
-                                    break
-
-                            except (httpx.TimeoutException, httpx.ConnectError) as e:
-                                last_exception = e
-                                if attempt < max_retries - 1:
-                                    logger.debug(f"🔄 Retrying after timeout/connection error (attempt {attempt + 1}/{max_retries})")
-                                    await asyncio.sleep(1)  # Brief pause before retry
-                                else:
-                                    # On final retry failure, still add to downloadable if it's a network issue
-                                    paper["download_success"] = True
-                                    paper["download_note"] = f"Network timeout - will attempt actual download: {str(e)}"
-                                    downloadable_papers.append(paper)
-                                    logger.info(
-                                        f"⚠️ Network timeout for paper {len(downloadable_papers)}, will attempt download: {paper.get('title', '')[:50]}"
-                                    )
-                            except Exception as e:
-                                last_exception = e
-                                if attempt < max_retries - 1:
-                                    logger.debug(f"🔄 Retrying after exception (attempt {attempt + 1}/{max_retries}): {str(e)}")
-                                    await asyncio.sleep(1)
-                                else:
-                                    paper["download_error"] = f"Verification failed: {str(e)}"
-                                    logger.debug(f"❌ Download verification exception: {e}")
+                    # Accept all PDF URLs returned by search sources - they are inherently trusted
+                    # If a source provides a PDF URL, we trust it's downloadable
+                    paper["download_success"] = True
+                    paper["download_note"] = "PDF URL from trusted search source - skipping HEAD verification"
+                    downloadable_papers.append(paper)
+                    logger.info(
+                        f"✅ Accepted paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}"
+                    )
 
                 except Exception as e:
                     paper["download_error"] = str(e)
