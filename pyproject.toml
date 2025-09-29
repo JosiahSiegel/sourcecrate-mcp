@@ -49,7 +49,7 @@ Issues = "https://github.com/JosiahSiegel/paperez-mcp/issues"
 Documentation = "https://github.com/JosiahSiegel/paperez-mcp#readme"
 
 [project.scripts]
-paperez-mcp = "paperez_mcp.server:main"
+paperez-mcp = "install_and_run:main"
 
 [project.optional-dependencies]
 dev = [

@@ -10,10 +10,39 @@ PaperezMCP is a comprehensive MCP server that makes academic research effortless
 
 ## 🚀 Quick Start for Claude Code
 
-### Install
+### ✨ **Zero-Setup Installation (Recommended)**
+
+**All methods now use our seamless auto-installer - no manual dependency management required!**
+
+#### Option 1: Direct Install from GitHub
 ```bash
 claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp
 ```
+
+#### Option 2: Using Cloned Repository
+Perfect for development or offline use:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/JosiahSiegel/paperez-mcp.git
+cd paperez-mcp
+
+# 2. Connect Claude Code using our auto-installer
+claude mcp add -s project paperez-mcp -- python /path/to/paperez-mcp/install_and_run.py
+
+# Or using uvx (also uses auto-installer):
+claude mcp add -s project paperez-mcp -- uvx --from /path/to/paperez-mcp paperez-mcp
+```
+
+### 🔧 **What the Auto-Installer Does:**
+- ✅ **Automatic dependency detection** - Checks if already installed
+- ✅ **Smart environment setup** - Creates isolated venv when needed
+- ✅ **Multi-platform support** - Windows, macOS, Linux, WSL
+- ✅ **Fallback strategies** - Multiple installation methods tried automatically
+- ✅ **Zero manual configuration** - Works immediately after clone/download
+- ✅ **Cache-friendly** - Reuses environments for faster subsequent starts
+
+**Note:** Changes to MCP server code still require restarting Claude Code to take effect.
 
 ### Basic Usage
 Ask Claude naturally:
@@ -102,6 +131,59 @@ categories:
 All YAML files in `.paperez/config/` are automatically loaded and merged with built-in sources.
 
 Use `get_help` tool for complete configuration schemas and examples.
+
+## 🛠️ Troubleshooting
+
+### Auto-Installer Issues
+
+If you encounter problems with the automatic installation:
+
+#### Problem: "No papers found" with empty api_status
+```json
+{
+  "results": [],
+  "total_found": 0,
+  "api_status": {},
+  "sources_used": []
+}
+```
+
+**Cause:** Dependencies weren't properly installed or API clients failed to initialize.
+
+**Solutions:**
+1. **Restart Claude Code** after installation
+2. **Check installation logs** - Look for dependency installation failures in the terminal
+3. **Manual fallback installation:**
+   ```bash
+   # Navigate to the paperez-mcp directory
+   cd /path/to/paperez-mcp
+
+   # Run the installer manually to see detailed output
+   python install_and_run.py
+   ```
+4. **Force clean installation:**
+   ```bash
+   # Remove cached venv and reinstall
+   rm -rf .venv
+   python install_and_run.py
+   ```
+
+#### Problem: "Module not found" errors
+**Solution:** The auto-installer creates isolated environments. Ensure you're using the correct MCP configuration:
+```json
+{
+  "mcpServers": {
+    "paperez-mcp": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["/path/to/paperez-mcp/install_and_run.py"]
+    }
+  }
+}
+```
+
+#### Problem: Slow first-time startup
+**Expected behavior:** First run takes 1-2 minutes for dependency installation. Subsequent runs are fast thanks to caching.
 
 ## 🌟 Features
 

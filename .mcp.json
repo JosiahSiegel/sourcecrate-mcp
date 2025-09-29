@@ -3,6 +3,15 @@
   "description": "PaperezMCP - Academic Paper Research Made Easy - 7 Optimized Tools",
   "mcpServers": {
     "paperez-mcp": {
+      "command": "python3",
+      "args": [
+        "/mnt/d/repos/paperez-mcp/install_and_run.py"
+      ],
+      "env": {
+        "UNPAYWALL_EMAIL": "research@example.com"
+      }
+    },
+    "paperez-mcp-remote": {
       "command": "uvx",
       "args": [
         "--from",
@@ -50,11 +59,19 @@
     }
   ],
   "installation": {
-    "command": "claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp",
+    "local_development": {
+      "command": "claude mcp add -s project paperez-mcp -- python3 /path/to/paperez-mcp/install_and_run.py",
+      "description": "Use local development version with auto-installer (default configuration)"
+    },
+    "remote_github": {
+      "server_name": "paperez-mcp-remote",
+      "command": "claude mcp add -s project paperez-mcp-remote -- uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp",
+      "description": "Use remote GitHub version via uvx"
+    },
     "requirements": [
-      "Python 3.8+",
-      "uvx (for zero-installation)",
-      "Internet connection for academic database access"
+      "Python 3.11+",
+      "Internet connection for academic database access",
+      "uvx (optional, for remote GitHub installation)"
     ]
   },
   "usage": {
@@ -67,6 +84,11 @@
   },
   "preferences": {
     "default_server": "paperez-mcp",
+    "alternative_server": "paperez-mcp-remote",
+    "server_options": {
+      "paperez-mcp": "Local development version using auto-installer (recommended for development)",
+      "paperez-mcp-remote": "Remote GitHub version via uvx (for production use)"
+    },
     "timeout": 180,
     "retry_attempts": 3,
     "log_level": "INFO"
