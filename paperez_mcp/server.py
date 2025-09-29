@@ -24,16 +24,78 @@ from paperez_mcp.utils.result_streaming import create_streaming_search
 
 # Create api_status from current config
 def get_api_status() -> dict[str, bool]:
-    """Get API status from current configuration."""
+    """Get API status from current configuration.
+
+    This function is called dynamically to ensure fresh configuration
+    is loaded, avoiding issues with module-level initialization timing.
+    """
     try:
         config = get_current_config()
-        return {source: cfg.enabled for source, cfg in config.sources.items()}
-    except Exception:
-        # Fallback to all enabled if config not loaded
-        return {}
+        status = {source: cfg.enabled for source, cfg in config.sources.items()}
+
+        # If empty, something went wrong - try to reload
+        if not status:
+            logger.warning("Empty API status detected, attempting config reload...")
+            # Force config reload
+            from paperez_mcp.config.manager import get_config_manager
+            try:
+                get_config_manager()._load_config()
+                config = get_current_config()
+                status = {source: cfg.enabled for source, cfg in config.sources.items()}
+            except Exception as reload_error:
+                logger.error(f"Config reload failed: {reload_error}")
+
+        # If still empty, return sensible defaults
+        if not status:
+            logger.warning("Using default API status as fallback")
+            return {
+                "arxiv": True,
+                "crossref": True,
+                "semantic_scholar": True,
+                "pubmed": True,
+                "pubmed_central": True,
+                "openalex": True,
+                "doaj": True,
+                "europe_pmc": True,
+                "clinicaltrials": True,
+                "openlibrary": True,
+                # Disabled by default
+                "repec": False,
+                "federal_register": False,
+                "hathitrust": False,
+                "internet_archive": False,
+                "courtlistener": False,
+                "core_repository": False,
+            }
+
+        return status
+
+    except Exception as e:
+        logger.error(f"Failed to get API status: {e}")
+        # Return sensible defaults instead of empty dict
+        return {
+            "arxiv": True,
+            "crossref": True,
+            "semantic_scholar": True,
+            "pubmed": True,
+            "pubmed_central": True,
+            "openalex": True,
+            "doaj": True,
+            "europe_pmc": True,
+            "clinicaltrials": True,
+            "openlibrary": True,
+            # Disabled by default
+            "repec": False,
+            "federal_register": False,
+            "hathitrust": False,
+            "internet_archive": False,
+            "courtlistener": False,
+            "core_repository": False,
+        }
 
 
-api_status = get_api_status()
+# Note: api_status is now retrieved dynamically in each function
+# to avoid module-level initialization timing issues
 
 # Lazy import flags
 _PYMUPDF4LLM_AVAILABLE = None
@@ -235,7 +297,7 @@ async def browse_papers(
             search_funcs,
             query,
             limit,
-            api_status.copy(),
+            get_api_status(),
             user_preferences={
                 "prefer_recent": True,
                 "force_category": force_category
@@ -275,7 +337,7 @@ async def browse_papers(
                 limit,
                 search_funcs,
                 utils,
-                api_status.copy(),
+                get_api_status(),
                 force_category,
                 metadata_only=True,
             )
@@ -289,7 +351,7 @@ async def browse_papers(
             limit,
             search_funcs,
             utils,
-            api_status.copy(),
+            get_api_status(),
             force_category,
             metadata_only=True,
         )
@@ -322,7 +384,7 @@ async def browse_papers(
     result = {
         "results": browse_results,
         "total_found": len(browse_results),
-        "api_status": api_status.copy(),
+        "api_status": get_api_status(),
         "sources_used": list(
             set(paper.get("source", "Unknown") for paper in browse_results)
         ),
@@ -431,7 +493,7 @@ async def browse_papers_streaming(
     available_search_funcs = {
         name: func
         for name, func in search_funcs.items()
-        if api_status.get(name, True) and callable(func)
+        if get_api_status().get(name, True) and callable(func)
     }
 
     if not available_search_funcs:
@@ -441,7 +503,7 @@ async def browse_papers_streaming(
                 "streaming_summary": {
                     "error": "No search sources available",
                     "available_sources": list(search_funcs.keys()),
-                    "api_status": api_status.copy(),
+                    "api_status": get_api_status(),
                 },
                 "streaming_stats": {},
             }
@@ -697,7 +759,7 @@ async def download_papers(
         output_dir=output_dir,
         search_funcs=search_funcs,
         utils=utils,
-        api_status=api_status.copy(),
+        api_status=get_api_status(),
         force_category=force_category,
         convert_to_markdown=convert_to_markdown,
     )
@@ -1311,8 +1373,9 @@ async def _get_comprehensive_config_info() -> dict[str, Any]:
                     resolved_sources = resolver.resolve_category(cat_name)
 
                 # Check which sources are available
-                sources_available = [s for s in resolved_sources if api_status.get(s, False)]
-                sources_unavailable = [s for s in resolved_sources if not api_status.get(s, False)]
+                current_api_status = get_api_status()
+                sources_available = [s for s in resolved_sources if current_api_status.get(s, False)]
+                sources_unavailable = [s for s in resolved_sources if not current_api_status.get(s, False)]
 
                 categories_info[cat_name] = {
                     "display_name": cat_config.display_name,
@@ -1363,7 +1426,7 @@ async def _get_comprehensive_config_info() -> dict[str, Any]:
             "sources": {
                 "total_sources": len(config.sources),
                 "enabled_sources": len([s for s, cfg in config.sources.items() if cfg.enabled]),
-                "available_sources": len([s for s in api_status.keys() if api_status.get(s, False)]),
+                "available_sources": len([s for s in get_api_status().keys() if get_api_status().get(s, False)]),
                 "source_names": list(config.sources.keys())
             },
             "routing": routing_info,
@@ -1433,7 +1496,7 @@ async def get_status() -> dict[str, Any]:
     """
     # Get basic status
     basic_status: dict[str, Any] = {
-        "api_status": api_status.copy(),
+        "api_status": get_api_status(),
         "cache_stats": {
             "query_cache": {
                 **query_cache.get_cache_stats(),
