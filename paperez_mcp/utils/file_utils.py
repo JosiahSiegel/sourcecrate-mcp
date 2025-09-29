@@ -12,15 +12,16 @@ import httpx
 
 
 async def download_pdf(
-    pdf_url: str, output_dir: str = ".paperez", title: str | None = None
+    pdf_url: str, output_dir: str = ".paperez", title: str | None = None, paper_url: str | None = None
 ) -> dict[str, Any]:
     """
-    Download a PDF from URL to local directory.
+    Download a PDF from URL to local directory with enhanced headers and retry logic.
 
     Args:
         pdf_url: URL of the PDF to download
         output_dir: Directory to save the PDF
         title: Optional paper title for readable filename
+        paper_url: Optional main paper URL for referrer header
 
     Returns:
         Dictionary with download results
@@ -63,25 +64,91 @@ async def download_pdf(
 
         pdf_path = os.path.join(output_dir, f"{filename}.pdf")
 
-        # Download PDF with redirect handling
-        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
-            response = await client.get(pdf_url)
+        # Enhanced browser headers to avoid 403 errors
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/pdf,application/octet-stream,*/*;q=0.9",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+            "DNT": "1",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "cross-site",
+            "Cache-Control": "max-age=0",
+        }
 
-            if response.status_code == 200:
-                with open(pdf_path, "wb") as f:
-                    f.write(response.content)
+        # Add referrer header if paper URL is provided
+        if paper_url:
+            headers["Referer"] = paper_url
 
-                return {
-                    "success": True,
-                    "pdf_path": pdf_path,
-                    "file_size": len(response.content),
-                    "filename": filename,
-                }
-            else:
-                return {
-                    "success": False,
-                    "error": f"Failed to download PDF: HTTP {response.status_code}",
-                }
+        # Retry mechanism with different strategies
+        max_retries = 3
+        retry_strategies = [
+            # Strategy 1: Standard browser headers
+            headers,
+            # Strategy 2: Minimal headers (some sites block too many headers)
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/pdf,*/*;q=0.8",
+                "Referer": paper_url if paper_url else None
+            },
+            # Strategy 3: Basic headers only
+            {
+                "User-Agent": "Mozilla/5.0 (compatible; Academic Research Bot)",
+                "Accept": "*/*"
+            }
+        ]
+
+        last_error = None
+
+        for attempt in range(max_retries):
+            # Remove None values from headers
+            current_headers = {k: v for k, v in retry_strategies[attempt].items() if v is not None}
+
+            try:
+                async with httpx.AsyncClient(
+                    timeout=60.0,
+                    follow_redirects=True,
+                    headers=current_headers
+                ) as client:
+                    response = await client.get(pdf_url)
+
+                    if response.status_code == 200:
+                        with open(pdf_path, "wb") as f:
+                            f.write(response.content)
+
+                        return {
+                            "success": True,
+                            "pdf_path": pdf_path,
+                            "file_size": len(response.content),
+                            "filename": filename,
+                            "retry_attempt": attempt + 1,
+                            "headers_used": list(current_headers.keys())
+                        }
+                    else:
+                        last_error = f"HTTP {response.status_code}"
+                        if attempt < max_retries - 1:
+                            # Wait before retry (exponential backoff)
+                            import asyncio
+                            await asyncio.sleep(2 ** attempt)
+                        continue
+
+            except Exception as e:
+                last_error = str(e)
+                if attempt < max_retries - 1:
+                    import asyncio
+                    await asyncio.sleep(2 ** attempt)
+                continue
+
+        # All retries failed
+        return {
+            "success": False,
+            "error": f"Failed to download PDF after {max_retries} attempts: {last_error}",
+            "pdf_url": pdf_url,
+            "final_attempt": max_retries
+        }
 
     except Exception as e:
         return {"success": False, "error": f"Download failed: {str(e)}"}
