@@ -479,23 +479,19 @@ async def smart_downloadable_search(
             }
             logger.warning(f"❌ {source_name} search failed: {e}")
 
-    # Check if we need to expand to additional sources (conditional cascade)
+    # Always cascade through all sources to ensure comprehensive coverage
     used_fallback = False
-    if additional_sources_to_search and len(all_candidates) < limit:
+    if additional_sources_to_search:
         cascade_mode = "category-based" if force_category else "relevance-based"
         logger.info(
-            f"⚠️ Only found {len(all_candidates)} candidates from priority sources (need {limit}). "
-            f"Expanding search to {len(additional_sources_to_search)} additional sources ({cascade_mode} cascade)..."
+            f"🔄 Cascading to {len(additional_sources_to_search)} additional sources "
+            f"({cascade_mode} cascade) to ensure comprehensive coverage..."
         )
         used_fallback = True
 
-        # Phase 2: Search additional sources only if needed
+        # Phase 2: Search all additional sources exhaustively
+        # Stopping happens naturally at download loop when limit is reached
         for source_name, description in additional_sources_to_search:
-            # Stop if we have enough candidates
-            if len(all_candidates) >= limit * 2:  # Search for 2x to have buffer for filtering
-                logger.info(f"✅ Found enough candidates ({len(all_candidates)}), stopping expansion")
-                break
-
             try:
                 search_func = search_funcs.get(source_name)
                 if search_func:
