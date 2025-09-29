@@ -163,6 +163,10 @@ async def smart_downloadable_search(
     adjusted_priority.sort(key=lambda x: x[2], reverse=True)
     source_priority = [(name, desc) for name, desc, _ in adjusted_priority]
 
+    # Track priority and additional sources for conditional cascade
+    priority_sources_list = []
+    additional_sources_list = []
+
     # Priority-based category routing if specified
     if force_category:
         category_sources = {
@@ -209,14 +213,16 @@ async def smart_downloadable_search(
                 for s in priority_sources:
                     description = source_descriptions.get(s, f"Source: {s}")
                     source_priority.append((s, f"{description} (PRIORITY: {force_category})"))
+                    priority_sources_list.append(s)  # Track for conditional cascade
 
-                # Add remaining sources as backup
+                # Add remaining sources as backup (BUT WON'T SEARCH UNLESS NEEDED)
                 for s in remaining_sources:
                     description = source_descriptions.get(s, f"Source: {s}")
                     source_priority.append((s, f"{description} (additional)"))
+                    additional_sources_list.append(s)  # Track for conditional cascade
 
                 logger.info(
-                    f"🎯 Category '{force_category}': Prioritizing {priority_sources}, then expanding to {remaining_sources[:5]}..."
+                    f"🎯 Category '{force_category}': Prioritizing {priority_sources}, additional sources available if needed: {remaining_sources[:5]}..."
                 )
             else:
                 logger.warning(
@@ -338,8 +344,22 @@ async def smart_downloadable_search(
         }
         logger.info(f"⏭️ Skipping {source_name}: {skip_reason}")
 
-    # Now search the sources that weren't skipped (or were forced by fallback)
+    # Split sources into priority and additional for conditional cascade
+    priority_sources_to_search = []
+    additional_sources_to_search = []
+
     for source_name, description in sources_to_search:
+        if source_name in priority_sources_list:
+            priority_sources_to_search.append((source_name, description))
+        elif source_name in additional_sources_list:
+            additional_sources_to_search.append((source_name, description))
+        else:
+            # Sources not in either list (when not using force_category) go to priority
+            priority_sources_to_search.append((source_name, description))
+
+    # Phase 1: Search priority sources first
+    logger.info(f"🎯 Phase 1: Searching {len(priority_sources_to_search)} priority sources")
+    for source_name, description in priority_sources_to_search:
         try:
             search_func = search_funcs.get(source_name)
             if search_func:
@@ -435,7 +455,128 @@ async def smart_downloadable_search(
             }
             logger.warning(f"❌ {source_name} search failed: {e}")
 
+    # Check if we need to expand to additional sources (conditional cascade)
+    used_fallback = False
+    if additional_sources_to_search and len(all_candidates) < limit:
+        logger.info(
+            f"⚠️ Only found {len(all_candidates)} candidates from priority sources (need {limit}). "
+            f"Expanding search to {len(additional_sources_to_search)} additional sources..."
+        )
+        used_fallback = True
+
+        # Phase 2: Search additional sources only if needed
+        for source_name, description in additional_sources_to_search:
+            # Stop if we have enough candidates
+            if len(all_candidates) >= limit * 2:  # Search for 2x to have buffer for filtering
+                logger.info(f"✅ Found enough candidates ({len(all_candidates)}), stopping expansion")
+                break
+
+            try:
+                search_func = search_funcs.get(source_name)
+                if search_func:
+                    # Enhanced query optimization using routing recommendations
+                    optimized_query = query
+
+                    # Use query expansions from intent analysis
+                    if routing_recommendations and routing_recommendations.get(
+                        "query_expansions"
+                    ):
+                        # Select best expansion for this source based on intent and temporal preference
+                        expansions = routing_recommendations["query_expansions"]
+                        if (
+                            expansions
+                            and intent_analysis
+                            and intent_analysis.temporal_preference.value == "recent"
+                        ):
+                            # For recent queries, try temporal expansions first
+                            temporal_expansions = [
+                                exp
+                                for exp in expansions
+                                if any(
+                                    term in exp.lower()
+                                    for term in ["recent", "latest", "2024", "2025"]
+                                )
+                            ]
+                            if temporal_expansions:
+                                optimized_query = temporal_expansions[0]
+                        elif (
+                            expansions
+                            and intent_analysis
+                            and intent_analysis.intent.value == "survey_review"
+                        ):
+                            # For review queries, try review-focused expansions
+                            review_expansions = [
+                                exp
+                                for exp in expansions
+                                if any(
+                                    term in exp.lower()
+                                    for term in ["review", "survey", "state of the art"]
+                                )
+                            ]
+                            if review_expansions:
+                                optimized_query = review_expansions[0]
+                        elif expansions:
+                            # Use first expansion as fallback
+                            optimized_query = expansions[0]
+
+                    # Enhanced routing provides intelligent query optimization
+
+                    if optimized_query != query:
+                        logger.info(
+                            f"🔧 Enhanced query optimization for {source_name}: '{optimized_query}'"
+                        )
+
+                    logger.info(f"🔎 [Fallback] Searching {source_name}: {description}")
+                    results = await search_func(
+                        optimized_query, search_limit_per_source
+                    )
+
+                    # Mark papers as coming from fallback expansion
+                    for paper in results:
+                        paper["_fallback_used"] = True
+                        paper["_original_category"] = force_category
+
+                    all_candidates.extend(results)
+
+                    # Count papers with PDFs
+                    has_pdfs = sum(
+                        1
+                        for r in results
+                        if r.get("pdf_url") or r.get("open_access_pdf")
+                    )
+
+                    search_log["sources_searched"].append(source_name)
+                    search_log["results_per_source"][source_name] = {
+                        "count": len(results),
+                        "has_pdfs": has_pdfs,
+                        "sample_title": results[0].get("title") if results else None,
+                        "pdf_ratio": f"{has_pdfs}/{len(results)}" if results else "0/0",
+                        "optimized_query": (
+                            optimized_query if optimized_query != query else None
+                        ),
+                        "fallback": True,
+                    }
+
+                    logger.info(
+                        f"✅ [Fallback] {source_name}: Found {len(results)} papers ({has_pdfs} with PDFs)"
+                    )
+                else:
+                    search_log["results_per_source"][source_name] = {
+                        "error": "Search function not available",
+                        "fallback": True,
+                    }
+                    logger.warning(f"❌ [Fallback] {source_name}: Search function not available")
+
+            except Exception as e:
+                search_log["results_per_source"][source_name] = {
+                    "error": str(e),
+                    "count": 0,
+                    "fallback": True,
+                }
+                logger.warning(f"❌ [Fallback] {source_name} search failed: {e}")
+
     search_log["total_candidates"] = len(all_candidates)
+    search_log["used_fallback"] = used_fallback
     logger.info(f"📊 Total candidates from all sources: {len(all_candidates)}")
 
     # Sort by PDF availability using capability-based priority
