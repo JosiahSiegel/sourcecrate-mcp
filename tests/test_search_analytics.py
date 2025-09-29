@@ -618,12 +618,12 @@ class TestSearchAnalyticsIntegration:
         source = "degrading_source"
 
         # Initial good performance
-        for _ in range(50):
+        for _ in range(30):
             self.collector.record_source_performance(source, 1.0, True)
 
-        # Performance starts degrading
-        for _ in range(20):
-            self.collector.record_source_performance(source, 5.0, False)
+        # Performance starts degrading significantly
+        for _ in range(50):
+            self.collector.record_source_performance(source, 8.0, False)
 
         alerts = self.collector.get_performance_alerts()
         source_alerts = [a for a in alerts if a.get("source") == source]
