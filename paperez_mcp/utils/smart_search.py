@@ -168,6 +168,27 @@ async def smart_downloadable_search(
     priority_sources_list = []
     additional_sources_list = []
 
+    # When NOT using force_category, split sources by relevance score for cascade
+    # This ensures lower-relevance sources can serve as fallback
+    if not force_category:
+        # Split sources based on final relevance scores
+        relevance_threshold = 0.3  # Sources below this go to fallback list
+
+        for source_name, description, final_score in adjusted_priority:
+            if final_score >= relevance_threshold:
+                # High relevance - search first
+                priority_sources_list.append(source_name)
+            else:
+                # Lower relevance - use as fallback for cascade
+                additional_sources_list.append(source_name)
+
+        logger.info(
+            f"📊 Relevance-based split: {len(priority_sources_list)} priority sources "
+            f"(score ≥ {relevance_threshold}), {len(additional_sources_list)} fallback sources"
+        )
+        logger.debug(f"  Priority: {priority_sources_list[:5]}")
+        logger.debug(f"  Fallback: {additional_sources_list[:5]}")
+
     # Priority-based category routing if specified
     if force_category:
         category_sources = {
@@ -355,7 +376,9 @@ async def smart_downloadable_search(
         elif source_name in additional_sources_list:
             additional_sources_to_search.append((source_name, description))
         else:
-            # Sources not in either list (when not using force_category) go to priority
+            # Edge case: Source not in either list (should be rare now)
+            # This can happen if a source was added after BM25 ranking
+            logger.warning(f"⚠️ Source {source_name} not in priority or additional lists, defaulting to priority")
             priority_sources_to_search.append((source_name, description))
 
     # Phase 1: Search priority sources first
@@ -459,9 +482,10 @@ async def smart_downloadable_search(
     # Check if we need to expand to additional sources (conditional cascade)
     used_fallback = False
     if additional_sources_to_search and len(all_candidates) < limit:
+        cascade_mode = "category-based" if force_category else "relevance-based"
         logger.info(
             f"⚠️ Only found {len(all_candidates)} candidates from priority sources (need {limit}). "
-            f"Expanding search to {len(additional_sources_to_search)} additional sources..."
+            f"Expanding search to {len(additional_sources_to_search)} additional sources ({cascade_mode} cascade)..."
         )
         used_fallback = True
 
