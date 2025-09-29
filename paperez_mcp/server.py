@@ -71,10 +71,20 @@ def _ensure_pymupdf4llm() -> Any:
 
 
 def _lazy_import_search_functions() -> dict[str, Any]:
-    """Get search functions using lazy initialization."""
+    """Get search functions using lazy initialization with forced init if needed."""
     from paperez_mcp.config.singleton import get_config_manager
 
     manager = get_config_manager()
+
+    # Force initialization if not already done
+    if not manager.search_functions:
+        logger.info("Search functions not initialized, forcing initialization...")
+        success = manager.initialize()
+        if not success:
+            logger.warning("Initialization from singleton failed, attempting direct import...")
+            # Fallback: directly import search functions
+            manager._import_search_functions_directly()
+
     search_funcs = manager.search_functions
 
     if not search_funcs:
@@ -1857,9 +1867,31 @@ def _safe_print(message: str, ascii_fallback: str = "") -> None:
 
 
 def main() -> None:
-    """Main entry point for the server - simple and clean."""
-    # No forced initialization - let lazy loading handle it
+    """Main entry point for the server - with forced initialization for local path support."""
     logger.info("Starting PaperezMCP Server...")
+
+    # Force configuration initialization at startup to fix local path invocation
+    # This ensures the server works correctly when invoked via local file path
+    try:
+        from paperez_mcp.config.singleton import get_config_manager
+        manager = get_config_manager()
+
+        logger.info("Initializing configuration system at server startup...")
+        success = manager.initialize()
+
+        if success:
+            logger.info(f"✓ Configuration initialized successfully: "
+                       f"{len(manager.api_status)} sources, "
+                       f"{len(manager.search_functions)} search functions ready")
+        else:
+            logger.warning("Configuration initialization had issues, using fallback methods")
+            # Ensure we have at least basic search functions
+            if not manager.search_functions:
+                manager._import_search_functions_directly()
+                logger.info(f"Imported {len(manager.search_functions)} search functions via fallback")
+    except Exception as e:
+        logger.error(f"Error during startup initialization: {e}")
+        # Continue anyway - lazy loading might still work
 
     # Configure UTF-8 encoding for cross-platform compatibility
     utf8_available = _configure_utf8_output()
