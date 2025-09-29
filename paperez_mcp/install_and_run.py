@@ -127,6 +127,8 @@ def is_already_installed() -> bool:
     """Check if paperez-mcp is already installed in the current Python environment."""
     try:
         import paperez_mcp
+        # Also check if server module is available
+        from paperez_mcp.server import main
         log("PaperezMCP already installed in current environment")
         return True
     except ImportError:
@@ -249,13 +251,35 @@ def install_dependencies(venv_path: Path) -> None:
 
 def launch_server(venv_path: Path) -> None:
     """Launch the paperez-mcp server."""
+    # Try package-based execution first (for installed packages like uvx)
+    try:
+        log("Attempting to run server from installed package...")
+        from paperez_mcp.server import main as server_main
+        server_main()
+        return
+    except ImportError as e:
+        log(f"Package import failed ({e}), trying file-based approach...")
+
+    # Fall back to file-based execution (for local development)
     repo_root = Path(__file__).parent.parent
     python_executable = get_python_executable(venv_path)
     server_script = repo_root / "paperez_mcp" / "server.py"
 
+    # If not found, try using importlib to locate the server module
     if not server_script.exists():
-        log(f"Server script not found at {server_script}")
-        sys.exit(1)
+        try:
+            import importlib.util
+            spec = importlib.util.find_spec("paperez_mcp.server")
+            if spec and spec.origin:
+                server_script = Path(spec.origin)
+                log(f"Found server via importlib at {server_script}")
+            else:
+                log(f"Server script not found at {server_script}")
+                sys.exit(1)
+        except Exception as e:
+            log(f"Failed to locate server module: {e}")
+            log(f"Server script not found at {server_script}")
+            sys.exit(1)
 
     # Test if the python executable is actually runnable for server launch
     try:
@@ -298,33 +322,18 @@ def launch_server(venv_path: Path) -> None:
 def main() -> None:
     """Main entry point."""
     try:
-        # # Check if we're already in a properly configured environment
-        # if is_already_installed():
-        #     # Try to run directly without creating venv
-        #     try:
-        #         repo_root = Path(__file__).parent.parent
-        #         server_script = repo_root / "paperez_mcp" / "server.py"
+        # Check if we're already in a properly configured environment (e.g., uvx)
+        if is_already_installed():
+            # Try to run directly without creating venv
+            try:
+                log("Running from pre-installed environment...")
+                from paperez_mcp.server import main as server_main
+                server_main()
+                return
+            except Exception as e:
+                log(f"Direct execution failed: {e}, falling back to venv setup")
 
-        #         if server_script.exists():
-        #             log("Running from current environment...")
-        #             # Set up environment
-        #             env = os.environ.copy()
-        #             env["PYTHONPATH"] = str(repo_root)
-
-        #             # Execute the server directly with proper stdio passthrough
-        #             subprocess.run(
-        #                 [sys.executable, str(server_script)],
-        #                 env=env,
-        #                 stdin=sys.stdin,
-        #                 stdout=sys.stdout,
-        #                 stderr=sys.stderr,
-        #                 check=False
-        #             )
-        #             return
-        #     except Exception as e:
-        #         log(f"Direct execution failed: {e}, falling back to venv setup")
-
-        # Always use venv setup to ensure all dependencies are available
+        # Use venv setup for local development or if package not properly installed
         venv_path = get_venv_path()
 
         # Step 1: Create virtual environment
