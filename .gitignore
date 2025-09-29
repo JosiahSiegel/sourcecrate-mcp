@@ -102,3 +102,4 @@ test_*.json
 .paperez/*.pdf
 !.paperez/config/*
 *.txt
+test_*/

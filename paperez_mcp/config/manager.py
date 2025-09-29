@@ -189,32 +189,76 @@ class ConfigManager:
 
         This loads configuration files that are distributed with the package,
         ensuring the MCP server works out-of-the-box without requiring external config files.
+
+        Tries multiple methods:
+        1. importlib.resources (for installed packages)
+        2. Filesystem fallback (for local development/external callers)
         """
         config_dict = {}
+        loading_method = None
+
         try:
-            # Access the default_configs directory in the package
-            if hasattr(resources, 'files'):
-                # Python 3.11+ way
-                config_files = resources.files('paperez_mcp.default_configs')
-            else:
-                # Older Python fallback
-                config_files = resources.files('paperez_mcp').joinpath('default_configs')
+            # Method 1: Try importlib.resources (works for installed packages)
+            try:
+                if hasattr(resources, 'files'):
+                    # Python 3.11+ way
+                    config_files = resources.files('paperez_mcp.default_configs')
+                else:
+                    # Older Python fallback
+                    config_files = resources.files('paperez_mcp').joinpath('default_configs')
 
-            # Load all YAML files from the embedded configs
-            for item in config_files.iterdir():
-                if item.name.endswith(('.yaml', '.yml')):
-                    try:
-                        content = item.read_text()
-                        file_config = yaml.safe_load(content)
-                        if file_config:
-                            config_dict = self._smart_merge(config_dict, file_config)
-                            logger.debug(f"Loaded embedded config: {item.name}")
-                    except Exception as e:
-                        logger.warning(f"Failed to load embedded config {item.name}: {e}")
+                # Load all YAML files from the embedded configs
+                for item in config_files.iterdir():
+                    if item.name.endswith(('.yaml', '.yml')):
+                        try:
+                            content = item.read_text()
+                            file_config = yaml.safe_load(content)
+                            if file_config:
+                                config_dict = self._smart_merge(config_dict, file_config)
+                                logger.debug(f"Loaded embedded config: {item.name}")
+                        except Exception as e:
+                            logger.warning(f"Failed to load embedded config {item.name}: {e}")
 
-            logger.info(f"Loaded {len(config_dict)} embedded default configs")
+                loading_method = "package resources"
+                logger.info(f"Loaded {len(config_dict)} embedded default configs via {loading_method}")
+
+            except (ImportError, ModuleNotFoundError, AttributeError, FileNotFoundError) as e:
+                # Method 2: Filesystem fallback for development/local execution
+                logger.debug(f"Package resources not available ({e}), using filesystem fallback")
+
+                # Find the package directory using the module's __file__
+                try:
+                    import paperez_mcp
+                    package_dir = Path(paperez_mcp.__file__).parent
+                    default_configs_dir = package_dir / "default_configs"
+
+                    if default_configs_dir.exists() and default_configs_dir.is_dir():
+                        # Load YAML files directly from filesystem
+                        yaml_files = list(default_configs_dir.glob("*.yaml"))
+                        yaml_files.extend(default_configs_dir.glob("*.yml"))
+
+                        for yaml_file in yaml_files:
+                            try:
+                                with open(yaml_file, 'r', encoding='utf-8') as f:
+                                    file_config = yaml.safe_load(f)
+                                    if file_config:
+                                        config_dict = self._smart_merge(config_dict, file_config)
+                                        logger.debug(f"Loaded config from filesystem: {yaml_file.name}")
+                            except Exception as e:
+                                logger.warning(f"Failed to load {yaml_file}: {e}")
+
+                        loading_method = "filesystem"
+                        logger.info(f"Loaded {len(config_dict)} configs from {default_configs_dir} via {loading_method}")
+                    else:
+                        logger.warning(f"Default configs directory not found or not accessible: {default_configs_dir}")
+                        raise FileNotFoundError(f"Default configs directory not found: {default_configs_dir}")
+
+                except ImportError as ie:
+                    logger.error(f"Cannot import paperez_mcp module: {ie}")
+                    raise
+
         except Exception as e:
-            logger.error(f"Failed to load embedded configs: {e}")
+            logger.error(f"All config loading methods failed: {e}")
             # Return minimal fallback config if embedded configs fail
             config_dict = {
                 "version": "1.0",
@@ -222,6 +266,15 @@ class ConfigManager:
                 "sources": {},
                 "categories": {},
             }
+            loading_method = "hardcoded fallback"
+            logger.warning(f"Using {loading_method} config due to loading failures")
+
+        # Log summary of what was loaded
+        if config_dict and loading_method:
+            categories_count = len(config_dict.get('categories', {}))
+            sources_count = len(config_dict.get('sources', {}))
+            logger.info(f"Config loading complete: {categories_count} categories, {sources_count} sources via {loading_method}")
+
         return config_dict
 
     def _load_config(self) -> None:
