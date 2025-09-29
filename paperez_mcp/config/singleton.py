@@ -112,85 +112,78 @@ class ConfigurationManager:
                 return False
 
     def _import_search_functions_directly(self) -> None:
-        """Import search functions directly as a fallback."""
+        """Import all available search functions directly as a fallback."""
         try:
             import importlib
 
-            # Essential search functions to import
+            # Complete list of search functions to import
             imports = [
                 ("arxiv", "paperez_mcp.api_clients.arxiv_client", "search_arxiv"),
                 ("pubmed", "paperez_mcp.api_clients.pubmed_client", "search_pubmed"),
                 ("pubmed_central", "paperez_mcp.api_clients.pubmed_client", "search_pubmed_central"),
                 ("crossref", "paperez_mcp.api_clients.crossref_client", "search_crossref"),
                 ("semantic_scholar", "paperez_mcp.api_clients.semantic_scholar_client", "search_semantic_scholar"),
+                ("europe_pmc", "paperez_mcp.api_clients.generic_http_client", "search_europe_pmc"),
+                ("doaj", "paperez_mcp.api_clients.generic_http_client", "search_doaj"),
+                ("clinicaltrials", "paperez_mcp.api_clients.generic_http_client", "search_clinicaltrials"),
+                ("openalex", "paperez_mcp.api_clients.generic_http_client", "search_openalex"),
+                ("openlibrary", "paperez_mcp.api_clients.generic_http_client", "search_openlibrary"),
             ]
 
             for name, module_path, func_name in imports:
                 try:
                     module = importlib.import_module(module_path)
-                    self._search_functions[name] = getattr(module, func_name)
+                    if hasattr(module, func_name):
+                        self._search_functions[name] = getattr(module, func_name)
+                        logger.debug(f"Imported {name} search function")
                 except Exception as e:
                     logger.warning(f"Could not import {name}: {e}")
+
+            logger.info(f"Directly imported {len(self._search_functions)} search functions")
 
         except Exception as e:
             logger.error(f"Failed to import search functions directly: {e}")
 
     def _set_minimal_defaults(self) -> None:
-        """Set comprehensive defaults using hardcoded configuration."""
-        logger.info("Setting comprehensive defaults from hardcoded configuration")
+        """Set defaults by importing search functions directly and building minimal config."""
+        logger.info("Setting defaults using direct imports")
 
-        try:
-            # First try to load the complete hardcoded configuration
-            from paperez_mcp.config.hardcoded_defaults import (
-                get_hardcoded_config,
-                get_search_function_imports,
-            )
+        # First, import all available search functions
+        self._import_search_functions_directly()
 
-            # Get complete configuration
-            hardcoded_config = get_hardcoded_config()
+        # Set API status for sources we have functions for
+        self._api_status = {
+            "arxiv": "arxiv" in self._search_functions,
+            "pubmed": "pubmed" in self._search_functions,
+            "pubmed_central": "pubmed_central" in self._search_functions,
+            "crossref": "crossref" in self._search_functions,
+            "semantic_scholar": "semantic_scholar" in self._search_functions,
+            "europe_pmc": "europe_pmc" in self._search_functions,
+            "doaj": "doaj" in self._search_functions,
+            "clinicaltrials": "clinicaltrials" in self._search_functions,
+            "openalex": "openalex" in self._search_functions,
+            "openlibrary": "openlibrary" in self._search_functions,
+            # Disabled sources
+            "core_repository": False,
+            "repec": False,
+            "federal_register": False,
+            "hathitrust": False,
+            "internet_archive": False,
+            "courtlistener": False,
+        }
 
-            # Set configuration if not already set
-            if not self._config:
-                from paperez_mcp.config.schemas import PaperezConfig
-                self._config = PaperezConfig(**hardcoded_config)
-                logger.info("Loaded complete configuration from hardcoded defaults")
-
-            # Set API status from hardcoded config
-            self._api_status = {
-                source: cfg.get("enabled", False)
-                for source, cfg in hardcoded_config.get("sources", {}).items()
-            }
-
-            # Get all available search functions
-            self._search_functions = get_search_function_imports()
-            logger.info(f"Loaded {len(self._search_functions)} search functions from hardcoded defaults")
-
-        except Exception as e:
-            logger.error(f"Failed to load hardcoded defaults: {e}")
-            # Fall back to absolute minimal config
-            logger.info("Falling back to absolute minimal defaults")
-
-            self._api_status = {
-                "arxiv": True,
-                "pubmed": True,
-                "pubmed_central": True,
-                "crossref": True,
-                "semantic_scholar": True,
-            }
-
-            # Try to import at least basic search functions
+        # If config is not set, try to load it from YAML files
+        if not self._config:
             try:
-                from paperez_mcp.api_clients.arxiv_client import search_arxiv
-                from paperez_mcp.api_clients.pubmed_client import search_pubmed, search_pubmed_central
+                # Force configuration reload
+                from paperez_mcp.config import get_current_config
+                self._config = get_current_config()
+                if self._config:
+                    logger.info("Loaded configuration from YAML files")
+            except Exception as e:
+                logger.error(f"Could not load configuration: {e}")
 
-                self._search_functions = {
-                    "arxiv": search_arxiv,
-                    "pubmed": search_pubmed,
-                    "pubmed_central": search_pubmed_central,
-                }
-            except Exception as import_error:
-                logger.error(f"Could not import even minimal search functions: {import_error}")
-                self._search_functions = {}
+        logger.info(f"Set defaults with {len(self._search_functions)} search functions")
 
     @property
     def config(self) -> Optional[PaperezConfig]:

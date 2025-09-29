@@ -259,14 +259,57 @@ class ConfigManager:
 
         except Exception as e:
             logger.error(f"All config loading methods failed: {e}")
-            # Method 3: Use comprehensive hardcoded defaults as ultimate fallback
+            # Method 3: Try absolute path to default_configs as last resort
             try:
-                from paperez_mcp.config.hardcoded_defaults import get_hardcoded_config
-                config_dict = get_hardcoded_config()
-                loading_method = "hardcoded Python fallback"
-                logger.info(f"Loaded complete configuration from {loading_method}")
-            except ImportError:
-                # If even hardcoded defaults fail, use minimal config
+                import paperez_mcp
+                import os
+
+                # Try multiple possible locations for default_configs
+                possible_paths = [
+                    # Direct package location
+                    Path(paperez_mcp.__file__).parent / "default_configs",
+                    # Development location (when running from repo)
+                    Path(__file__).parent.parent / "default_configs",
+                    # Current working directory relative
+                    Path.cwd() / "paperez_mcp" / "default_configs",
+                    # System-wide installation
+                    Path("/usr/local/lib") / "paperez_mcp" / "default_configs",
+                ]
+
+                default_configs_dir = None
+                for path in possible_paths:
+                    if path.exists() and path.is_dir():
+                        default_configs_dir = path
+                        logger.info(f"Found default_configs at: {default_configs_dir}")
+                        break
+
+                if default_configs_dir:
+                    # Load YAML files directly
+                    yaml_files = list(default_configs_dir.glob("*.yaml"))
+                    yaml_files.extend(default_configs_dir.glob("*.yml"))
+
+                    config_dict = {}
+                    for yaml_file in yaml_files:
+                        try:
+                            with open(yaml_file, 'r', encoding='utf-8') as f:
+                                file_config = yaml.safe_load(f)
+                                if file_config:
+                                    config_dict = self._smart_merge(config_dict, file_config)
+                                    logger.debug(f"Loaded config from absolute path: {yaml_file.name}")
+                        except Exception as load_err:
+                            logger.warning(f"Failed to load {yaml_file}: {load_err}")
+
+                    if config_dict:
+                        loading_method = "absolute path fallback"
+                        logger.info(f"Loaded {len(config_dict)} configs via {loading_method}")
+                    else:
+                        raise FileNotFoundError("No configs loaded from default_configs")
+                else:
+                    raise FileNotFoundError("Could not locate default_configs directory")
+
+            except Exception as fallback_error:
+                logger.error(f"Absolute path fallback failed: {fallback_error}")
+                # If all methods fail, use minimal config
                 config_dict = {
                     "version": "1.0",
                     "default_category": None,
