@@ -45,12 +45,26 @@ def get_venv_path() -> Path:
 
 def get_python_executable(venv_path: Path) -> Path:
     """Get the Python executable path for the current platform."""
-    if sys.platform == "win32":
-        python_path = venv_path / "Scripts" / "python.exe"
-    else:
-        python_path = venv_path / "bin" / "python"
+    # Check what actually exists, not what platform we're on
+    win_python = venv_path / "Scripts" / "python.exe"
+    linux_python = venv_path / "bin" / "python"
 
-    return python_path
+    # Prefer the one that matches our current platform
+    if sys.platform == "win32" and win_python.exists():
+        return win_python
+    elif sys.platform != "win32" and linux_python.exists():
+        return linux_python
+    # But use whatever exists if there's a mismatch (WSL using Windows venv)
+    elif win_python.exists():
+        return win_python
+    elif linux_python.exists():
+        return linux_python
+    else:
+        # Return expected path for creation
+        if sys.platform == "win32":
+            return win_python
+        else:
+            return linux_python
 
 
 def get_pip_executable(venv_path: Path) -> Path:
@@ -78,14 +92,21 @@ def get_pip_executable(venv_path: Path) -> Path:
 def create_virtual_environment(venv_path: Path) -> None:
     """Create a virtual environment if it doesn't exist."""
     if venv_path.exists():
-        # Check if venv is valid
-        python_exe = get_python_executable(venv_path)
-        if python_exe.exists():
+        # Check for BOTH Windows and Linux Python executables
+        win_python = venv_path / "Scripts" / "python.exe"
+        linux_python = venv_path / "bin" / "python"
+
+        # If either exists, venv is valid
+        if win_python.exists() or linux_python.exists():
             log("Virtual environment already exists")
             return
         else:
-            log("Virtual environment corrupted, recreating...")
-            shutil.rmtree(venv_path, ignore_errors=True)
+            log("Virtual environment corrupted, attempting to recreate...")
+            try:
+                shutil.rmtree(venv_path, ignore_errors=True)
+            except Exception as e:
+                log(f"Warning: Could not clean old venv: {e}")
+                # Try to continue anyway - it might still work
 
     log("Creating virtual environment...")
     try:
@@ -93,7 +114,13 @@ def create_virtual_environment(venv_path: Path) -> None:
         log("Virtual environment created successfully")
     except Exception as e:
         log(f"Failed to create venv: {e}")
-        raise
+        # Check if we can use the existing one despite the error
+        win_python = venv_path / "Scripts" / "python.exe"
+        linux_python = venv_path / "bin" / "python"
+        if win_python.exists() or linux_python.exists():
+            log("Using existing venv despite creation error")
+        else:
+            raise
 
 
 def is_already_installed() -> bool:
@@ -114,6 +141,20 @@ def install_dependencies(venv_path: Path) -> None:
     if not python_executable.exists():
         log(f"Python executable not found at {python_executable}")
         raise FileNotFoundError(f"Python not found at {python_executable}")
+
+    # Test if the python executable is actually runnable (WSL can't run Windows executables)
+    try:
+        test_result = subprocess.run(
+            [str(python_executable), "--version"],
+            capture_output=True,
+            timeout=5,
+            text=True
+        )
+        if test_result.returncode != 0:
+            raise FileNotFoundError("Python executable not runnable")
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+        log(f"Python executable not runnable ({e}), using current Python environment")
+        python_executable = Path(sys.executable)
 
     # Use python -m pip which is more reliable
     pip_cmd = [str(python_executable), "-m", "pip"]
@@ -215,6 +256,20 @@ def launch_server(venv_path: Path) -> None:
     if not server_script.exists():
         log(f"Server script not found at {server_script}")
         sys.exit(1)
+
+    # Test if the python executable is actually runnable for server launch
+    try:
+        test_result = subprocess.run(
+            [str(python_executable), "--version"],
+            capture_output=True,
+            timeout=5,
+            text=True
+        )
+        if test_result.returncode != 0:
+            raise FileNotFoundError("Python executable not runnable")
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
+        log(f"Python executable not runnable for server launch ({e}), using current Python environment")
+        python_executable = Path(sys.executable)
 
     log("Launching PaperezMCP server...")
 
