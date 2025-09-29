@@ -1,0 +1,80 @@
+# Legal Research Configuration
+# Sources and categories for legal research, case law, statutes, and legal scholarship
+
+# Currently minimal legal sources - needs expansion with specialized databases
+# This file provides initial sources and highlights remaining gaps
+
+sources:
+  courtlistener:
+    name: courtlistener
+    type: http_api
+    enabled: false  # DISABLED: Requires API token - create account at courtlistener.com
+    disabled_reason: "Requires API token - create account at courtlistener.com"
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: "CourtListener - Free legal opinions and court documents (REQUIRES API TOKEN: Create account at courtlistener.com, get token from profile, add to auth_header)"
+      coverage: federal and state court opinions, legal documents, case law
+      base_url: https://www.courtlistener.com/api/rest/v3
+      search_path: /search/
+      query_param: q
+      limit_param: page_size
+      response_format: json
+      results_path: results
+      auth_type: Token  # Token authentication required
+      auth_header: Authorization
+      # api_key: "YOUR_TOKEN_HERE"  # Get from courtlistener.com after creating account
+      extra_params:
+        type: o  # opinions
+        format: json
+      field_mappings:
+        title: caseName
+        authors: court
+        abstract: snippet
+        journal: court
+        year: dateFiled
+        url: absolute_url
+        citation_count: citeCount
+      rate_limit_delay: 0.2
+      # NOTE: 5,000 queries per hour limit for authenticated users
+      # Instructions:
+      # 1. Create account at courtlistener.com
+      # 2. Login and get your API token from profile
+      # 3. Add token to api_key field above
+      # 4. Set enabled: true
+
+categories:
+  legal_research:
+    name: legal_research
+    display_name: Legal Research
+    description: Case law, court opinions, and legal scholarship
+    type: standard
+    sources:
+      # - courtlistener  # DISABLED: Requires API token
+      - crossref  # From scientific.yaml for legal scholarship
+    max_results_per_source: 8
+    parallel_search: true
+
+# MAJOR GAPS IDENTIFIED - NEED MORE SPECIALIZED SOURCES:
+# - HeinOnline (legal research database)
+# - Westlaw (legal database - commercial)
+# - LexisNexis (legal database - commercial)
+# - Google Scholar (case law section)
+# - Justia (free legal resources)
+# - Legal Information Institute (Cornell Law)
+# - FindLaw (legal resources)
+# - Law review databases
+# - Bar journal archives
+# - Legal scholarship repositories
+# - International legal databases
+# - European Court of Justice
+# - International Court of Justice
+# - Regional court systems
+# - Statute and regulation databases
+# - Legal commentary sources
+# - Legal news and analysis
+#
+# ISSUE: Legal research under-resourced with only 2 sources (CourtListener + CrossRef)
+# Priority: HIGH - Legal professionals need more dedicated sources
+# Note: Many legal sources are commercial, need to focus on open/academic sources

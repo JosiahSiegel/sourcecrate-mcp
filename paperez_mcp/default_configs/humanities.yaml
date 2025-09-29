@@ -1,0 +1,71 @@
+# Humanities Research Configuration
+# Sources and categories for literature, philosophy, arts, languages, and cultural studies
+
+# Currently minimal humanities sources - needs expansion with specialized databases
+# This file provides initial sources and highlights remaining gaps
+
+sources:
+  openlibrary:
+    name: openlibrary
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Open Library - Internet Archive's book database with humanities focus
+      coverage: literature, philosophy, history, cultural studies, language, arts
+      base_url: https://openlibrary.org
+      search_path: /search.json
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: docs
+      extra_params:
+        fields: title,author_name,first_publish_year,publisher,subject,isbn
+      field_mappings:
+        title: title
+        authors: author_name
+        abstract: subject
+        journal: publisher
+        year: first_publish_year
+        url: key
+        citation_count: "0"
+      rate_limit_delay: 1.0
+
+categories:
+  humanities:
+    name: humanities
+    display_name: Humanities Research
+    description: Literature, philosophy, arts, cultural studies, and languages
+    type: standard
+    sources:
+      - openlibrary
+      # - core_repository  # DISABLED: Requires API key registration
+    max_results_per_source: 8
+    parallel_search: true
+
+# MAJOR GAPS IDENTIFIED - NEED MORE SPECIALIZED SOURCES:
+# - JSTOR (major humanities database)
+# - Project MUSE (humanities and social sciences)
+# - MLA International Bibliography (literature and language)
+# - Philosopher's Index
+# - Art Index/Art Abstracts
+# - Music Index
+# - Film & Television Literature Index
+# - Historical Abstracts
+# - Religious and Theological Abstracts
+# - Classical studies databases
+# - Medieval studies sources
+# - Renaissance studies
+# - Modern language databases
+# - Comparative literature sources
+# - Cultural studies databases
+# - Digital humanities repositories
+# - Museum and gallery databases
+# - Theater and performance studies
+# - Creative writing repositories
+#
+# ISSUE: Humanities under-resourced with only 2 sources (Open Library + CORE Repository)
+# Priority: HIGH - Major academic discipline needs more specialized sources
+# Users researching literature, philosophy, arts, etc. need more dedicated resources

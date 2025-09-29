@@ -13,6 +13,13 @@ from typing import Any
 
 import yaml
 
+# For loading embedded package configs (Python 3.11+)
+try:
+    import importlib.resources as resources
+except ImportError:
+    # Fallback for older Python versions
+    import importlib_resources as resources
+
 # Optional watchdog dependency for hot-reloading
 try:
     from watchdog.events import FileSystemEventHandler
@@ -64,11 +71,15 @@ class ConfigManager:
     Configuration priority (highest to lowest):
     1. Environment variables (PAPEREZ_*)
     2. Environment config file (PAPEREZ_CONFIG_PATH)
-    3. Local project config directory (./.paperez/config/*.yaml)
-    4. User home config directory (~/.paperez/config/*.yaml)
-    5. Built-in defaults directory (.paperez/config/*.yaml)
+    3. Local project config directory (./.paperez/config/*.yaml) - OVERRIDE
+    4. User home config directory (~/.paperez/config/*.yaml) - OVERRIDE
+    5. Repository defaults directory (.paperez/config/*.yaml) - OPTIONAL
+    6. Embedded package defaults (paperez_mcp/default_configs/*.yaml) - ALWAYS AVAILABLE
 
     All YAML files in each directory are loaded and merged together.
+    Embedded configs ensure the MCP server works out-of-the-box without external files.
+    Users can override specific categories/sources by creating configs with matching names.
+    Set 'use_default_sources: false' to disable all default configurations.
     """
 
     def __init__(self, enable_hot_reload: bool = True):
@@ -173,6 +184,46 @@ class ConfigManager:
         env_path = os.getenv("PAPEREZ_CONFIG_PATH")
         return Path(env_path) if env_path else None
 
+    def _load_embedded_configs(self) -> dict[str, Any]:
+        """Load default configs embedded in the package.
+
+        This loads configuration files that are distributed with the package,
+        ensuring the MCP server works out-of-the-box without requiring external config files.
+        """
+        config_dict = {}
+        try:
+            # Access the default_configs directory in the package
+            if hasattr(resources, 'files'):
+                # Python 3.11+ way
+                config_files = resources.files('paperez_mcp.default_configs')
+            else:
+                # Older Python fallback
+                config_files = resources.files('paperez_mcp').joinpath('default_configs')
+
+            # Load all YAML files from the embedded configs
+            for item in config_files.iterdir():
+                if item.name.endswith(('.yaml', '.yml')):
+                    try:
+                        content = item.read_text()
+                        file_config = yaml.safe_load(content)
+                        if file_config:
+                            config_dict = self._smart_merge(config_dict, file_config)
+                            logger.debug(f"Loaded embedded config: {item.name}")
+                    except Exception as e:
+                        logger.warning(f"Failed to load embedded config {item.name}: {e}")
+
+            logger.info(f"Loaded {len(config_dict)} embedded default configs")
+        except Exception as e:
+            logger.error(f"Failed to load embedded configs: {e}")
+            # Return minimal fallback config if embedded configs fail
+            config_dict = {
+                "version": "1.0",
+                "default_category": None,
+                "sources": {},
+                "categories": {},
+            }
+        return config_dict
+
     def _load_config(self) -> None:
         """Load and merge configuration from all sources (directories and individual files)."""
         with self._config_lock:
@@ -212,24 +263,19 @@ class ConfigManager:
                 config_dict = {}
 
                 if use_defaults:
-                    # Load MCP default directory (all YAML files)
+                    # First, try to load embedded package configs
+                    config_dict = self._load_embedded_configs()
+
+                    # Then, try to load from .paperez/config directory if it exists (backward compatibility)
                     mcp_default_dir = self.config_directories["mcp_default"]
                     if mcp_default_dir.exists():
-                        config_dict = self._load_yaml_directory(mcp_default_dir)
-                        logger.info(
-                            f"Loaded MCP default config directory: {mcp_default_dir}"
-                        )
-                    else:
-                        logger.error(
-                            f"MCP default config directory not found: {mcp_default_dir}"
-                        )
-                        # Ultimate fallback - should not happen with enhanced path finding
-                        config_dict = {
-                            "version": "1.0",
-                            "default_category": None,
-                            "sources": {},
-                            "categories": {},
-                        }
+                        dir_config = self._load_yaml_directory(mcp_default_dir)
+                        if dir_config:
+                            config_dict = self._smart_merge(config_dict, dir_config)
+                            logger.info(
+                                f"Merged MCP default config directory: {mcp_default_dir}"
+                            )
+                    # No error if directory doesn't exist - embedded configs are the primary source
                 else:
                     # User disabled defaults - start with minimal config
                     config_dict = {

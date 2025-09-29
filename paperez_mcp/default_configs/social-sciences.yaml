@@ -1,0 +1,113 @@
+# Social Sciences Research Configuration
+# Sources and categories for psychology, sociology, education, anthropology, and related fields
+
+# Currently minimal social sciences sources - needs expansion with specialized databases
+# This file provides initial sources and highlights remaining gaps
+
+sources:
+  core_repository:
+    name: core_repository
+    type: http_api
+    enabled: false  # DISABLED: Requires API key registration - register at core.ac.uk/services/api
+    disabled_reason: "Requires API key registration - register at core.ac.uk/services/api"
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: "CORE - Open access research aggregator (REQUIRES API KEY: Register at core.ac.uk/services/api with email to get free API key)"
+      coverage: psychology, education, sociology, political science, economics
+      base_url: https://api.core.ac.uk/v3
+      search_path: /search/works
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: results
+      extra_params:
+        # api_key: "YOUR_API_KEY_HERE"  # Get from core.ac.uk/services/api
+      auth_type: ApiKey  # API key authentication
+      api_key_param: api_key  # Pass API key as query parameter
+      field_mappings:
+        title: title
+        authors: authors
+        abstract: abstract
+        journal: publisher
+        year: yearPublished
+        doi: doi
+        url: downloadUrl
+        citation_count: citationCount
+      rate_limit_delay: 1.0  # Conservative rate limit (5 requests per 10 seconds for free tier)
+      # NOTE: Rate limits for free tier:
+      # - One batch request or five single requests per 10 seconds
+      # - Registered users get better performance
+      # - Supporting/Sustaining Members get faster rates
+      # Instructions:
+      # 1. Go to core.ac.uk/services/api
+      # 2. Register with your email (institutional email preferred)
+      # 3. Check email for API key
+      # 4. Add API key to extra_params.api_key field above
+      # 5. Set enabled: true
+
+  openalex:
+    name: openalex
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Open catalog with extensive social sciences coverage
+      coverage: comprehensive multidisciplinary including social sciences
+      base_url: https://api.openalex.org
+      search_path: /works
+      query_param: search
+      limit_param: per-page
+      response_format: json
+      results_path: results
+      extra_params:
+        mailto: research@paperez.org
+      field_mappings:
+        title: title
+        authors: authorships
+        abstract: abstract_inverted_index
+        journal: primary_location.source.display_name
+        year: publication_year
+        doi: doi
+        url: primary_location.landing_page_url
+        pdf_url: open_access.oa_url
+        citation_count: cited_by_count
+      rate_limit_delay: 0.1
+
+categories:
+  social_sciences:
+    name: social_sciences
+    display_name: Social Sciences Research
+    description: Psychology, sociology, education, anthropology, and political science
+    type: standard
+    sources:
+      # - core_repository  # DISABLED: Requires API key registration
+      - openalex
+      - semantic_scholar  # From scientific.yaml - has good social sciences coverage
+    max_results_per_source: 6
+    parallel_search: true
+
+# MAJOR GAPS IDENTIFIED - NEED MORE SPECIALIZED SOURCES:
+# - PsycINFO (psychology research)
+# - SAGE Journals (social sciences publisher)
+# - Taylor & Francis Online (social sciences)
+# - JSTOR (humanities and social sciences)
+# - Project MUSE (humanities and social sciences)
+# - Education databases (ERIC, etc.)
+# - Sociology databases
+# - Anthropology research sources
+# - Political science databases
+# - Social work research
+# - Communication studies sources
+# - Gender studies databases
+# - Cultural studies sources
+# - Linguistics research databases
+# - Area studies sources
+# - International relations databases
+#
+# ISSUE: Social sciences under-resourced with only 2 sources (CORE Repository + Semantic Scholar)
+# Priority: HIGH - Major research area needs more specialized sources
+# Users researching psychology, sociology, education, etc. need more dedicated databases

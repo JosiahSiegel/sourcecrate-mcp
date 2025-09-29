@@ -1,0 +1,85 @@
+# Historical & Archive Research Configuration
+# Sources and categories for historical documents, government archives, and policy research
+
+# Historical/archive sources
+sources:
+  hathitrust:
+    name: hathitrust
+    type: http_api
+    enabled: false  # Disabled: No keyword search API available, only item lookup by OCLC/ID
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: HathiTrust Digital Library - Historical books and documents
+      coverage: historical books, government documents, archives
+      base_url: https://catalog.hathitrust.org
+      search_path: /api/volumes/brief/json
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: records
+      field_mappings:
+        title: title
+        authors: author
+        year: publishDate
+        journal: publisher
+        url: url
+        abstract: description
+      rate_limit_delay: 1.0
+
+  internet_archive:
+    name: internet_archive
+    type: http_api
+    enabled: false  # DISABLED 2025: Current API terms unclear, needs ToS verification
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Internet Archive - Historical documents and books
+      coverage: historical documents, government archives, books
+      base_url: https://archive.org
+      search_path: /advancedsearch.php
+      query_param: q
+      limit_param: rows
+      response_format: json
+      results_path: response.docs
+      extra_params:
+        output: json
+        fl[]: title,creator,year,publisher,identifier,description
+      field_mappings:
+        title: title
+        authors: creator
+        year: year
+        journal: publisher
+        url: identifier
+        abstract: description
+      rate_limit_delay: 1.0
+
+# Historical research categories
+categories:
+  historical:
+    name: historical
+    display_name: Historical & Archive Sources
+    description: Focus on historical and archival content including government documents
+    type: standard
+    sources:
+      - crossref  # From scientific.yaml for historical academic papers
+      # internet_archive disabled - API terms of service unclear
+    max_results_per_source: 8
+    parallel_search: true
+
+# GAPS IDENTIFIED - NEED MORE SOURCES:
+# - Federal Register/GovInfo (US government documents)
+# - National Archives databases
+# - Library of Congress collections
+# - UNESCO archives
+# - European government document repositories
+# - Regional historical societies
+# - Digitized newspaper archives
+# - Museum collection databases
+# - Local government archives
+# - International organization archives (UN, etc.)
+#
+# NOTE: Currently 2 working sources (HathiTrust disabled due to no keyword search API)
+# Priority: HIGH - Need more dedicated historical/archival sources
