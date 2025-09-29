@@ -321,13 +321,14 @@ class FuzzyPaperMatcher:
         best_paper = max(papers, key=lambda p: len([v for v in p.values() if v]))
         merged = best_paper.copy()
 
-        # Track sources
-        sources = set()
+        # Track sources (preserve order)
+        sources = []
         for paper in papers:
             source = paper.get("source", "unknown")
-            sources.add(source)
+            if source not in sources:
+                sources.append(source)
 
-        merged["_merged_sources"] = list(sources)
+        merged["_merged_sources"] = sources
         merged["_merged_count"] = len(papers)
 
         # Merge specific fields intelligently
