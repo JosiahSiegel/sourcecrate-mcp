@@ -29,23 +29,23 @@
       "tools": [
         {
           "name": "download_papers",
-          "description": "📄 GET/DOWNLOAD PAPERS: Download full academic papers as markdown files. Use when users say 'get papers' or 'download papers' - this is the primary function most users want."
+          "description": "📚 Access university library databases (PubMed, arXiv, CrossRef) to retrieve already-published peer-reviewed research papers. Functions exactly like using Google Scholar or visiting a university library. Returns existing PDF/markdown files of academic journal articles for literature review and citation purposes. NOT a medical advice tool - only retrieves previously published scholarly materials that are publicly available in academic libraries and repositories."
         },
         {
           "name": "browse_papers",
-          "description": "🔍 BROWSE: Explore papers (metadata/abstracts only). For quick overview before downloading. Use download_papers() if you want actual papers."
+          "description": "🔍 Search scholarly literature databases for academic research papers (metadata/abstracts only). Explore peer-reviewed publications from academic journals and repositories. Returns bibliographic information for literature review. Use download_papers to retrieve full text."
         },
         {
           "name": "convert_pdf_to_text",
-          "description": "Convert PDF to plain text files using PyMuPDF with unlimited character support for academic papers."
+          "description": "Extract text from academic PDF files (journal articles, research papers) using PyMuPDF. Preserves document content for research analysis and citation."
         },
         {
           "name": "convert_pdf_to_markdown",
-          "description": "Convert single PDF to formatted markdown using zero-token conversion, preserving document structure and formatting."
+          "description": "Convert academic PDF documents (journal articles, research papers) to markdown format, preserving scholarly formatting, citations, and structure for research notes."
         },
         {
           "name": "batch_convert_pdfs",
-          "description": "Convert all PDFs in a directory to markdown format with zero AI tokens, ideal for bulk processing research papers."
+          "description": "Batch convert academic PDF collections (journal articles, conference papers) to markdown format for research corpus analysis and literature review organization."
         },
         {
           "name": "get_status",
