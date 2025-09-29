@@ -136,31 +136,61 @@ class ConfigurationManager:
             logger.error(f"Failed to import search functions directly: {e}")
 
     def _set_minimal_defaults(self) -> None:
-        """Set minimal defaults to prevent complete failure."""
-        logger.info("Setting minimal defaults for basic operation")
+        """Set comprehensive defaults using hardcoded configuration."""
+        logger.info("Setting comprehensive defaults from hardcoded configuration")
 
-        # Minimal API status
-        self._api_status = {
-            "arxiv": True,
-            "pubmed": True,
-            "pubmed_central": True,
-            "crossref": True,
-            "semantic_scholar": True,
-        }
-
-        # Try to import at least arxiv and pubmed
         try:
-            from paperez_mcp.api_clients.arxiv_client import search_arxiv
-            from paperez_mcp.api_clients.pubmed_client import search_pubmed, search_pubmed_central
+            # First try to load the complete hardcoded configuration
+            from paperez_mcp.config.hardcoded_defaults import (
+                get_hardcoded_config,
+                get_search_function_imports,
+            )
 
-            self._search_functions = {
-                "arxiv": search_arxiv,
-                "pubmed": search_pubmed,
-                "pubmed_central": search_pubmed_central,
+            # Get complete configuration
+            hardcoded_config = get_hardcoded_config()
+
+            # Set configuration if not already set
+            if not self._config:
+                from paperez_mcp.config.schemas import PaperezConfig
+                self._config = PaperezConfig(**hardcoded_config)
+                logger.info("Loaded complete configuration from hardcoded defaults")
+
+            # Set API status from hardcoded config
+            self._api_status = {
+                source: cfg.get("enabled", False)
+                for source, cfg in hardcoded_config.get("sources", {}).items()
             }
+
+            # Get all available search functions
+            self._search_functions = get_search_function_imports()
+            logger.info(f"Loaded {len(self._search_functions)} search functions from hardcoded defaults")
+
         except Exception as e:
-            logger.error(f"Could not import even minimal search functions: {e}")
-            self._search_functions = {}
+            logger.error(f"Failed to load hardcoded defaults: {e}")
+            # Fall back to absolute minimal config
+            logger.info("Falling back to absolute minimal defaults")
+
+            self._api_status = {
+                "arxiv": True,
+                "pubmed": True,
+                "pubmed_central": True,
+                "crossref": True,
+                "semantic_scholar": True,
+            }
+
+            # Try to import at least basic search functions
+            try:
+                from paperez_mcp.api_clients.arxiv_client import search_arxiv
+                from paperez_mcp.api_clients.pubmed_client import search_pubmed, search_pubmed_central
+
+                self._search_functions = {
+                    "arxiv": search_arxiv,
+                    "pubmed": search_pubmed,
+                    "pubmed_central": search_pubmed_central,
+                }
+            except Exception as import_error:
+                logger.error(f"Could not import even minimal search functions: {import_error}")
+                self._search_functions = {}
 
     @property
     def config(self) -> Optional[PaperezConfig]:

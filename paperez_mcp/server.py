@@ -1880,15 +1880,28 @@ def main() -> None:
         success = manager.initialize()
 
         if success:
-            logger.info(f"✓ Configuration initialized successfully: "
-                       f"{len(manager.api_status)} sources, "
-                       f"{len(manager.search_functions)} search functions ready")
+            # Verify configuration is complete
+            if manager.config and manager.config.sources and manager.config.categories:
+                logger.info(f"✓ Configuration initialized successfully: "
+                           f"{len(manager.api_status)} sources, "
+                           f"{len(manager.search_functions)} search functions, "
+                           f"{len(manager.config.categories)} categories ready")
+            else:
+                logger.warning("Configuration incomplete, attempting to rebuild from hardcoded defaults")
+                manager._set_minimal_defaults()
+                if manager.search_functions:
+                    logger.info(f"✓ Rebuilt configuration: {len(manager.search_functions)} search functions ready")
         else:
-            logger.warning("Configuration initialization had issues, using fallback methods")
-            # Ensure we have at least basic search functions
-            if not manager.search_functions:
-                manager._import_search_functions_directly()
-                logger.info(f"Imported {len(manager.search_functions)} search functions via fallback")
+            logger.warning("Configuration initialization failed, using comprehensive fallback")
+            # Force loading from hardcoded defaults
+            manager._set_minimal_defaults()
+
+            # Verify we have working search functions
+            if manager.search_functions:
+                logger.info(f"✓ Fallback successful: {len(manager.search_functions)} search functions ready")
+            else:
+                logger.error("CRITICAL: No search functions available even after fallback")
+                logger.error("Server may not function properly - consider reinstalling")
     except Exception as e:
         logger.error(f"Error during startup initialization: {e}")
         # Continue anyway - lazy loading might still work

@@ -74,6 +74,14 @@ include = [
     "paperez_mcp/**/*.yml",
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["paperez_mcp*"]
+
+[tool.setuptools.package-data]
+"paperez_mcp.default_configs" = ["*.yaml", "*.yml"]
+"paperez_mcp" = ["default_configs/*.yaml", "default_configs/*.yml"]
+
 [tool.black]
 line-length = 88
 target-version = ['py311']

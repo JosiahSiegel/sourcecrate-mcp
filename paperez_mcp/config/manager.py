@@ -259,15 +259,22 @@ class ConfigManager:
 
         except Exception as e:
             logger.error(f"All config loading methods failed: {e}")
-            # Return minimal fallback config if embedded configs fail
-            config_dict = {
-                "version": "1.0",
-                "default_category": None,
-                "sources": {},
-                "categories": {},
-            }
-            loading_method = "hardcoded fallback"
-            logger.warning(f"Using {loading_method} config due to loading failures")
+            # Method 3: Use comprehensive hardcoded defaults as ultimate fallback
+            try:
+                from paperez_mcp.config.hardcoded_defaults import get_hardcoded_config
+                config_dict = get_hardcoded_config()
+                loading_method = "hardcoded Python fallback"
+                logger.info(f"Loaded complete configuration from {loading_method}")
+            except ImportError:
+                # If even hardcoded defaults fail, use minimal config
+                config_dict = {
+                    "version": "1.0",
+                    "default_category": None,
+                    "sources": {},
+                    "categories": {},
+                }
+                loading_method = "minimal fallback"
+                logger.warning(f"Using {loading_method} config - server may not function properly")
 
         # Log summary of what was loaded
         if config_dict and loading_method:
