@@ -237,8 +237,9 @@ async def browse_papers(
             limit,
             api_status.copy(),
             user_preferences={
-                "prefer_recent": True
-            },  # Prefer recent papers for browsing
+                "prefer_recent": True,
+                "force_category": force_category
+            },  # Prefer recent papers for browsing, respect force_category
         )
 
         if optimized_results:
@@ -1251,6 +1252,99 @@ async def batch_convert_pdfs(
         return {"success": False, "error": f"Batch conversion failed: {str(e)}"}
 
 
+async def _get_comprehensive_config_info() -> dict[str, Any]:
+    """Get comprehensive configuration information including all categories."""
+    try:
+        config = get_current_config()
+        search_service = get_search_service()
+        resolver = search_service.category_resolver
+
+        # Collect category information
+        categories_info = {}
+        for cat_name, cat_config in config.categories.items():
+            try:
+                # Resolve category sources
+                if cat_config.type == "standard":
+                    sources = cat_config.sources
+                    resolved_sources = resolver.resolve_category(cat_name)
+                else:
+                    # Meta categories
+                    sources = []
+                    resolved_sources = resolver.resolve_category(cat_name)
+
+                # Check which sources are available
+                sources_available = [s for s in resolved_sources if api_status.get(s, False)]
+                sources_unavailable = [s for s in resolved_sources if not api_status.get(s, False)]
+
+                categories_info[cat_name] = {
+                    "display_name": cat_config.display_name,
+                    "description": cat_config.description,
+                    "type": cat_config.type,
+                    "sources": sources if cat_config.type == "standard" else [],
+                    "includes": cat_config.includes if cat_config.type == "meta" else [],
+                    "resolved_sources": resolved_sources,
+                    "sources_available": sources_available,
+                    "sources_unavailable": sources_unavailable,
+                    "functional": len(sources_available) > 0,
+                    "max_results_per_source": cat_config.max_results_per_source,
+                    "parallel_search": cat_config.parallel_search,
+                    "merge_strategy": getattr(cat_config, 'merge_strategy', None),
+                    "weights": getattr(cat_config, 'weights', {}),
+                }
+            except Exception as e:
+                # If there's an error processing a category, include error info
+                categories_info[cat_name] = {
+                    "error": f"Failed to process category: {str(e)}",
+                    "type": cat_config.type,
+                    "functional": False
+                }
+
+        # Count functional categories
+        functional_categories = sum(1 for info in categories_info.values() if info.get("functional", False))
+        total_categories = len(categories_info)
+
+        # Get routing configuration
+        routing_info = {
+            "enabled": config.routing.enabled,
+            "fallback_enabled": config.routing.fallback_enabled,
+            "domain_keywords": dict(config.routing.domain_keywords),
+            "domain_categories": dict(config.routing.domain_categories),
+        } if config.routing else {"enabled": False}
+
+        return {
+            "configuration_loaded": True,
+            "yaml_config": "Using YAML-based configuration",
+            "version": config.version,
+            "default_category": config.default_category,
+            "categories": {
+                "total_categories": total_categories,
+                "functional_categories": functional_categories,
+                "available_categories": list(categories_info.keys()),
+                "category_details": categories_info
+            },
+            "sources": {
+                "total_sources": len(config.sources),
+                "enabled_sources": len([s for s, cfg in config.sources.items() if cfg.enabled]),
+                "available_sources": len([s for s in api_status.keys() if api_status.get(s, False)]),
+                "source_names": list(config.sources.keys())
+            },
+            "routing": routing_info,
+            "performance": {
+                "max_concurrent_searches": config.max_concurrent_searches,
+                "global_cache_enabled": config.global_cache_enabled,
+                "global_cache_expire": config.global_cache_expire,
+                "default_output_dir": config.default_output_dir
+            }
+        }
+
+    except Exception as e:
+        return {
+            "configuration_loaded": False,
+            "error": f"Failed to load configuration: {str(e)}",
+            "yaml_config": "Configuration loading failed"
+        }
+
+
 @mcp.tool
 async def get_status() -> dict[str, Any]:
     """
@@ -1301,10 +1395,7 @@ async def get_status() -> dict[str, Any]:
             },
             "pdf_validation": pdf_validator.get_validation_stats(),
         },
-        "config": {
-            "configuration_loaded": True,
-            "yaml_config": "Using YAML-based configuration",
-        },
+        "config": await _get_comprehensive_config_info(),
     }
 
     # Add comprehensive health monitoring
