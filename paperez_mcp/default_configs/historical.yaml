@@ -38,6 +38,37 @@ sources:
         pdf_url: downloadUrl
       rate_limit_delay: 0.2  # Free tier: 1 batch or 5 single requests per 10 seconds
 
+  # CrossRef - Primary academic publisher database
+  crossref:
+    name: crossref
+    type: http_api
+    enabled: true
+    timeout: 45
+    max_retries: 5
+    cache_expire: 7200
+    config:
+      description: Primary academic publisher database with extensive historical coverage
+      base_url: https://api.crossref.org
+      search_path: /works
+      query_param: query
+      limit_param: rows
+      response_format: json
+      results_path: message.items
+      extra_params:
+        sort: relevance
+        order: desc
+        mailto: research@paperez.org
+      field_mappings:
+        title: title.0
+        authors: author
+        doi: DOI
+        abstract: abstract
+        journal: container-title.0
+        year: published-print.date-parts.0.0
+        url: URL
+        citation_count: is-referenced-by-count
+      rate_limit_delay: 0.05
+
   # OpenAlex - Comprehensive open catalog (from scientific.yaml reference)
   openalex:
     name: openalex
@@ -95,7 +126,7 @@ sources:
   internet_archive:
     name: internet_archive
     type: http_api
-    enabled: true  # Re-enabled with strict rate limiting for research use
+    enabled: false  # Disabled: API configuration needs fixes (fl[] syntax, field mappings)
     timeout: 30
     max_retries: 3
     cache_expire: 7200

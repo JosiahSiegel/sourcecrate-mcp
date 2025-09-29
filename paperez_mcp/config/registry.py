@@ -24,7 +24,7 @@ class SourceRegistry:
 
     def register_builtin_sources(self) -> None:
         """Register all built-in search sources."""
-        from ..api_clients import (
+        from ..builtin_functions import (
             search_arxiv,
             search_pubmed,
             search_pubmed_central,
