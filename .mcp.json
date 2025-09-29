@@ -5,7 +5,7 @@
     "paperez-mcp": {
       "command": "python3",
       "args": [
-        "/mnt/d/repos/paperez-mcp/install_and_run.py"
+"/mnt/d/repos/paperez-mcp/paperez_mcp/install_and_run.py"
       ],
       "env": {
         "UNPAYWALL_EMAIL": "research@example.com"

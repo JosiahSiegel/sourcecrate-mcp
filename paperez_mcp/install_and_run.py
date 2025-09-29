@@ -28,7 +28,7 @@ def log(message: str) -> None:
 
 def get_venv_path() -> Path:
     """Get the path to the virtual environment."""
-    repo_root = Path(__file__).parent
+    repo_root = Path(__file__).parent.parent
 
     # For GitHub/uvx installations, use a cache-friendly location
     # Check if we're in a uvx cache or temporary directory
@@ -135,7 +135,7 @@ def is_already_installed() -> bool:
 
 def install_dependencies(venv_path: Path) -> None:
     """Install dependencies in the virtual environment."""
-    repo_root = Path(__file__).parent
+    repo_root = Path(__file__).parent.parent
     python_executable = get_python_executable(venv_path)
 
     if not python_executable.exists():
@@ -249,7 +249,7 @@ def install_dependencies(venv_path: Path) -> None:
 
 def launch_server(venv_path: Path) -> None:
     """Launch the paperez-mcp server."""
-    repo_root = Path(__file__).parent
+    repo_root = Path(__file__).parent.parent
     python_executable = get_python_executable(venv_path)
     server_script = repo_root / "paperez_mcp" / "server.py"
 
@@ -302,7 +302,7 @@ def main() -> None:
         # if is_already_installed():
         #     # Try to run directly without creating venv
         #     try:
-        #         repo_root = Path(__file__).parent
+        #         repo_root = Path(__file__).parent.parent
         #         server_script = repo_root / "paperez_mcp" / "server.py"
 
         #         if server_script.exists():
