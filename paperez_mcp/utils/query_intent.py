@@ -3,10 +3,13 @@ Query intent detection for academic search optimization.
 Uses pattern matching and statistical analysis to understand user intent.
 """
 
+import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 class QueryIntent(Enum):
@@ -778,6 +781,13 @@ class QueryIntentDetector:
         )
         intent_confidence = intent_scores.get(primary_intent, 0.0)
 
+        # For single-word queries with no clear intent match, default to GENERAL
+        # This prevents misclassification of domain-specific terms (e.g., "egyptology")
+        word_count = len(query.split())
+        if word_count <= 2 and intent_confidence < 0.1:
+            primary_intent = QueryIntent.GENERAL
+            intent_confidence = 0.0
+
         # Calculate temporal scores
         temporal_scores = self._calculate_temporal_scores(query)
         primary_temporal = (
@@ -939,6 +949,25 @@ class QueryIntentDetector:
         """Suggest query expansions based on analysis."""
         expansions = []
 
+        # Only expand queries when intent detection confidence is high enough
+        # Prevents misclassification of domain-specific terms (e.g., "egyptology" → "egyptology review")
+        CONFIDENCE_THRESHOLD = 0.3
+
+        if analysis.confidence < CONFIDENCE_THRESHOLD:
+            # Low confidence - return empty to preserve original query
+            logger.info(
+                f"🔒 Query expansion skipped for '{query}': "
+                f"Low confidence {analysis.confidence:.2f} < {CONFIDENCE_THRESHOLD}"
+            )
+            return expansions
+
+        # Skip expansion for GENERAL intent (no specific intent detected)
+        if analysis.intent == QueryIntent.GENERAL:
+            logger.info(
+                f"🔒 Query expansion skipped for '{query}': GENERAL intent detected"
+            )
+            return expansions
+
         # Add temporal modifiers based on preference
         if analysis.temporal_preference == TemporalPreference.RECENT:
             expansions.extend(
@@ -949,7 +978,7 @@ class QueryIntentDetector:
                 [f"history of {query}", f"historical {query}", f"evolution of {query}"]
             )
 
-        # Add intent-based modifiers
+        # Add intent-based modifiers ONLY for high-confidence classifications
         if analysis.intent == QueryIntent.SURVEY_REVIEW:
             expansions.extend(
                 [f"{query} review", f"{query} survey", f"{query} state of the art"]
@@ -963,7 +992,16 @@ class QueryIntentDetector:
                 ]
             )
 
-        return expansions[:5]  # Limit to top 5 suggestions
+        limited_expansions = expansions[:5]  # Limit to top 5 suggestions
+
+        if limited_expansions:
+            logger.info(
+                f"✅ Query expansion enabled for '{query}': "
+                f"intent={analysis.intent.value}, confidence={analysis.confidence:.2f}, "
+                f"expansions={limited_expansions}"
+            )
+
+        return limited_expansions
 
 
 # Convenience functions

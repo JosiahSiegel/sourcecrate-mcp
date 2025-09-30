@@ -69,6 +69,8 @@ class RelevanceScorer:
         }
 
         # Academic keywords that should get higher weight
+        # Note: "review" and "survey" removed as they're too generic and cause false positives
+        # (e.g., "egyptology" → "egyptology review" → papers about peer review)
         self.academic_keywords = {
             "study",
             "research",
@@ -92,9 +94,8 @@ class RelevanceScorer:
             "data",
             "experiment",
             "trial",
-            "survey",
-            "review",
-            "meta-analysis",
+            "meta-analysis",  # Kept: specific academic term
+            "systematic review",  # Kept: specific academic term
         }
 
         # Fields and their importance weights
