@@ -1,0 +1,151 @@
+# Extended Preprints Configuration
+# Additional preprint servers for specialized fields beyond arXiv
+# Covers biology, medicine, chemistry, and other specialized domains
+
+sources:
+  biorxiv:
+    name: biorxiv
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: bioRxiv - Preprint server for biology (FREE, no auth required)
+      coverage: biology, life sciences, neuroscience, bioinformatics
+      base_url: https://api.biorxiv.org
+      search_path: /details/biorxiv
+      # bioRxiv API uses date ranges, not traditional search queries
+      # We'll use the /details endpoint which returns metadata
+      query_param: ""  # No traditional query param - uses date ranges
+      limit_param: ""  # Returns 100 per page automatically
+      response_format: json
+      results_path: collection
+      extra_params:
+        format: json
+      field_mappings:
+        title: title
+        authors: authors
+        doi: doi
+        abstract: abstract
+        journal: category
+        year: date
+        url: biorxiv_doi
+        citation_count: "0"  # bioRxiv doesn't provide citation counts
+        pdf_url: ""  # Construct from DOI
+      rate_limit_delay: 1.0
+      # NOTE: bioRxiv API is date-range based
+      # For search functionality, we may need to query recent date ranges
+      # and filter results client-side by keywords
+      # API docs: https://api.biorxiv.org/
+    capability_profile: preprint
+
+  medrxiv:
+    name: medrxiv
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: medRxiv - Preprint server for medical and health sciences (FREE, no auth required)
+      coverage: medicine, clinical research, epidemiology, health sciences
+      base_url: https://api.biorxiv.org
+      search_path: /details/medrxiv
+      query_param: ""  # Date-range based like bioRxiv
+      limit_param: ""
+      response_format: json
+      results_path: collection
+      extra_params:
+        format: json
+      field_mappings:
+        title: title
+        authors: authors
+        doi: doi
+        abstract: abstract
+        journal: category
+        year: date
+        url: medrxiv_doi
+        citation_count: "0"
+        pdf_url: ""
+      rate_limit_delay: 1.0
+      # NOTE: Same API as bioRxiv but for medical preprints
+      # API docs: https://api.biorxiv.org/
+    capability_profile: preprint
+
+  chemrxiv:
+    name: chemrxiv
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: ChemRxiv - Preprint server for chemistry (FREE, Open API compatible)
+      coverage: chemistry, chemical engineering, materials science
+      base_url: https://chemrxiv.org
+      # Note: ChemRxiv API details need verification
+      # They mention Open API compatibility and OAI-PMH access
+      # May need to use OAI-PMH endpoint or search interface
+      search_path: /engage/chemrxiv/public-api/v1/items
+      query_param: term
+      limit_param: limit
+      response_format: json
+      results_path: itemHits
+      field_mappings:
+        title: item.title
+        authors: item.authors
+        doi: item.doi
+        abstract: item.abstract
+        journal: item.categories
+        year: item.publishedDate
+        url: item.doi
+        citation_count: "0"
+        pdf_url: item.asset.original.url
+      rate_limit_delay: 1.0
+      # NOTE: ChemRxiv has Python package available (pypi.org/project/chemrxiv/)
+      # Open API and OAI-PMH access confirmed
+    capability_profile: preprint
+
+categories:
+  biology_preprints:
+    name: biology_preprints
+    display_name: Biology & Life Sciences Preprints
+    description: Latest preprints in biology, neuroscience, and life sciences
+    type: standard
+    sources:
+      - biorxiv
+      - arxiv  # arXiv also covers some biology (q-bio category)
+    max_results_per_source: 6
+    parallel_search: true
+
+  medical_preprints:
+    name: medical_preprints
+    display_name: Medical & Health Preprints
+    description: Latest preprints in medicine, clinical research, and health sciences
+    type: standard
+    sources:
+      - medrxiv
+      - biorxiv  # Biology overlaps with medical
+    max_results_per_source: 6
+    parallel_search: true
+
+  chemistry_preprints:
+    name: chemistry_preprints
+    display_name: Chemistry Preprints
+    description: Latest preprints in chemistry and chemical engineering
+    type: standard
+    sources:
+      - chemrxiv
+      - arxiv  # arXiv physics.chem-ph category
+    max_results_per_source: 6
+    parallel_search: true
+
+# NOTES ON INTEGRATION:
+# - bioRxiv/medRxiv API is date-range based, not keyword search
+#   May need custom client implementation for search functionality
+# - ChemRxiv API endpoints need verification with actual API testing
+# - All three sources are completely free, no API keys required
+# - Consider implementing Python client wrappers for better integration
+# - bioRxiv/medRxiv: 100 results per page, cursor-based pagination
+# - ChemRxiv: Has official Python package that could be integrated

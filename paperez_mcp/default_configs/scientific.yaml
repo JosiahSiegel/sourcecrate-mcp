@@ -246,6 +246,41 @@ sources:
         citation_count: cited_by_count
       rate_limit_delay: 0.1
 
+  fatcat_scholar:
+    name: fatcat_scholar
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Internet Archive Scholar/Fatcat - Universal scholarly archive (FREE, open API, 35M+ papers, no auth required)
+      coverage: comprehensive multidisciplinary - historical papers, web-archived research, all domains
+      base_url: https://api.fatcat.wiki/v0
+      search_path: /release/search
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: results
+      field_mappings:
+        title: title
+        authors: contribs
+        doi: doi
+        abstract: abstracts.content
+        journal: container.name
+        year: release_year
+        url: work_id
+        citation_count: "0"  # Fatcat doesn't provide citation counts
+        pdf_url: files.urls
+      rate_limit_delay: 0.5
+      # NOTE: Internet Archive Scholar/Fatcat is completely free
+      # Open catalog, open API, non-profit, ad-free, privacy-respecting
+      # Covers historical papers, web-archived research, all disciplines
+      # 35M+ research articles with full text access
+      # API docs: https://api.fatcat.wiki/redoc
+      # Scholar search: https://scholar.archive.org
+    capability_profile: archive
+
 
 # Scientific research categories
 categories:
@@ -259,6 +294,7 @@ categories:
       - semantic_scholar
       - openalex
       - doaj
+      - fatcat_scholar
     max_results_per_source: 6
     parallel_search: true
 

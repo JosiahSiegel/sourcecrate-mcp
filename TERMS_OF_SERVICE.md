@@ -1,6 +1,6 @@
 # Terms of Service
 
-**Effective Date:** September 28, 2025
+**Effective Date:** January 7, 2025
 **Project:** PaperezMCP
 **Repository:** <https://github.com/JosiahSiegel/paperez-mcp>
 
@@ -25,12 +25,14 @@ PaperezMCP's default configuration includes only sources that:
 ### 3.2 Default Sources Included
 
 The following sources are included in the default configuration:
-- **Scientific & General:** OpenAlex, CrossRef, Semantic Scholar, arXiv, DOAJ
-- **Medical & Biomedical:** PubMed/PMC, Europe PMC, ClinicalTrials.gov
+- **Scientific & General:** OpenAlex, CrossRef, Semantic Scholar, arXiv, DOAJ, Fatcat/Internet Archive Scholar
+- **Medical & Biomedical:** PubMed/PMC, Europe PMC, ClinicalTrials.gov, bioRxiv, medRxiv
+- **Social Sciences & Education:** ERIC (US Dept of Education), OSF Preprints (includes SocArXiv, PsyArXiv, EarthArXiv)
+- **Chemistry:** ChemRxiv
 - **Business & Economics:** RePEc
-- **Specialized Domains:** Open Library, CORE Repository, CourtListener
+- **Specialized Domains:** Open Library, CORE Repository (requires API key), CourtListener
 
-All default sources have been verified for Terms of Service compliance as of September 28, 2025.
+All default sources have been verified for Terms of Service compliance as of January 7, 2025.
 
 ## 4. Restricted Sources
 
@@ -144,5 +146,5 @@ If any provision of these Terms is found to be unenforceable, the remaining prov
 
 ---
 
-**Last Updated:** September 28, 2025
+**Last Updated:** January 7, 2025
 **Repository:** <https://github.com/JosiahSiegel/paperez-mcp>

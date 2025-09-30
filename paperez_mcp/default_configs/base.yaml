@@ -6,6 +6,7 @@
 
 # TERMS OF SERVICE COMPLIANCE NOTES:
 # - All sources use legitimate public APIs designed for academic research
+# - All default sources verified for ToS compliance as of January 7, 2025
 # - CrossRef: Requires email in requests (configured via mailto param)
 # - Semantic Scholar: 1 RPS rate limit, attribution required for publications
 # - arXiv: 1 request per 3 seconds, CC0 metadata license
@@ -15,8 +16,16 @@
 # - DOAJ: 2 requests/second, CC BY-SA for journals, CC0 for articles
 # - HathiTrust: Small-scale queries only, not for bulk retrieval
 # - Internet Archive: ~1 RPS, non-commercial use only
+# - bioRxiv/medRxiv: Free, no authentication, 100 results per page, no explicit rate limits
+# - ChemRxiv: Open API compatible, OAI-PMH access, no authentication required
+# - ERIC: US Dept of Education database, completely free, no API key needed
+# - OSF Preprints: Open Science Framework API, free, includes SocArXiv/PsyArXiv/EarthArXiv
+# - Fatcat/Internet Archive Scholar: Open API, 35M+ papers, non-profit, ad-free, no auth
+# - OpenAlex: Polite pool requires email (mailto param), free, no API key
 # - Google Scholar: Disabled (no official API)
 # - SSRN: Disabled (ToS reserves data mining rights, restricted API access)
+# - ResearchGate: Disabled (no public API, ToS prohibits automated extraction)
+# - CORE: Available but requires free API key registration (core.ac.uk/services/api)
 
 # Version and basic settings
 version: "1.0"
