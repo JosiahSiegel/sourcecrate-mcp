@@ -144,6 +144,177 @@ routing:
     legal: legal_research  # Legal research category
     general: null  # Use intelligent BM25 routing for general queries
 
+# Capability Profiles - Reusable capability templates (YAML-driven, source-agnostic)
+# Users can reference these profiles OR define custom ones in their own configs
+capability_profiles:
+  # Medical/biomedical research sources (PubMed, PMC, clinical databases)
+  medical:
+    medical_focus: true
+    stem_focus: false
+    humanities_focus: false
+    social_science_focus: false
+    preprint_server: false
+    field_search: true
+    phrase_search: true
+    boolean_search: true
+    wildcard_search: false
+    high_pdf_availability: false
+    open_access_only: false
+    subscription_content: true
+    prefers_simple_queries: false
+    prefers_natural_language: false
+    prefers_quoted_phrases: true
+    historical_depth: very_high
+    update_frequency: daily
+    average_response_time: 1.5
+    pdf_validation_required: true
+    search_priority: 9
+    topic_routing_weight: 1.5
+
+  # Preprint servers (arXiv, SocArXiv, OSF, bioRxiv)
+  preprint:
+    medical_focus: false
+    stem_focus: true
+    humanities_focus: false
+    social_science_focus: false
+    preprint_server: true
+    field_search: true
+    phrase_search: true
+    boolean_search: true
+    wildcard_search: true
+    high_pdf_availability: true
+    open_access_only: true
+    subscription_content: false
+    prefers_simple_queries: false
+    prefers_natural_language: false
+    prefers_quoted_phrases: true
+    historical_depth: medium
+    update_frequency: daily
+    average_response_time: 1.2
+    pdf_validation_required: false
+    search_priority: 10
+    topic_routing_weight: 1.8
+
+  # General academic databases (CrossRef, Semantic Scholar, OpenAlex)
+  general:
+    medical_focus: false
+    stem_focus: true
+    humanities_focus: true
+    social_science_focus: true
+    preprint_server: false
+    field_search: false
+    phrase_search: true
+    boolean_search: false
+    wildcard_search: false
+    high_pdf_availability: false
+    open_access_only: false
+    subscription_content: true
+    prefers_simple_queries: false
+    prefers_natural_language: true
+    prefers_quoted_phrases: true
+    historical_depth: very_high
+    update_frequency: weekly
+    average_response_time: 1.8
+    pdf_validation_required: true
+    search_priority: 8
+    topic_routing_weight: 1.2
+
+  # Historical/government archives (HathiTrust, Internet Archive, gov databases)
+  archive:
+    medical_focus: false
+    stem_focus: false
+    humanities_focus: true
+    social_science_focus: true
+    preprint_server: false
+    field_search: false
+    phrase_search: true
+    boolean_search: false
+    wildcard_search: false
+    high_pdf_availability: true
+    open_access_only: true
+    subscription_content: false
+    prefers_simple_queries: true
+    prefers_natural_language: true
+    prefers_quoted_phrases: false
+    historical_depth: very_high
+    update_frequency: monthly
+    average_response_time: 3.0
+    pdf_validation_required: true
+    search_priority: 5
+    topic_routing_weight: 0.8
+
+  # Open access repositories (DOAJ, CORE, institutional repos)
+  open_access:
+    medical_focus: false
+    stem_focus: true
+    humanities_focus: true
+    social_science_focus: true
+    preprint_server: false
+    field_search: false
+    phrase_search: true
+    boolean_search: false
+    wildcard_search: false
+    high_pdf_availability: true
+    open_access_only: true
+    subscription_content: false
+    prefers_simple_queries: false
+    prefers_natural_language: true
+    prefers_quoted_phrases: true
+    historical_depth: high
+    update_frequency: weekly
+    average_response_time: 2.5
+    pdf_validation_required: true
+    search_priority: 7
+    topic_routing_weight: 1.0
+
+  # Legal databases (court cases, statutes, legal documents)
+  legal:
+    medical_focus: false
+    stem_focus: false
+    humanities_focus: false
+    social_science_focus: false
+    preprint_server: false
+    field_search: true
+    phrase_search: true
+    boolean_search: true
+    wildcard_search: false
+    high_pdf_availability: false
+    open_access_only: false
+    subscription_content: true
+    prefers_simple_queries: false
+    prefers_natural_language: false
+    prefers_quoted_phrases: true
+    historical_depth: very_high
+    update_frequency: monthly
+    average_response_time: 2.0
+    pdf_validation_required: true
+    search_priority: 8
+    topic_routing_weight: 1.2
+
+  # Business/economics sources (SSRN, RePEc, business databases)
+  business:
+    medical_focus: false
+    stem_focus: false
+    humanities_focus: false
+    social_science_focus: true
+    preprint_server: false
+    field_search: false
+    phrase_search: true
+    boolean_search: false
+    wildcard_search: false
+    high_pdf_availability: false
+    open_access_only: false
+    subscription_content: true
+    prefers_simple_queries: false
+    prefers_natural_language: true
+    prefers_quoted_phrases: true
+    historical_depth: medium
+    update_frequency: weekly
+    average_response_time: 2.0
+    pdf_validation_required: true
+    search_priority: 7
+    topic_routing_weight: 1.0
+
 # Initialize empty collections for sources and categories (populated by domain files)
 sources: {}
 categories: {}

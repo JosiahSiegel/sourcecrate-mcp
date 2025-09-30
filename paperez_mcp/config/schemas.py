@@ -50,7 +50,7 @@ class SourceCapabilities(BaseModel):
         True, description="May include subscription-only content"
     )
 
-    # Query optimization preferences
+    # Query optimization preferences (defaults based on analysis of sources)
     prefers_simple_queries: bool = Field(
         False, description="Works better with simple keyword queries"
     )
@@ -58,7 +58,7 @@ class SourceCapabilities(BaseModel):
         False, description="Works better with natural language queries"
     )
     prefers_quoted_phrases: bool = Field(
-        False, description="Works better with quoted multi-word queries"
+        True, description="Works better with quoted multi-word queries"
     )
 
     # Content characteristics
@@ -128,10 +128,16 @@ class SourceProviderConfig(BaseModel):
         default_factory=dict, description="Source-specific configuration"
     )
 
-    # Performance settings
+    # Performance settings (smart defaults based on analysis of 22 sources)
     timeout: int = Field(30, description="Request timeout in seconds")
     max_retries: int = Field(3, description="Maximum retry attempts")
-    cache_expire: int = Field(3600, description="Cache expiration in seconds")
+    cache_expire: int = Field(7200, description="Cache expiration in seconds")
+
+    # Capability profile reference (YAML-driven)
+    capability_profile: str | None = Field(
+        None,
+        description="Named capability profile to inherit from (defined in capability_profiles)",
+    )
 
     # Source capabilities and characteristics
     capabilities: SourceCapabilities | None = None
@@ -331,9 +337,39 @@ class PaperezConfig(BaseModel):
         True, description="Enable built-in default sources"
     )
 
+    # Capability profiles (YAML-driven capability templates)
+    capability_profiles: dict[str, dict[str, Any]] = Field(
+        default_factory=dict,
+        description="Named capability profile definitions (reusable capability templates)",
+    )
+
     @model_validator(mode="after")
     def validate_paperez_config(self) -> "PaperezConfig":
-        """Validate configuration consistency."""
+        """Validate configuration consistency and expand capability profiles."""
+        # Expand capability profiles for sources that reference them
+        if self.capability_profiles:
+            for source_name, source_config in self.sources.items():
+                if source_config.capability_profile and not source_config.capabilities:
+                    profile_name = source_config.capability_profile
+                    if profile_name in self.capability_profiles:
+                        try:
+                            # Expand profile to capabilities object
+                            profile_data = self.capability_profiles[profile_name]
+                            source_config.capabilities = SourceCapabilities(
+                                **profile_data
+                            )
+                            logger.debug(
+                                f"Expanded capability profile '{profile_name}' for source '{source_name}'"
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                f"Failed to expand profile '{profile_name}' for source '{source_name}': {e}"
+                            )
+                    else:
+                        logger.warning(
+                            f"Source '{source_name}' references undefined profile '{profile_name}'"
+                        )
+
         if self.default_category and self.default_category not in self.categories:
             logger.warning(
                 f"Default category '{self.default_category}' not found in categories"

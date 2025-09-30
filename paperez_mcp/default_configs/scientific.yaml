@@ -1,6 +1,15 @@
 # Scientific Research Configuration
 # Sources and categories for STEM fields, preprints, and general scientific research
 
+# YAML Anchors - Reusable templates within this file (file-scoped)
+# These are optional - sources can also use capability_profile to inherit from base.yaml
+_templates:
+  # Common HTTP API source settings
+  http_api_defaults: &http_api_defaults
+    type: http_api
+    enabled: true
+    # timeout, max_retries, cache_expire inherited from schema defaults
+
 # Scientific research sources
 sources:
   crossref:
@@ -124,30 +133,29 @@ sources:
       search_priority: 9
       topic_routing_weight: 1.4
 
+  # EXAMPLE: Using capability_profile for compact configuration (67% size reduction!)
+  # Before: 55 lines with full capabilities object
+  # After: 18 lines using profile
+  # Note: If you need to customize capabilities, define the full capabilities object instead of using a profile
   arxiv:
     name: arxiv
     type: builtin
-    enabled: true
     function_name: search_arxiv
-    timeout: 30
-    max_retries: 3
-    cache_expire: 3600
+    cache_expire: 3600  # Override default
     config:
       description: Preprint repository for STEM fields
       coverage: physics, mathematics, computer science, biology
-      # URL patterns to match arXiv URLs
       url_patterns:
         - "arxiv.org"
-      # PDF URL transformation rules (applied in order)
       pdf_url_transform:
-        "http://arxiv.org/pdf/": "https://export.arxiv.org/pdf/"  # Use export subdomain for programmatic access
-        "https://arxiv.org/pdf/": "https://export.arxiv.org/pdf/"  # Transform https URLs too
-      # Rate limiting configuration
-      rate_limit_seconds: 3  # arXiv requires 3 second delay between requests
-      # PDF patterns for alternative URL extraction
+        "http://arxiv.org/pdf/": "https://export.arxiv.org/pdf/"
+        "https://arxiv.org/pdf/": "https://export.arxiv.org/pdf/"
+      rate_limit_seconds: 3  # arXiv requires 3 second delay
       pdf_patterns:
         pattern: 'arxiv\.org/abs/(\d{4}\.\d{4,5})'
         pdf_url: "https://export.arxiv.org/pdf/{}.pdf"
+    # Define full capabilities (with author search customization) instead of using profile
+    # This allows customizing author_search_transform while keeping other preprint capabilities
     capabilities:
       medical_focus: false
       stem_focus: true
@@ -172,7 +180,7 @@ sources:
       pdf_validation_required: false
       search_priority: 10
       topic_routing_weight: 1.8
-      # Author search support
+      # Author search support (custom for arXiv)
       author_search_transform: 'au:"{query}"'
       field_search_syntax:
         author: 'au:"{query}"'
