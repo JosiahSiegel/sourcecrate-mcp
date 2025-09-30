@@ -296,6 +296,16 @@ async def smart_downloadable_search(
     sources_to_search = []
 
     for source_name, description in available_sources:
+        # When force_category is set, skip BM25/intent filtering for category sources
+        # This ensures category sources are always searched without scoring-based skipping
+        if force_category and source_name in priority_sources_list:
+            # Category source - always search, no filtering
+            sources_to_search.append((source_name, description))
+            logger.debug(
+                f"🎯 Force category: {source_name} will be searched (category source, skipping BM25/intent filters)"
+            )
+            continue
+
         # Enhanced source skipping using new classification system
         skip_source = False
         skip_reason = None
