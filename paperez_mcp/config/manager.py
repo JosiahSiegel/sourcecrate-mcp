@@ -96,6 +96,9 @@ class ConfigManager:
         self._observers: list = []  # List[Observer] when watchdog available
         self._reload_callbacks: list[Callable[[PaperezConfig], None]] = []
         self._failed_configs: list[dict[str, str]] = []  # Track failed config loads
+        self._source_origins: dict[str, str] = (
+            {}
+        )  # Track which config layer each source came from
 
         # Configuration directory paths (load ALL YAML files from these directories)
         # Get the root directory of the paperez-mcp package with fallback search
@@ -371,8 +374,9 @@ class ConfigManager:
     def _load_config(self) -> None:
         """Load and merge configuration from all sources (directories and individual files)."""
         with self._config_lock:
-            # Clear failed configs list for fresh tracking
+            # Clear tracking for fresh load
             self._failed_configs = []
+            self._source_origins = {}
 
             try:
                 # Check if user wants to disable default sources by checking all config directories
@@ -412,12 +416,14 @@ class ConfigManager:
                 if use_defaults:
                     # First, try to load embedded package configs
                     config_dict = self._load_embedded_configs()
+                    self._track_source_origins(config_dict, "embedded_package")
 
                     # Then, try to load from .paperez/config directory if it exists (backward compatibility)
                     mcp_default_dir = self.config_directories["mcp_default"]
                     if mcp_default_dir.exists():
                         dir_config = self._load_yaml_directory(mcp_default_dir)
                         if dir_config:
+                            self._track_source_origins(dir_config, "mcp_default")
                             config_dict = self._smart_merge(config_dict, dir_config)
                             logger.info(
                                 f"Merged MCP default config directory: {mcp_default_dir}"
@@ -447,6 +453,7 @@ class ConfigManager:
                         try:
                             layer_config = self._load_yaml_directory(config_dir)
                             if layer_config:  # Only merge if directory had content
+                                self._track_source_origins(layer_config, layer_name)
                                 config_dict = self._smart_merge(
                                     config_dict, layer_config
                                 )
@@ -464,6 +471,7 @@ class ConfigManager:
                     if env_path and env_path.exists():
                         try:
                             env_config = self._load_yaml_file(env_path)
+                            self._track_source_origins(env_config, "environment")
                             config_dict = self._smart_merge(config_dict, env_config)
                             logger.info(f"Loaded environment config file: {env_path}")
                         except Exception as e:
@@ -671,6 +679,32 @@ class ConfigManager:
         """
         with self._config_lock:
             return self._failed_configs.copy()
+
+    def _track_source_origins(
+        self, config_dict: dict[str, Any], config_layer: str
+    ) -> None:
+        """Track which config layer each source came from.
+
+        Args:
+            config_dict: Config dictionary to inspect for sources
+            config_layer: Name of the config layer (e.g., 'embedded_package', 'user_home', 'project_local')
+        """
+        if "sources" in config_dict and isinstance(config_dict["sources"], dict):
+            for source_name in config_dict["sources"].keys():
+                # Track origin - later layers override earlier ones
+                self._source_origins[source_name] = config_layer
+                logger.debug(
+                    f"Tracked source '{source_name}' from layer '{config_layer}'"
+                )
+
+    def get_source_origins(self) -> dict[str, str]:
+        """Get mapping of source names to their config layer origins.
+
+        Returns:
+            Dict mapping source name to config layer (e.g., {'crossref': 'embedded_package', 'philpapers': 'project_local'})
+        """
+        with self._config_lock:
+            return self._source_origins.copy()
 
     def add_reload_callback(self, callback: Callable[[PaperezConfig], None]) -> None:
         """Add callback to be called when configuration is reloaded."""

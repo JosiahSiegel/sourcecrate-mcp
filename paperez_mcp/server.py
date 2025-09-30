@@ -123,6 +123,147 @@ def _lazy_import_utils() -> dict[str, Any]:
     }
 
 
+def _enrich_results_with_source_metadata(
+    results: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """
+    Enrich search results with source origin metadata (config layer info).
+
+    Adds 'config_layer' field to each result indicating whether the source
+    came from embedded package configs vs user-added configs.
+
+    Args:
+        results: List of paper dicts with 'source' field
+
+    Returns:
+        Same list with 'config_layer' added to each paper
+    """
+    try:
+        from paperez_mcp.config import get_config_manager
+
+        config_manager = get_config_manager()
+        source_origins = config_manager.get_source_origins()
+
+        for paper in results:
+            source_name = paper.get("source")
+            if source_name:
+                # Look up which config layer this source came from
+                config_layer = source_origins.get(source_name, "unknown")
+                paper["config_layer"] = config_layer
+                logger.debug(
+                    f"Enriched paper from '{source_name}' with config_layer='{config_layer}'"
+                )
+            else:
+                paper["config_layer"] = "unknown"
+                logger.warning(
+                    f"Paper missing 'source' field: {paper.get('title', 'Unknown')}"
+                )
+
+    except Exception as e:
+        logger.warning(f"Failed to enrich results with source metadata: {e}")
+        # Don't fail the whole search if enrichment fails
+        for paper in results:
+            if "config_layer" not in paper:
+                paper["config_layer"] = "unknown"
+
+    return results
+
+
+def _calculate_source_performance(
+    results: list[dict[str, Any]], api_status: dict[str, bool]
+) -> dict[str, Any]:
+    """
+    Calculate source performance metrics from enriched results.
+
+    Groups results by config layer and identifies zero-contribution sources.
+    YAML-powered: Determines embedded vs user-added dynamically from config_layer metadata.
+
+    Args:
+        results: List of enriched paper dicts with 'source' and 'config_layer' fields
+        api_status: Dict mapping source names to availability status
+
+    Returns:
+        Dict containing:
+        - embedded_sources: {source_name: paper_count} for embedded sources
+        - user_added_sources: {source_name: paper_count} for user-added sources
+        - zero_contribution_warning: Warning message if user sources contributed 0 papers
+        - embedded_layers: Config layers considered "embedded" (embedded_package, mcp_default)
+        - user_layers: Config layers considered "user-added" (user_home, project_local, environment)
+    """
+    try:
+        from paperez_mcp.config import get_config_manager
+
+        config_manager = get_config_manager()
+        source_origins = config_manager.get_source_origins()
+
+        # Define which config layers are considered "embedded" vs "user-added"
+        embedded_layers = {"embedded_package", "mcp_default"}
+        user_layers = {"user_home", "project_local", "environment"}
+
+        # Count papers by source
+        source_counts: dict[str, int] = {}
+        for paper in results:
+            source_name = paper.get("source")
+            if source_name:
+                source_counts[source_name] = source_counts.get(source_name, 0) + 1
+
+        # Separate sources by config layer
+        embedded_sources: dict[str, int] = {}
+        user_added_sources: dict[str, int] = {}
+
+        # Check all available sources (not just those with results)
+        for source_name, config_layer in source_origins.items():
+            paper_count = source_counts.get(source_name, 0)
+
+            if config_layer in embedded_layers:
+                if paper_count > 0:  # Only show embedded sources that contributed
+                    embedded_sources[source_name] = paper_count
+            elif config_layer in user_layers:
+                # Show ALL user-added sources (even zero-contribution)
+                user_added_sources[source_name] = paper_count
+
+        # Generate zero-contribution warning if applicable
+        zero_contribution_warning = None
+        if user_added_sources:
+            zero_contrib_sources = [
+                source for source, count in user_added_sources.items() if count == 0
+            ]
+            if zero_contrib_sources:
+                total_papers = len(results)
+                embedded_source_names = list(embedded_sources.keys())
+
+                if total_papers > 0:
+                    zero_contribution_warning = {
+                        "message": f"Custom sources contributed 0/{total_papers} papers. All results from embedded sources.",
+                        "zero_contribution_sources": zero_contrib_sources,
+                        "sources_with_results": embedded_source_names,
+                        "recommendation": "Custom sources may need API key configuration, endpoint adjustments, or may not cover this topic.",
+                    }
+                else:
+                    zero_contribution_warning = {
+                        "message": "No papers found from any source (embedded or custom).",
+                        "zero_contribution_sources": zero_contrib_sources,
+                        "recommendation": "Try refining your search query or using a different category.",
+                    }
+
+        return {
+            "embedded_sources": embedded_sources,
+            "user_added_sources": user_added_sources,
+            "zero_contribution_warning": zero_contribution_warning,
+            "embedded_layers": list(embedded_layers),
+            "user_layers": list(user_layers),
+        }
+
+    except Exception as e:
+        logger.warning(f"Failed to calculate source performance: {e}")
+        return {
+            "embedded_sources": {},
+            "user_added_sources": {},
+            "zero_contribution_warning": None,
+            "error": str(e),
+        }
+
+
 """
 OPTIMIZED MCP TOOLS - 6 Essential Functions
 
@@ -538,6 +679,12 @@ async def browse_papers(
 
     browse_results = deduplicated_results
 
+    # Enrich results with source metadata (config layer info)
+    browse_results = _enrich_results_with_source_metadata(browse_results)
+
+    # Calculate source performance (embedded vs user-added contributions)
+    source_performance = _calculate_source_performance(browse_results, get_api_status())
+
     # Log filtering statistics
     total_filtered = non_downloadable_count + invalid_pdf_count
     if total_filtered > 0:
@@ -554,6 +701,7 @@ async def browse_papers(
             set(paper.get("source", "Unknown") for paper in browse_results)
         ),
         "query": query,
+        "source_performance": source_performance,
     }
 
     # Add validation statistics (always include to show validation happened)
@@ -972,14 +1120,38 @@ async def browse_papers_streaming(
             cleaned_result["source"] = result["_streaming_source"]
         cleaned_results.append(cleaned_result)
 
+    # Enrich results with source metadata (config layer info)
+    cleaned_results = _enrich_results_with_source_metadata(cleaned_results)
+
+    # Calculate source performance (embedded vs user-added contributions)
+    source_performance = _calculate_source_performance(
+        cleaned_results, get_api_status()
+    )
+
+    # Also enrich early_results if present
+    if early_results:
+        # Clean early results the same way
+        cleaned_early_results = []
+        for result in early_results[:5]:
+            cleaned_result = {
+                k: v for k, v in result.items() if not k.startswith("_streaming_")
+            }
+            if "_streaming_source" in result:
+                cleaned_result["source"] = result["_streaming_source"]
+            cleaned_early_results.append(cleaned_result)
+        early_results_to_return = _enrich_results_with_source_metadata(
+            cleaned_early_results
+        )
+    else:
+        early_results_to_return = []
+
     return [
         {
             "streaming_results": cleaned_results,
             "streaming_summary": streaming_summary,
-            "early_results": (
-                early_results[:5] if early_results else []
-            ),  # First 5 early results for reference
+            "early_results": early_results_to_return,  # Enriched early results
             "streaming_stats": timing_stats,
+            "source_performance": source_performance,
         }
     ]
 
@@ -1144,6 +1316,14 @@ async def download_papers(
         force_category=force_category,
         convert_to_markdown=convert_to_markdown,
     )
+
+    # Enrich results with source metadata (config layer info)
+    if "results" in result and isinstance(result["results"], list):
+        result["results"] = _enrich_results_with_source_metadata(result["results"])
+        # Calculate source performance (embedded vs user-added contributions)
+        result["source_performance"] = _calculate_source_performance(
+            result["results"], get_api_status()
+        )
 
     return [result]
 
@@ -1995,6 +2175,22 @@ async def get_status(force_reload: bool = False) -> dict[str, Any]:
         # Get failed configs
         failed_configs = config_manager.get_failed_configs()
 
+        # Get source origins for diagnostics
+        source_origins = config_manager.get_source_origins()
+
+        # Group sources by config layer
+        embedded_layers = {"embedded_package", "mcp_default"}
+        user_layers = {"user_home", "project_local", "environment"}
+
+        embedded_sources_list = [
+            source
+            for source, layer in source_origins.items()
+            if layer in embedded_layers
+        ]
+        user_added_sources_list = [
+            source for source, layer in source_origins.items() if layer in user_layers
+        ]
+
         basic_status["config_diagnostics"] = {
             "hot_reload_available": watchdog_available,
             "config_directories_watched": (
@@ -2006,6 +2202,14 @@ async def get_status(force_reload: bool = False) -> dict[str, Any]:
             "failed_configs": failed_configs,
             "failed_configs_count": len(failed_configs),
             "has_failed_configs": len(failed_configs) > 0,
+            "source_origins": {
+                "total_sources": len(source_origins),
+                "embedded_sources": embedded_sources_list,
+                "user_added_sources": user_added_sources_list,
+                "embedded_count": len(embedded_sources_list),
+                "user_added_count": len(user_added_sources_list),
+                "full_mapping": source_origins,  # Complete source -> config_layer mapping
+            },
         }
     except Exception as e:
         logger.warning(f"Failed to add config diagnostics: {e}")
