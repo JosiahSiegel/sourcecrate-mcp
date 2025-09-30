@@ -41,7 +41,8 @@ dependencies = [
     "diskcache>=5.6.0",
     "free-proxy>=1.1.1",
     "rapidfuzz>=3.0.0",
-    "bm25s>=0.2.0"  # 500x faster than rank-bm25, core includes PyStemmer + numba
+    "bm25s>=0.2.0",  # 500x faster than rank-bm25, core includes PyStemmer + numba
+    "watchdog>=3.0.0"  # Enable hot-reloading for config files
 ]
 
 [project.urls]

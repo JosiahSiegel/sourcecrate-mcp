@@ -1728,7 +1728,7 @@ async def _get_comprehensive_config_info() -> dict[str, Any]:
 
 
 @mcp.tool
-async def get_status() -> dict[str, Any]:
+async def get_status(force_reload: bool = False) -> dict[str, Any]:
     """
     Get comprehensive system status including API health, source monitoring, and configuration details.
 
@@ -1736,7 +1736,10 @@ async def get_status() -> dict[str, Any]:
     cache usage, and comprehensive configuration details with category verification for AI users.
 
     Args:
-        None - This tool takes no parameters
+        force_reload: If True, force reload configuration before checking status.
+                     Useful when custom configs added after server startup.
+                     When watchdog is unavailable, use this to manually reload configs.
+                     Default: False
 
     Returns:
         Dictionary containing:
@@ -1775,6 +1778,19 @@ async def get_status() -> dict[str, Any]:
         if my_category and my_category["functional"]:
             print("Custom category working correctly")
     """
+    # Force reload configuration if requested
+    if force_reload:
+        try:
+            from paperez_mcp.config import get_config_manager
+
+            config_manager = get_config_manager()
+            config_manager._reload_config()
+            logger.info(
+                "🔄 Configuration force-reloaded by get_status(force_reload=True)"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to force-reload configuration: {e}")
+
     # Get basic status
     basic_status: dict[str, Any] = {
         "api_status": get_api_status(),
@@ -1831,6 +1847,37 @@ async def get_status() -> dict[str, Any]:
                 "timestamp": "",
             }
         )
+
+    # Add config diagnostics
+    try:
+        from paperez_mcp.config import get_config_manager
+
+        # Check if watchdog is available
+        try:
+            from watchdog.observers import Observer  # type: ignore[import-not-found]
+
+            _ = Observer  # Mark as intentionally imported for availability check
+            watchdog_available = True
+        except ImportError:
+            watchdog_available = False
+
+        config_manager = get_config_manager()
+        config_directories = [
+            str(d) for d in config_manager.config_directories.values()
+        ]
+
+        basic_status["config_diagnostics"] = {
+            "hot_reload_available": watchdog_available,
+            "config_directories_watched": (
+                config_directories if watchdog_available else []
+            ),
+            "restart_required_for_new_configs": not watchdog_available,
+            "manual_reload_available": True,
+            "manual_reload_command": "get_status(force_reload=True)",
+        }
+    except Exception as e:
+        logger.warning(f"Failed to add config diagnostics: {e}")
+        basic_status["config_diagnostics"] = {"error": str(e)}
 
     return basic_status
 
@@ -2443,6 +2490,46 @@ categories:
                     "🔐 Environment vars: Consider using env vars for keys (not in committed YAML)",
                     "✅ Test first: Use curl with your key before adding to config",
                     "📚 Check docs: API documentation usually has authentication examples",
+                ],
+            },
+            "config_reload_and_visibility": {
+                "custom_category_not_showing": {
+                    "symptoms": "Created custom config but get_status() doesn't show new category",
+                    "diagnosis": "Config loaded once on startup, not automatically reloaded in some environments",
+                    "solutions": [
+                        "Solution 1 (Recommended): Restart Claude Code after creating custom config",
+                        "Solution 2: Call get_status(force_reload=True) to manually reload config",
+                        "Solution 3: Verify watchdog is installed: pip install watchdog>=3.0.0 (enables auto-reload)",
+                        "Solution 4: Check config file syntax with online YAML validator",
+                    ],
+                    "verification": "After reload, 'total_categories' in get_status() should increase",
+                },
+                "config_reload_behavior": {
+                    "hot_reload_enabled": "Config changes detected automatically within 1-2 seconds (requires watchdog package)",
+                    "hot_reload_disabled": "Restart Claude Code or use get_status(force_reload=True)",
+                    "check_status": "Run get_status() and look at 'config_diagnostics.hot_reload_available' field",
+                },
+                "common_reload_issues": [
+                    {
+                        "issue": "Category not found when using force_category",
+                        "fix": "Check spelling matches exactly (case-sensitive)",
+                    },
+                    {
+                        "issue": "Category functional=False",
+                        "fix": "Verify source names in category exist in sources list",
+                    },
+                    {
+                        "issue": "Category shows 0 sources_available",
+                        "fix": "Check that sources in category are enabled in config",
+                    },
+                    {
+                        "issue": "Config changes not taking effect",
+                        "fix": "Use get_status(force_reload=True) or restart Claude Code",
+                    },
+                    {
+                        "issue": "Watchdog not available warning in logs",
+                        "fix": "Install watchdog: pip install watchdog>=3.0.0 for automatic config reloading",
+                    },
                 ],
             },
         },
