@@ -49,6 +49,10 @@ sources:
     config:
       description: Full-text biomedical literature repository
       coverage: open access medical and life science articles
+      # PDF patterns for PMC URL extraction
+      pdf_patterns:
+        pattern: 'pmc/articles/PMC(\d+)'
+        pdf_url: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{}/pdf/"
     capabilities:
       medical_focus: true
       stem_focus: false

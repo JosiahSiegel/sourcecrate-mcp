@@ -97,9 +97,6 @@ logs/
 .fastmcp/
 
 test_*.json
-.paperez/*.md
-.paperez/*.txt
-.paperez/*.pdf
-!.paperez/config/*
+.paperez/*
 *.txt
 test_*/
