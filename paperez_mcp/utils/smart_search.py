@@ -189,17 +189,11 @@ async def smart_downloadable_search(
         logger.debug(f"  Priority: {priority_sources_list[:5]}")
         logger.debug(f"  Fallback: {additional_sources_list[:5]}")
 
-    # Priority-based category routing if specified
+    # Priority-based category routing if specified (using shared utility)
     if force_category:
-        # Dynamically resolve category sources from YAML config
-        search_service = get_search_service()
-        try:
-            category_source_list = search_service.resolve_category_sources(
-                force_category
-            )
-        except Exception as e:
-            logger.warning(f"Could not resolve category '{force_category}': {e}")
-            category_source_list = []
+        from paperez_mcp.utils.category_filter import resolve_category_sources
+
+        category_source_list = resolve_category_sources(force_category)
 
         if category_source_list:
             # Get priority sources that are available
@@ -241,15 +235,10 @@ async def smart_downloadable_search(
                 )
                 # Continue with normal routing if no priority sources available
         else:
-            # Category not found - get list of available categories from config
-            from ..config import get_current_config
-
-            config = get_current_config()
-            available_categories = list(config.categories.keys())
-            logger.warning(
-                f"❌ Unknown category '{force_category}'. Available: {available_categories}"
+            # Category resolution failed - continue with normal routing
+            logger.info(
+                f"📊 Category '{force_category}' resolution failed, using normal BM25 routing"
             )
-            # Continue with normal routing
 
     logger.info(f"🚀 Source priority: {[s[0] for s in source_priority]}")
 
