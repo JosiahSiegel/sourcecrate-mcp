@@ -137,6 +137,7 @@ async def process_papers(
                                 paper["local_markdown"] = str(output_path)
                                 paper["markdown_characters"] = len(markdown_content)
                                 paper["download_success"] = True
+                                paper["download_status"] = "success"
                                 downloaded_count += 1
 
                                 # Clean up PDF file since we only need the markdown
@@ -154,11 +155,13 @@ async def process_papers(
                                     )
                             else:
                                 paper["download_success"] = False
+                                paper["download_status"] = "failed"
                                 paper["download_error"] = (
                                     f"Failed to save markdown: {save_result.get('error')}"
                                 )
                         else:
                             paper["download_success"] = False
+                            paper["download_status"] = "failed"
                             paper["download_error"] = (
                                 f"Failed to convert to markdown: {markdown_result.get('error')}"
                             )
@@ -167,15 +170,33 @@ async def process_papers(
                         paper["local_pdf"] = pdf_file_path
                         paper["pdf_file_size"] = download_result.get("file_size", 0)
                         paper["download_success"] = True
+                        paper["download_status"] = "success"
                         downloaded_count += 1
                 else:
                     paper["download_success"] = False
+                    paper["download_status"] = "failed"
                     paper["download_error"] = (
                         f"Failed to download PDF: {download_result.get('error')}"
                     )
             except Exception as e:
                 paper["download_success"] = False
+                paper["download_status"] = "failed"
                 paper["download_error"] = str(e)
+
+    # Mark buffered papers (papers that were not downloaded due to reaching limit)
+    buffered_count = 0
+    for idx, paper in enumerate(downloadable_papers):
+        # If paper doesn't have download_status, it means it wasn't attempted
+        if "download_status" not in paper:
+            paper["download_status"] = "not_attempted"
+            paper["is_buffered"] = True
+            paper["buffer_rank"] = idx + 1
+            buffered_count += 1
+
+    if buffered_count > 0:
+        logger.info(
+            f"📦 Marked {buffered_count} papers as buffered (available but not downloaded)"
+        )
 
     # Check for fallback usage
     fallback_used = any(
@@ -192,6 +213,16 @@ async def process_papers(
         "output_directory": output_dir,
         "query": query,
     }
+
+    # Add download info explaining buffer strategy
+    if buffered_count > 0:
+        result["download_info"] = {
+            "requested": limit,
+            "downloaded": downloaded_count,
+            "buffered": buffered_count,
+            "strategy": "Buffer strategy: returned extra candidates beyond requested limit",
+            "note": "Buffered papers are available for download but were not processed to meet the requested limit",
+        }
 
     # Add fallback notification if used
     if fallback_used:
