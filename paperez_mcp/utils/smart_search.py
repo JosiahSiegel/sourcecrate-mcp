@@ -451,8 +451,10 @@ async def smart_downloadable_search(
                 if intent_analysis and intent_analysis.is_author_search:
                     try:
                         search_service = get_search_service()
-                        source_config = search_service.source_registry.get_source_config(
-                            source_name
+                        source_config = (
+                            search_service.source_registry.get_source_config(
+                                source_name
+                            )
                         )
                         if (
                             source_config
@@ -460,10 +462,8 @@ async def smart_downloadable_search(
                             and source_config.capabilities.author_search_transform
                         ):
                             # Apply author search transformation
-                            transformed_query = (
-                                source_config.capabilities.author_search_transform.format(
-                                    query=optimized_query
-                                )
+                            transformed_query = source_config.capabilities.author_search_transform.format(
+                                query=optimized_query
                             )
                             logger.info(
                                 f"👤 Author search transformation for {source_name}: '{optimized_query}' → '{transformed_query}'"
@@ -697,9 +697,7 @@ async def smart_downloadable_search(
         logger.info("🧠 Applying relevance scoring to improve result ranking...")
         # Use author search field weights if this is an author query
         field_weights_profile = (
-            intent_analysis.field_weights_profile
-            if intent_analysis
-            else "default"
+            intent_analysis.field_weights_profile if intent_analysis else "default"
         )
         if field_weights_profile == "author_search":
             logger.info(

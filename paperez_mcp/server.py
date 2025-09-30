@@ -373,15 +373,21 @@ async def browse_papers(
 
         # Run validations with timeout
         try:
-            validation_results = await asyncio.gather(*validation_tasks, return_exceptions=True)
+            validation_results = await asyncio.gather(
+                *validation_tasks, return_exceptions=True
+            )
 
             # Process validation results
-            for (_, url), result in zip(urls_to_validate, validation_results, strict=True):
-                if isinstance(result, Exception):
-                    logger.debug(f"Validation error for {url}: {result}")
+            for (_, url), validation_result in zip(
+                urls_to_validate, validation_results, strict=True
+            ):
+                if isinstance(validation_result, Exception):
+                    logger.debug(f"Validation error for {url}: {validation_result}")
                     validated_urls[url] = False
-                elif isinstance(result, tuple) and len(result) == 2:
-                    is_valid, _ = result
+                elif (
+                    isinstance(validation_result, tuple) and len(validation_result) == 2
+                ):
+                    is_valid, _ = validation_result
                     validated_urls[url] = is_valid
                 else:
                     validated_urls[url] = False

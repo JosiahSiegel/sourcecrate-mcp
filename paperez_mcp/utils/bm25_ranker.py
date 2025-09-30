@@ -855,9 +855,7 @@ class BM25SourceRanker:
         words = re.findall(r"\b[a-zA-Z]+\b", query)
         return [word for word in words if len(word) > 2]  # Filter short words
 
-    def _calculate_bm25_score(
-        self, query_terms: list[str], source_name: str
-    ) -> float:
+    def _calculate_bm25_score(self, query_terms: list[str], source_name: str) -> float:
         """Calculate BM25 score for a query against a source using bm25s."""
         if not query_terms:
             return 0.0

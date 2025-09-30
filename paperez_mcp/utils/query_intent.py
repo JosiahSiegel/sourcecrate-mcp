@@ -983,7 +983,7 @@ class QueryIntentDetector:
         self, query: str, analysis: QueryAnalysis
     ) -> list[str]:
         """Suggest query expansions based on analysis."""
-        expansions = []
+        expansions: list[str] = []
 
         # Only expand queries when intent detection confidence is high enough
         # Prevents misclassification of domain-specific terms (e.g., "egyptology" → "egyptology review")
