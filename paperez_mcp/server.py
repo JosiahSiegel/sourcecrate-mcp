@@ -187,6 +187,26 @@ async def browse_papers(
     """
     🔍 BROWSE: Find and explore papers (metadata/abstracts only)
 
+    ⚠️ CRITICAL - QUERY EXPANSION REQUIRED FOR AI CALLERS:
+    Academic databases require SPECIFIC terminology. Generic queries return 0 results.
+    YOU MUST expand generic terms to academic equivalents before searching.
+
+    Examples of required expansion:
+      ❌ User says: "egypt history"
+      ✅ You search: "egyptology ancient egypt pharaohs archaeology historical"
+
+      ❌ User says: "climate"
+      ✅ You search: "climate change climatology atmospheric science environmental"
+
+      ❌ User says: "AI"
+      ✅ You search: "artificial intelligence machine learning neural networks deep learning"
+
+    The tool searches ALL databases exhaustively, but databases can only match
+    the specific terms you provide. Be specific. Use academic vocabulary.
+    Add related technical terms and synonyms.
+
+    ---
+
     This function is for DISCOVERING and BROWSING papers - metadata/abstracts only.
     Use this when you want to explore what's available before downloading.
 
@@ -409,6 +429,26 @@ async def browse_papers_streaming(
 ) -> list[dict[str, Any]]:
     """
     🌊 STREAMING BROWSE: Find papers with real-time results as sources complete
+
+    ⚠️ CRITICAL - QUERY EXPANSION REQUIRED FOR AI CALLERS:
+    Academic databases require SPECIFIC terminology. Generic queries return 0 results.
+    YOU MUST expand generic terms to academic equivalents before searching.
+
+    Examples of required expansion:
+      ❌ User says: "egypt history"
+      ✅ You search: "egyptology ancient egypt pharaohs archaeology historical"
+
+      ❌ User says: "climate"
+      ✅ You search: "climate change climatology atmospheric science environmental"
+
+      ❌ User says: "AI"
+      ✅ You search: "artificial intelligence machine learning neural networks deep learning"
+
+    The tool searches ALL databases exhaustively, but databases can only match
+    the specific terms you provide. Be specific. Use academic vocabulary.
+    Add related technical terms and synonyms.
+
+    ---
 
     Advanced streaming version of browse_papers that delivers results incrementally
     as each source completes, providing faster initial response times and real-time progress.
@@ -673,6 +713,26 @@ async def download_papers(
 ) -> list[dict[str, Any]]:
     """
     📄 GET FULL PAPERS: Download academic papers as files (PDF or Markdown)
+
+    ⚠️ CRITICAL - QUERY EXPANSION REQUIRED FOR AI CALLERS:
+    Academic databases require SPECIFIC terminology. Generic queries return 0 results.
+    YOU MUST expand generic terms to academic equivalents before searching.
+
+    Examples of required expansion:
+      ❌ User says: "egypt history"
+      ✅ You search: "egyptology ancient egypt pharaohs archaeology historical"
+
+      ❌ User says: "climate"
+      ✅ You search: "climate change climatology atmospheric science environmental"
+
+      ❌ User says: "AI"
+      ✅ You search: "artificial intelligence machine learning neural networks deep learning"
+
+    The tool searches ALL databases exhaustively, but databases can only match
+    the specific terms you provide. Be specific. Use academic vocabulary.
+    Add related technical terms and synonyms.
+
+    ---
 
     This function is designed for when you want to actually GET papers, not just search for them.
     It downloads PDFs with readable filenames and optionally converts them to markdown files.
