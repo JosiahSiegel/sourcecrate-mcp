@@ -135,6 +135,19 @@ sources:
     config:
       description: Preprint repository for STEM fields
       coverage: physics, mathematics, computer science, biology
+      # URL patterns to match arXiv URLs
+      url_patterns:
+        - "arxiv.org"
+      # PDF URL transformation rules (applied in order)
+      pdf_url_transform:
+        "http://arxiv.org/pdf/": "https://export.arxiv.org/pdf/"  # Use export subdomain for programmatic access
+        "https://arxiv.org/pdf/": "https://export.arxiv.org/pdf/"  # Transform https URLs too
+      # Rate limiting configuration
+      rate_limit_seconds: 3  # arXiv requires 3 second delay between requests
+      # PDF patterns for alternative URL extraction
+      pdf_patterns:
+        pattern: 'arxiv\.org/abs/(\d{4}\.\d{4,5})'
+        pdf_url: "https://export.arxiv.org/pdf/{}.pdf"
     capabilities:
       medical_focus: false
       stem_focus: true
@@ -155,7 +168,7 @@ sources:
       update_frequency: daily
       average_response_time: 1.2
       pdf_url_patterns:
-        - "https://arxiv.org/pdf/([0-9]{4}\\.[0-9]{4,5})\\.pdf"
+        - "https://export.arxiv.org/pdf/([0-9]{4}\\.[0-9]{4,5})\\.pdf"
       pdf_validation_required: false
       search_priority: 10
       topic_routing_weight: 1.8
@@ -168,7 +181,7 @@ sources:
     max_retries: 3
     cache_expire: 3600
     config:
-      description: Directory of Open Access Journals
+      description: Directory of Open Access Journals - comprehensive coverage including science, medicine, humanities, history, archaeology, and social sciences
       coverage: peer-reviewed open access articles across all subjects
       base_url: https://doaj.org/api/v4
       search_path: /search/articles/_search

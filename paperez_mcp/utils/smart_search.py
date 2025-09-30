@@ -671,9 +671,20 @@ async def smart_downloadable_search(
         ranked_candidates = relevance_scorer.rank_papers(query, unique_candidates)
 
         # Filter out very low relevance papers (optional)
-        filtered_candidates = relevance_scorer.filter_low_relevance(
-            ranked_candidates, min_threshold=0.05
-        )
+        # Only apply aggressive filtering if we have plenty of results
+        if len(ranked_candidates) >= limit * 3:
+            filtered_candidates = relevance_scorer.filter_low_relevance(
+                ranked_candidates, min_threshold=0.05
+            )
+            logger.info(
+                f"📊 Relevance filtering: {len(ranked_candidates)} → {len(filtered_candidates)} papers"
+            )
+        else:
+            # Keep all results when we have few candidates
+            filtered_candidates = ranked_candidates
+            logger.info(
+                f"⚠️  Few candidates ({len(ranked_candidates)}), skipping relevance filter to avoid 0 results"
+            )
 
         # Update the candidates list
         unique_candidates = filtered_candidates
