@@ -249,6 +249,28 @@ async def browse_papers(
                        💡 USE WHEN: Smart routing fails to find papers or you need specific types
                        💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
 
+    🤖 AI USERS - WHEN TO CREATE CUSTOM CONFIGS:
+    If you get 0 results with an optimized query (2-4 keywords, proper terms), default sources may not cover this domain.
+
+    DEFAULT SOURCES COVER:
+    ✅ STEM research (arXiv, Semantic Scholar, CrossRef, OpenAlex)
+    ✅ Medical/biomedical (PubMed, PubMed Central, Europe PMC, ClinicalTrials.gov)
+    ✅ General academic (CrossRef, DOAJ, CORE)
+    ✅ Business/economics (RePEc)
+    ✅ Legal (CourtListener)
+    ✅ Open access repositories
+
+    NEED CUSTOM CONFIGS FOR:
+    ❌ Regional/national archives (non-US government databases, national libraries)
+    ❌ Institutional repositories (university archives, research institution databases)
+    ❌ Non-English specialized databases (country-specific sources)
+    ❌ Specialized domains (specific industry databases, niche academic fields)
+    ❌ Subscription-only databases requiring authentication
+
+    💡 PROACTIVE ACTION: If your search returns 0 results and the topic falls into the "NEED CUSTOM" category, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
+
+    EXAMPLE: Searching for "French colonial archives" returns 0 results → This needs a custom config for French national archives (Archives Nationales). Call get_help() immediately.
+
     Returns:
         List containing single dict with:
         - results: List of paper objects with metadata
@@ -628,6 +650,28 @@ async def browse_papers_streaming(
                        - "historical" → CORE, CrossRef
                        - "recent" → arXiv, Semantic Scholar
 
+    🤖 AI USERS - WHEN TO CREATE CUSTOM CONFIGS:
+    If you get 0 results with an optimized query (2-4 keywords, proper terms), default sources may not cover this domain.
+
+    DEFAULT SOURCES COVER:
+    ✅ STEM research (arXiv, Semantic Scholar, CrossRef, OpenAlex)
+    ✅ Medical/biomedical (PubMed, PubMed Central, Europe PMC, ClinicalTrials.gov)
+    ✅ General academic (CrossRef, DOAJ, CORE)
+    ✅ Business/economics (RePEc)
+    ✅ Legal (CourtListener)
+    ✅ Open access repositories
+
+    NEED CUSTOM CONFIGS FOR:
+    ❌ Regional/national archives (non-US government databases, national libraries)
+    ❌ Institutional repositories (university archives, research institution databases)
+    ❌ Non-English specialized databases (country-specific sources)
+    ❌ Specialized domains (specific industry databases, niche academic fields)
+    ❌ Subscription-only databases requiring authentication
+
+    💡 PROACTIVE ACTION: If your search returns 0 results and the topic falls into the "NEED CUSTOM" category, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
+
+    EXAMPLE: Searching for "French colonial archives" returns 0 results → This needs a custom config for French national archives (Archives Nationales). Call get_help() immediately.
+
     Returns:
         List containing streaming search results with:
         - streaming_results: List of paper objects with metadata
@@ -918,6 +962,30 @@ async def download_papers(
 
                        💡 USE WHEN: Smart routing fails to find papers or you need specific types
                        💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
+
+    🤖 AI USERS - WHEN TO CREATE CUSTOM CONFIGS:
+    If you get 0 results with an optimized query (2-4 keywords, proper terms), default sources may not cover this domain.
+
+    DEFAULT SOURCES COVER:
+    ✅ STEM research (arXiv, Semantic Scholar, CrossRef, OpenAlex)
+    ✅ Medical/biomedical (PubMed, PubMed Central, Europe PMC, ClinicalTrials.gov)
+    ✅ General academic (CrossRef, DOAJ, CORE)
+    ✅ Business/economics (RePEc)
+    ✅ Legal (CourtListener)
+    ✅ Open access repositories
+
+    NEED CUSTOM CONFIGS FOR:
+    ❌ Regional/national archives (non-US government databases, national libraries)
+    ❌ Institutional repositories (university archives, research institution databases)
+    ❌ Non-English specialized databases (country-specific sources)
+    ❌ Specialized domains (specific industry databases, niche academic fields)
+    ❌ Subscription-only databases requiring authentication
+
+    💡 PROACTIVE ACTION: If your search returns 0 results and the topic falls into the "NEED CUSTOM" category, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
+
+    EXAMPLE: Searching for "French colonial archives" returns 0 results → This needs a custom config for French national archives (Archives Nationales). Call get_help() immediately.
+
+    Args (continued):
         convert_to_markdown: If True (default), convert PDFs to markdown. If False, keep as PDFs only.
 
     Returns:
