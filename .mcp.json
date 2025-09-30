@@ -1,14 +1,5 @@
 {
   "mcpServers": {
-    "paperez-mcp": {
-      "command": "python3",
-      "args": [
-        "/mnt/d/repos/paperez-mcp/paperez_mcp/install_and_run.py"
-      ],
-      "env": {
-        "UNPAYWALL_EMAIL": "research@example.com"
-      }
-    },
     "paperez-mcp-remote": {
       "command": "uvx",
       "args": [
@@ -20,13 +11,21 @@
         "UNPAYWALL_EMAIL": "research@example.com"
       }
     },
+    "paperez-mcp-local": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--no-cache",
+        "--from",
+        "/mnt/d/repos/paperez-mcp",
+        "paperez-mcp"
+      ],
+      "env": {}
+    },
     "context7": {
       "type": "stdio",
       "command": "npx",
-      "args": [
-        "-y",
-        "@upstash/context7-mcp"
-      ],
+      "args": ["-y", "@upstash/context7-mcp"],
       "env": {}
     }
   }

@@ -88,6 +88,19 @@ class SourceCapabilities(BaseModel):
         1.0, description="Weight for topic-based routing"
     )
 
+    # Query transformation support
+    author_search_transform: str | None = Field(
+        None,
+        description="Template for transforming author queries (use {query} placeholder)",
+    )
+    title_search_transform: str | None = Field(
+        None, description="Template for transforming title queries"
+    )
+    field_search_syntax: dict[str, str] = Field(
+        default_factory=dict,
+        description="Field-specific search syntax mapping (e.g., author: 'au:{query}')",
+    )
+
 
 class SourceProviderConfig(BaseModel):
     """Configuration for a search source provider."""
@@ -180,6 +193,43 @@ class CategoryConfig(BaseModel):
         return self
 
 
+class QueryIntentConfig(BaseModel):
+    """Configuration for query intent detection patterns."""
+
+    # Author search patterns
+    author_search_patterns: list[str] = Field(
+        default_factory=lambda: [
+            r"^[A-Z][a-z]+\s+[A-Z][a-z]+$",  # "Geoffrey Hinton"
+            r"^[A-Z][a-z]+\s+[A-Z]\.\s+[A-Z][a-z]+$",  # "Geoffrey E. Hinton"
+            r"^[A-Z][a-z]+,\s+[A-Z]",  # "Hinton, G"
+            r"\bauthor:\s*[A-Z]",  # "author:Hinton"
+            r"\bby\s+[A-Z][a-z]+\s+[A-Z]",  # "papers by Geoffrey Hinton"
+        ],
+        description="Regex patterns to detect author search queries",
+    )
+
+    # Field weight profiles for different query types
+    field_weights: dict[str, dict[str, float]] = Field(
+        default_factory=lambda: {
+            "default": {
+                "title": 0.40,
+                "abstract": 0.30,
+                "keywords": 0.15,
+                "authors": 0.10,
+                "journal": 0.05,
+            },
+            "author_search": {
+                "authors": 0.70,
+                "title": 0.15,
+                "abstract": 0.10,
+                "keywords": 0.05,
+                "journal": 0.00,
+            },
+        },
+        description="Field weight profiles for different query intents",
+    )
+
+
 class QueryRoutingConfig(BaseModel):
     """Configuration for intelligent query routing."""
 
@@ -245,6 +295,12 @@ class PaperezConfig(BaseModel):
     # Categories
     categories: dict[str, CategoryConfig] = Field(
         default_factory=dict, description="Search categories"
+    )
+
+    # Query intent detection
+    intent: QueryIntentConfig = Field(
+        default_factory=QueryIntentConfig,
+        description="Query intent detection configuration",
     )
 
     # Query routing

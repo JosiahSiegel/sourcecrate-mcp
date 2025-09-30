@@ -47,6 +47,8 @@ class QueryAnalysis:
     phrases: list[str]
     academic_indicators: list[str]
     source_preferences: dict[str, float]
+    is_author_search: bool = False  # True if query is an author name search
+    field_weights_profile: str = "default"  # "default" or "author_search"
 
 
 class QueryIntentDetector:
@@ -56,6 +58,7 @@ class QueryIntentDetector:
         self.intent_patterns = self._build_intent_patterns()
         self.temporal_patterns = self._build_temporal_patterns()
         self.academic_indicators = self._build_academic_indicators()
+        self.author_search_patterns = self._load_author_search_patterns()
         self.complexity_thresholds = {
             "simple": 2,  # 1-2 words
             "phrase": 5,  # 3-5 words
@@ -406,6 +409,33 @@ class QueryIntentDetector:
                 "book",
             ],
         }
+
+    def _load_author_search_patterns(self) -> list[str]:
+        """Load author search patterns from YAML config."""
+        try:
+            from ..config import get_current_config
+
+            config = get_current_config()
+            if config and hasattr(config, "intent") and config.intent:
+                return config.intent.author_search_patterns
+        except Exception as e:
+            logger.debug(f"Could not load author patterns from config: {e}")
+
+        # Fallback to default patterns if config not available
+        return [
+            r"^[A-Z][a-z]+\s+[A-Z][a-z]+$",  # "Geoffrey Hinton"
+            r"^[A-Z][a-z]+\s+[A-Z]\.\s+[A-Z][a-z]+$",  # "Geoffrey E. Hinton"
+            r"^[A-Z][a-z]+,\s+[A-Z]",  # "Hinton, G"
+            r"\bauthor:\s*[A-Z]",  # "author:Hinton"
+            r"\bby\s+[A-Z][a-z]+\s+[A-Z]",  # "papers by Geoffrey Hinton"
+        ]
+
+    def _detect_author_search(self, query: str) -> bool:
+        """Detect if query is an author name search using configured patterns."""
+        for pattern in self.author_search_patterns:
+            if re.search(pattern, query):
+                return True
+        return False
 
     def _detect_complexity(self, query: str) -> str:
         """Determine query complexity."""
@@ -772,6 +802,10 @@ class QueryIntentDetector:
         Returns:
             QueryAnalysis object with detected intent and preferences
         """
+        # Detect author search first (takes priority)
+        is_author_search = self._detect_author_search(query)
+        field_weights_profile = "author_search" if is_author_search else "default"
+
         # Calculate intent scores
         intent_scores = self._calculate_intent_scores(query)
         primary_intent = (
@@ -839,6 +873,8 @@ class QueryIntentDetector:
             phrases=phrases,
             academic_indicators=academic_indicators,
             source_preferences=source_preferences,
+            is_author_search=is_author_search,
+            field_weights_profile=field_weights_profile,
         )
 
     def get_routing_recommendations(self, query: str) -> dict[str, Any]:
@@ -951,13 +987,13 @@ class QueryIntentDetector:
 
         # Only expand queries when intent detection confidence is high enough
         # Prevents misclassification of domain-specific terms (e.g., "egyptology" → "egyptology review")
-        CONFIDENCE_THRESHOLD = 0.3
+        confidence_threshold = 0.3
 
-        if analysis.confidence < CONFIDENCE_THRESHOLD:
+        if analysis.confidence < confidence_threshold:
             # Low confidence - return empty to preserve original query
             logger.info(
                 f"🔒 Query expansion skipped for '{query}': "
-                f"Low confidence {analysis.confidence:.2f} < {CONFIDENCE_THRESHOLD}"
+                f"Low confidence {analysis.confidence:.2f} < {confidence_threshold}"
             )
             return expansions
 

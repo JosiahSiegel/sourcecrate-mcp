@@ -18,6 +18,9 @@ class RelevanceScorer:
     """Calculates relevance scores for academic papers based on query matching"""
 
     def __init__(self) -> None:
+        # Load field weights from YAML config
+        self.field_weights_profiles = self._load_field_weights_from_config()
+
         # Common stop words to ignore in relevance scoring
         self.stop_words = {
             "a",
@@ -98,13 +101,33 @@ class RelevanceScorer:
             "systematic review",  # Kept: specific academic term
         }
 
-        # Fields and their importance weights
-        self.field_weights = {
-            "title": 0.40,  # Most important for relevance
-            "abstract": 0.30,  # Very important
-            "keywords": 0.15,  # If available
-            "authors": 0.10,  # Author names can be relevant
-            "journal": 0.05,  # Journal name less important
+    def _load_field_weights_from_config(self) -> dict[str, dict[str, float]]:
+        """Load field weight profiles from YAML config."""
+        try:
+            from ..config import get_current_config
+
+            config = get_current_config()
+            if config and hasattr(config, "intent") and config.intent:
+                return config.intent.field_weights
+        except Exception as e:
+            logger.debug(f"Could not load field weights from config: {e}")
+
+        # Fallback to default field weights if config not available
+        return {
+            "default": {
+                "title": 0.40,  # Most important for relevance
+                "abstract": 0.30,  # Very important
+                "keywords": 0.15,  # If available
+                "authors": 0.10,  # Author names can be relevant
+                "journal": 0.05,  # Journal name less important
+            },
+            "author_search": {
+                "authors": 0.70,  # Prioritize author matches for author searches
+                "title": 0.15,
+                "abstract": 0.10,
+                "keywords": 0.05,
+                "journal": 0.00,
+            },
         }
 
     def normalize_text(self, text: str) -> str:
@@ -257,13 +280,16 @@ class RelevanceScorer:
         # Convert completeness (0-1) to bonus (0-0.1)
         return float(completeness) * 0.1
 
-    def score_paper_relevance(self, query: str, paper_data: dict) -> float:
+    def score_paper_relevance(
+        self, query: str, paper_data: dict, field_weights_profile: str = "default"
+    ) -> float:
         """
         Calculate overall relevance score for a paper
 
         Args:
             query: Search query string
             paper_data: Paper metadata dictionary
+            field_weights_profile: Field weight profile to use ("default" or "author_search")
 
         Returns:
             Relevance score between 0.0 and 1.0
@@ -271,13 +297,18 @@ class RelevanceScorer:
         if not query or not paper_data:
             return 0.0
 
+        # Get field weights for the specified profile
+        field_weights = self.field_weights_profiles.get(
+            field_weights_profile, self.field_weights_profiles["default"]
+        )
+
         query_keywords = self.extract_keywords(query)
         total_score = 0.0
 
         # 1. Content relevance score (weighted by field importance)
         content_score = 0.0
 
-        for field, weight in self.field_weights.items():
+        for field, weight in field_weights.items():
             field_value = paper_data.get(field, "")
 
             if field == "authors" and isinstance(field_value, list):
@@ -333,13 +364,16 @@ class RelevanceScorer:
 
         return min(total_score, 1.0)  # Cap at 1.0
 
-    def rank_papers(self, query: str, papers: list[dict]) -> list[dict]:
+    def rank_papers(
+        self, query: str, papers: list[dict], field_weights_profile: str = "default"
+    ) -> list[dict]:
         """
         Rank papers by relevance score
 
         Args:
             query: Search query string
             papers: List of paper dictionaries
+            field_weights_profile: Field weight profile to use ("default" or "author_search")
 
         Returns:
             Papers sorted by relevance score (highest first)
@@ -350,7 +384,9 @@ class RelevanceScorer:
         # Calculate relevance scores
         scored_papers = []
         for paper in papers:
-            relevance_score = self.score_paper_relevance(query, paper)
+            relevance_score = self.score_paper_relevance(
+                query, paper, field_weights_profile
+            )
             paper_with_score = paper.copy()
             paper_with_score["relevance_score"] = relevance_score
             scored_papers.append(paper_with_score)

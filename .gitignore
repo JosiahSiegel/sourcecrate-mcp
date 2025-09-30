@@ -99,4 +99,4 @@ logs/
 test_*.json
 .paperez/*
 *.txt
-test_*/
+test_*

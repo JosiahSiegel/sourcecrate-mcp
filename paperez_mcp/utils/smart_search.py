@@ -447,6 +447,33 @@ async def smart_downloadable_search(
 
                 # Enhanced routing provides intelligent query optimization
 
+                # Apply source-specific query transformations for author searches
+                if intent_analysis and intent_analysis.is_author_search:
+                    try:
+                        search_service = get_search_service()
+                        source_config = search_service.source_registry.get_source_config(
+                            source_name
+                        )
+                        if (
+                            source_config
+                            and source_config.capabilities
+                            and source_config.capabilities.author_search_transform
+                        ):
+                            # Apply author search transformation
+                            transformed_query = (
+                                source_config.capabilities.author_search_transform.format(
+                                    query=optimized_query
+                                )
+                            )
+                            logger.info(
+                                f"👤 Author search transformation for {source_name}: '{optimized_query}' → '{transformed_query}'"
+                            )
+                            optimized_query = transformed_query
+                    except Exception as e:
+                        logger.debug(
+                            f"Could not apply author search transformation for {source_name}: {e}"
+                        )
+
                 if optimized_query != query:
                     logger.info(
                         f"🔧 Enhanced query optimization for {source_name}: '{optimized_query}'"
@@ -668,7 +695,19 @@ async def smart_downloadable_search(
     # Apply relevance scoring and re-rank papers
     if unique_candidates:
         logger.info("🧠 Applying relevance scoring to improve result ranking...")
-        ranked_candidates = relevance_scorer.rank_papers(query, unique_candidates)
+        # Use author search field weights if this is an author query
+        field_weights_profile = (
+            intent_analysis.field_weights_profile
+            if intent_analysis
+            else "default"
+        )
+        if field_weights_profile == "author_search":
+            logger.info(
+                "👤 Using author-focused relevance scoring (authors: 70%, title: 15%)"
+            )
+        ranked_candidates = relevance_scorer.rank_papers(
+            query, unique_candidates, field_weights_profile
+        )
 
         # Filter out very low relevance papers (optional)
         # Only apply aggressive filtering if we have plenty of results

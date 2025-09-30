@@ -172,6 +172,13 @@ sources:
       pdf_validation_required: false
       search_priority: 10
       topic_routing_weight: 1.8
+      # Author search support
+      author_search_transform: 'au:"{query}"'
+      field_search_syntax:
+        author: 'au:"{query}"'
+        title: 'ti:"{query}"'
+        abstract: 'abs:"{query}"'
+        all: 'all:"{query}"'
 
   doaj:
     name: doaj
