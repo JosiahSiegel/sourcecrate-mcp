@@ -1608,6 +1608,10 @@ async def get_help() -> dict[str, Any]:
     """
     Get comprehensive configuration guidance and help for PaperezMCP.
 
+    ⚠️ AI USERS: You can call this proactively! Don't wait to be asked.
+    If you need a custom category or source for any research topic, create it.
+    Examples: regional databases, institutional repositories, domain-specific APIs.
+
     Provides detailed instructions on how to create configuration files, including
     file paths, schemas, available options, and examples for customizing the system.
 
@@ -1619,7 +1623,7 @@ async def get_help() -> dict[str, Any]:
         - config_guide: Complete configuration setup guide
         - file_paths: Required file paths for configuration
         - schema_info: Configuration schema and structure
-        - examples: Common configuration examples
+        - examples: Common configuration examples (including authentication & obscure sources)
         - troubleshooting: Common issues and solutions
     """
 
@@ -1630,7 +1634,13 @@ async def get_help() -> dict[str, Any]:
 
     help_info = {
         "config_guide": {
-            "overview": "PaperezMCP uses YAML configuration files to customize sources, categories, and behavior. Changes are detected dynamically - no restart required!",
+            "overview": (
+                "PaperezMCP uses YAML configuration files to customize sources, categories, and behavior.\n\n"
+                "📁 CONFIG FILE CHANGES: Detected dynamically - NO restart needed!\n"
+                "🔧 MCP SERVER CODE CHANGES: Require pushing to GitHub + restarting Claude Code.\n\n"
+                "💡 When to restart: Only when the Python code (.py files) changes. "
+                "Config (.yaml files) reload automatically."
+            ),
             "setup_approaches": {
                 "single_file": {
                     "description": "Traditional single config.yaml approach",
@@ -1656,6 +1666,13 @@ async def get_help() -> dict[str, Any]:
                 "🔄 SMART MERGING: All .yaml files in .paperez/config/ are automatically merged",
                 "✅ INSTANT VERIFICATION: Use get_status() to see your changes immediately",
                 "⚠️ SOURCE VALIDATION: Only reference sources that exist (see available_sources below)",
+            ],
+            "ai_user_guidance": [
+                "🤖 AI USERS: You are ENCOURAGED to create custom configs proactively",
+                "📚 Don't wait for user permission - if you need a specialized source, add it",
+                "🎯 Examples: Regional archives, institutional repos, domain-specific databases",
+                "✅ Call get_help() anytime to learn about adding custom sources",
+                "⚡ Changes take effect immediately - test with get_status() right after creating config",
             ],
         },
         "file_paths": {
@@ -1835,6 +1852,283 @@ categories:
   my_category:
     # custom category configuration""",
             },
+            "auth_api_key_header": {
+                "description": "API with authentication via header (common pattern)",
+                "content": """sources:
+  my_auth_api:
+    name: my_auth_api
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: API requiring authentication
+      base_url: https://api.example.com
+      search_path: /search
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: results
+      auth_type: Bearer  # or ApiKey, Token, etc.
+      auth_header: Authorization  # Header name
+      api_key: "YOUR_API_KEY_HERE"  # Your actual key
+      # Result: Authorization: Bearer YOUR_API_KEY_HERE
+      field_mappings:
+        title: title
+        authors: authors
+        doi: doi
+        year: year
+        abstract: abstract
+        url: url
+      rate_limit_delay: 0.5""",
+            },
+            "auth_query_param": {
+                "description": "API with key as query parameter (alternate pattern)",
+                "content": """sources:
+  my_api:
+    name: my_api
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: API with query parameter authentication
+      base_url: https://api.example.com
+      search_path: /search
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: data
+      extra_params:
+        api_key: "YOUR_KEY_HERE"
+        format: json
+      # Result: ?q=query&api_key=YOUR_KEY_HERE&format=json&limit=10
+      field_mappings:
+        title: title
+        authors: authors
+        doi: identifier
+        year: publication_year
+        abstract: summary
+        url: link
+      rate_limit_delay: 0.5""",
+            },
+            "complex_field_mappings": {
+                "description": "Handling nested JSON responses with arrays",
+                "content": """sources:
+  complex_api:
+    name: complex_api
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: API with complex nested JSON structure
+      base_url: https://api.example.com
+      search_path: /search
+      query_param: query
+      limit_param: max_results
+      response_format: json
+      results_path: data.results  # Nested under data.results
+      field_mappings:
+        title: metadata.title.0  # First element of title array
+        authors: contributors.authors  # Nested object path
+        doi: identifiers.doi  # Nested under identifiers
+        year: dates.published.year  # Deep nesting
+        abstract: content.summary.text
+        url: links.html  # Direct link
+
+      # JSON structure this handles:
+      # {
+      #   "data": {
+      #     "results": [
+      #       {
+      #         "metadata": {"title": ["Paper Title"]},
+      #         "contributors": {"authors": [...]},
+      #         "identifiers": {"doi": "10.1234/..."},
+      #         "dates": {"published": {"year": 2023}},
+      #         "content": {"summary": {"text": "Abstract..."}},
+      #         "links": {"html": "https://..."}
+      #       }
+      #     ]
+      #   }
+      # }
+      rate_limit_delay: 0.5""",
+            },
+            "institutional_repository": {
+                "description": "DSpace institutional repository (common university archive pattern)",
+                "content": """sources:
+  university_archive:
+    name: university_archive
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: "University XYZ Institutional Repository (DSpace)"
+      coverage: university research, theses, dissertations, faculty publications
+      base_url: https://repository.university.edu
+      search_path: /rest/items
+      query_param: query
+      limit_param: limit
+      response_format: json
+      field_mappings:
+        title: name
+        authors: metadata.dc.creator
+        abstract: metadata.dc.description.abstract
+        year: metadata.dc.date.issued
+        url: handle
+        doi: metadata.dc.identifier.doi
+      rate_limit_delay: 1.0  # Be respectful to university servers
+
+# NOTE: DSpace is used by many universities. Replace base_url with:
+# - MIT: https://dspace.mit.edu
+# - Cambridge: https://www.repository.cam.ac.uk
+# - Find yours: search "[your university] institutional repository dspace\"""",
+            },
+            "regional_preprint_server": {
+                "description": "Regional preprint server (ChemRxiv, bioRxiv pattern)",
+                "content": """sources:
+  chemrxiv:
+    name: chemrxiv
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: "ChemRxiv - Chemistry preprint server"
+      coverage: chemistry preprints, chemical research, early-stage chemistry findings
+      base_url: https://chemrxiv.org/engage/api-gateway/chemrxiv/public-api/v1
+      search_path: /items
+      query_param: term
+      limit_param: limit
+      response_format: json
+      results_path: itemHits
+      field_mappings:
+        title: item.title
+        authors: item.authors
+        abstract: item.abstract
+        year: item.publishedDate
+        doi: item.doi
+        url: item.url
+      rate_limit_delay: 0.5
+
+# Similar preprint servers you can add:
+# - bioRxiv (biology): biorxiv.org
+# - medRxiv (medicine): medrxiv.org
+# - SocArXiv (social sciences): osf.io/preprints/socarxiv
+# - PsyArXiv (psychology): osf.io/preprints/psyarxiv""",
+            },
+            "non_english_database": {
+                "description": "Non-English database (HAL French archive pattern)",
+                "content": """sources:
+  hal_french:
+    name: hal_french
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: "HAL - French open science archive"
+      coverage: French academic research, multidisciplinary, European research
+      base_url: https://api.archives-ouvertes.fr
+      search_path: /search
+      query_param: q
+      limit_param: rows
+      response_format: json
+      results_path: response.docs
+      extra_params:
+        wt: json
+        fl: "title_s,authFullName_s,abstract_s,producedDateY_i,uri_s,doiId_s"
+      field_mappings:
+        title: title_s.0
+        authors: authFullName_s
+        abstract: abstract_s.0
+        year: producedDateY_i
+        url: uri_s
+        doi: doiId_s
+      rate_limit_delay: 0.5
+
+# Other non-English archives:
+# - J-STAGE (Japan): jstage.jst.go.jp
+# - SciELO (Latin America): scielo.org
+# - CNKI (China): cnki.net
+# - Redalyc (Latin America): redalyc.org""",
+            },
+            "government_data_portal": {
+                "description": "Government data portal (data.gov pattern)",
+                "content": """sources:
+  datagov:
+    name: datagov
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: "Data.gov - US government open data"
+      coverage: government datasets, research data, policy documents, public data
+      base_url: https://catalog.data.gov/api/3/action
+      search_path: /package_search
+      query_param: q
+      limit_param: rows
+      response_format: json
+      results_path: result.results
+      field_mappings:
+        title: title
+        authors: organization.title
+        abstract: notes
+        year: metadata_created
+        url: url
+      rate_limit_delay: 0.2
+
+# Similar government portals:
+# - EU Open Data: data.europa.eu
+# - UK Government: data.gov.uk
+# - Canada: open.canada.ca
+# - Australia: data.gov.au""",
+            },
+            "domain_specific_astrophysics": {
+                "description": "Domain-specific example: NASA Astrophysics Data System",
+                "content": """sources:
+  nasa_ads:
+    name: nasa_ads
+    type: http_api
+    enabled: false  # Requires API key
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: "NASA ADS - Astrophysics Data System"
+      coverage: astronomy, astrophysics, planetary science, physics
+      base_url: https://api.adsabs.harvard.edu/v1
+      search_path: /search/query
+      query_param: q
+      limit_param: rows
+      response_format: json
+      results_path: response.docs
+      auth_type: Bearer
+      auth_header: Authorization
+      # api_key: "YOUR_NASA_ADS_KEY"  # Get from: ui.adsabs.harvard.edu
+      field_mappings:
+        title: title.0
+        authors: author
+        abstract: abstract
+        year: year
+        doi: doi.0
+        url: url
+      rate_limit_delay: 0.1
+
+# Instructions:
+# 1. Create account at ui.adsabs.harvard.edu
+# 2. Generate API key from account settings
+# 3. Add key above and set enabled: true""",
+            },
         },
         # Get dynamic category and source information from actual configuration
         "dynamic_info": dynamic_info,
@@ -1880,15 +2174,61 @@ categories:
                 "5. Verify 'functional: true' and correct source count",
                 "6. Test with browse_papers(force_category='your_category_name')",
             ],
+            "obscure_source_tips": {
+                "finding_api_documentation": [
+                    "🔍 Search: '[source name] API documentation'",
+                    "📚 Look for: OpenAPI spec, REST API docs, developer portal",
+                    "🧪 Test endpoint: Use curl or httpie to test API responses first",
+                    "📊 Inspect response: Understand JSON structure before field mapping",
+                    "💡 Similar patterns: Many archives use DSpace, ePrints, or OJS software",
+                ],
+                "common_repository_patterns": {
+                    "DSpace": "base_url/rest/items?query=X (many universities)",
+                    "EPrints": "base_url/cgi/search/simple?q=X&output=JSON (UK universities)",
+                    "OJS": "base_url/api/v1/submissions?searchPhrase=X (journal systems)",
+                    "Dataverse": "base_url/api/search?q=X&type=dataset (Harvard pattern)",
+                    "CKAN": "base_url/api/3/action/package_search?q=X (data portals)",
+                },
+                "rate_limiting_strategy": [
+                    "⏱️ Start conservative: rate_limit_delay: 1.0 (1 second between requests)",
+                    "📉 Decrease gradually: If API is fast and tolerant, try 0.5 or 0.2",
+                    "📈 Increase if needed: If you get 429 (Too Many Requests), increase delay",
+                    "🚫 Check limits: Some APIs have hourly limits (check documentation)",
+                    "⚡ Academic APIs usually generous: Typically thousands of requests per hour",
+                    "🤝 Be respectful: University/institutional servers may be less robust",
+                ],
+                "field_mapping_tips": [
+                    "🎯 Test with single result first: Use limit=1 to inspect response",
+                    "📝 Use browser/curl: Visit API endpoint directly to see JSON structure",
+                    "🔍 Handle arrays: Use .0 for first element (e.g., title.0)",
+                    "🔗 Nested paths: Use dots for nesting (e.g., metadata.authors.name)",
+                    "⚠️ Missing fields: System handles missing fields gracefully",
+                    "🧪 Test incrementally: Add one mapping at a time, verify with get_status()",
+                ],
+                "authentication_troubleshooting": [
+                    "🔑 Header vs Query: Check if API wants key in header or URL parameter",
+                    "📋 Token prefix: Some need 'Bearer', 'Token', or 'ApiKey' prefix",
+                    "🔐 Environment vars: Consider using env vars for keys (not in committed YAML)",
+                    "✅ Test first: Use curl with your key before adding to config",
+                    "📚 Check docs: API documentation usually has authentication examples",
+                ],
+            },
         },
         "quick_start": {
             "ai_user_workflow": [
-                "🚀 FASTEST: Use 'custom_category_only' example above",
+                "🤖 YOU CAN DO THIS UNPROMPTED - don't wait to be asked!",
+                "🚀 FASTEST: Use 'custom_category_only' example for simple needs",
+                "🔧 ADVANCED: Use real-world examples below for obscure sources",
                 "1. mkdir -p .paperez/config/",
-                "2. Create .paperez/config/my-research.yaml (use example above)",
-                "3. Immediately run get_status() to verify",
-                "4. Your category appears instantly in 'categories.category_details'",
-                "5. Test with browse_papers(force_category='my_ai_research')",
+                "2. Create .yaml file (use appropriate example)",
+                "3. Run get_status() to verify immediately",
+                "4. Test with browse_papers(force_category='your_category')",
+                "",
+                "💡 When to add custom sources:",
+                "- User needs regional/institutional database",
+                "- Research topic needs domain-specific source",
+                "- User mentions specific archive/repository",
+                "- You know of better sources for their query",
             ],
             "recommended_approach": "Start with 'custom_category_only' - uses existing sources, no complex setup required",
             "verification_command": "get_status()['config']['categories']['total_categories'] should increase after adding your config",
