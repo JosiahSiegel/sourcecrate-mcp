@@ -78,10 +78,8 @@ def filter_search_functions_by_category(
 
     Returns:
         Filtered dictionary containing only sources in the specified category,
-        or original dictionary if:
-        - force_category is None
-        - Category resolution fails
-        - Category has no sources
+        or original dictionary if force_category is None,
+        or EMPTY dictionary if category has no sources (prevents silent fallback to all sources).
 
     Example:
         >>> filtered = filter_search_functions_by_category(
@@ -89,6 +87,10 @@ def filter_search_functions_by_category(
         ... )
         >>> # Only philosophy sources remain in filtered dict
     """
+    # If no category specified, return all functions
+    if not force_category:
+        return dict(search_functions)
+
     category_sources = resolve_category_sources(force_category)
 
     if category_sources:
@@ -103,5 +105,10 @@ def filter_search_functions_by_category(
         )
         return filtered_functions
     else:
-        # No category filtering - return all functions
-        return dict(search_functions)
+        # Category has no sources - return EMPTY dict (not all sources!)
+        # This prevents silent fallback and will trigger error handling with helpful message
+        logger.error(
+            f"❌ Category '{force_category}' has no sources configured. "
+            f"Cannot search with empty category. Please add sources to the category configuration."
+        )
+        return {}

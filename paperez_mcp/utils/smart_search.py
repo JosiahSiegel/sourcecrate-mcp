@@ -235,10 +235,14 @@ async def smart_downloadable_search(
                 )
                 # Continue with normal routing if no priority sources available
         else:
-            # Category resolution failed - continue with normal routing
-            logger.info(
-                f"📊 Category '{force_category}' resolution failed, using normal BM25 routing"
+            # Category has no sources - return empty results with error
+            # Do NOT fall back to all sources (this would violate force_category intent)
+            logger.error(
+                f"❌ Category '{force_category}' has no sources configured. "
+                f"Cannot search with empty category. Returning 0 results."
             )
+            # Set source_priority to empty list to cause 0 results
+            source_priority = []
 
     logger.info(f"🚀 Source priority: {[s[0] for s in source_priority]}")
 
