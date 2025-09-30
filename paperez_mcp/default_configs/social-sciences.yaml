@@ -14,9 +14,9 @@ sources:
     cache_expire: 3600
     config:
       description: ERIC - Education Resources Information Center (FREE US Dept of Education database, no auth required)
-      coverage: education, pedagogy, learning, teaching, educational policy
-      base_url: https://api.eric.ed.gov
-      search_path: /search
+      coverage: education, pedagogy, learning, teaching, educational policy, 1.7M+ records
+      base_url: https://api.ies.ed.gov/eric
+      search_path: /
       query_param: search
       limit_param: rows
       response_format: json
@@ -27,16 +27,21 @@ sources:
         title: title
         authors: author
         abstract: description
-        journal: publicationtype
+        journal: publisher
         year: publicationdateyear
         doi: ""  # ERIC doesn't use DOIs
-        url: id  # ERIC ID that can be used to construct URL
+        url: id  # ERIC ID (e.g., "ED465027")
         citation_count: "0"  # ERIC doesn't provide citation counts
-        pdf_url: pdfurl
+        pdf_url: ""  # ERIC doesn't provide direct PDF URLs in API
       rate_limit_delay: 0.5
       # NOTE: ERIC is completely free, US government database
-      # 1.7M+ records since 1966
-      # API docs: https://eric.ed.gov/?api=
+      # 1.7M+ records since 1966 (educational research)
+      # API endpoint: https://api.ies.ed.gov/eric/
+      # API docs: https://eric.ed.gov/?api (OpenAPI/Swagger spec)
+      # Supports JSON, XML, CSV response formats
+      # Max 2000 rows per request, default 20
+      # Example: https://api.ies.ed.gov/eric/?search=learning&format=json&rows=20
+      # API testing: January 7, 2025 - Fully functional ✅
     capabilities:
       medical_focus: false
       stem_focus: false
@@ -186,9 +191,10 @@ categories:
     description: Education, pedagogy, learning sciences, educational policy
     type: standard
     sources:
-      - eric
+      - eric  # Primary education research database
       - osf_preprints  # Includes education-related preprints
       - openalex
+      - semantic_scholar
     max_results_per_source: 6
     parallel_search: true
 

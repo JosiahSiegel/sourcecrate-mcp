@@ -251,7 +251,7 @@ sources:
     type: http_api
     enabled: true
     timeout: 30
-    max_retries: 3
+    max_retries: 5  # Increased retries due to occasional connectivity issues
     cache_expire: 7200
     config:
       description: Internet Archive Scholar/Fatcat - Universal scholarly archive (FREE, open API, 35M+ papers, no auth required)
@@ -279,6 +279,13 @@ sources:
       # 35M+ research articles with full text access
       # API docs: https://api.fatcat.wiki/redoc
       # Scholar search: https://scholar.archive.org
+      #
+      # ⚠️ SERVER AVAILABILITY WARNING:
+      # Fatcat API has experienced intermittent connectivity issues
+      # API testing on Jan 7, 2025 showed connection refused errors
+      # This may be temporary server maintenance or infrastructure issues
+      # If errors persist, the source may need to be temporarily disabled
+      # Monitor: https://fatcat.wiki/ for service status updates
     capability_profile: archive
 
 

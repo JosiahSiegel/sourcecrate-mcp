@@ -27,18 +27,20 @@ PaperezMCP's default configuration includes only sources that:
 The following sources are included in the default configuration:
 - **Scientific & General:** OpenAlex, CrossRef, Semantic Scholar, arXiv, DOAJ, Fatcat/Internet Archive Scholar
 - **Medical & Biomedical:** PubMed/PMC, Europe PMC, ClinicalTrials.gov, bioRxiv, medRxiv
-- **Social Sciences & Education:** ERIC (US Dept of Education), OSF Preprints (includes SocArXiv, PsyArXiv, EarthArXiv)
+- **Social Sciences:** OSF Preprints (includes SocArXiv, PsyArXiv, EarthArXiv)
 - **Chemistry:** ChemRxiv
 - **Business & Economics:** RePEc
 - **Specialized Domains:** Open Library, CORE Repository (requires API key), CourtListener
 
-All default sources have been verified for Terms of Service compliance as of January 7, 2025.
+All default sources have been verified for Terms of Service compliance and API availability as of January 7, 2025.
+
+**API Testing Completed:** All enabled sources tested on January 7, 2025 to confirm JSON/XML API availability.
 
 ## 4. Restricted Sources
 
 ### 4.1 Sources Excluded from Default Configuration
 
-The following sources are explicitly excluded from default configurations due to Terms of Service restrictions:
+The following sources are explicitly excluded from default configurations due to Terms of Service restrictions or technical limitations:
 
 - **Google Scholar** - No official API; web scraping prohibited
 - **SSRN** - ToS restrictions on data mining

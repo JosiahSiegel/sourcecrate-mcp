@@ -1,6 +1,19 @@
 # Extended Preprints Configuration
 # Additional preprint servers for specialized fields beyond arXiv
 # Covers biology, medicine, chemistry, and other specialized domains
+#
+# API TESTING RESULTS (January 7, 2025):
+# ✅ bioRxiv - Fully functional, date-range based API
+# ✅ medRxiv - Fully functional, same API as bioRxiv
+# ✅ ChemRxiv - Fully functional, keyword search API
+#
+# IMPORTANT: bioRxiv/medRxiv API NOTES:
+# - API is date-range based, NOT keyword search based
+# - Endpoint: /details/{server}/{start_date}/{end_date}/{cursor}
+# - Returns 100 results per page with cursor-based pagination
+# - For keyword search, must query recent date ranges and filter client-side
+# - Example: https://api.biorxiv.org/details/biorxiv/2024-01-01/2024-01-10/0
+# - API docs: https://api.biorxiv.org/
 
 sources:
   biorxiv:
