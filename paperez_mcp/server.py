@@ -250,7 +250,9 @@ async def browse_papers(
                        💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
 
     🤖 AI USERS - WHEN TO CREATE CUSTOM CONFIGS:
-    If you get 0 results with an optimized query (2-4 keywords, proper terms), default sources may not cover this domain.
+    If you get 0 results with an optimized query (2-4 keywords, proper terms), this is a DOMAIN COVERAGE ISSUE, not a query problem.
+
+    ⚠️ CRITICAL: No amount of query optimization will help if default sources don't cover your research domain. Immediately check if your topic needs custom configs below.
 
     DEFAULT SOURCES COVER:
     ✅ STEM research (arXiv, Semantic Scholar, CrossRef, OpenAlex)
@@ -261,6 +263,7 @@ async def browse_papers(
     ✅ Open access repositories
 
     NEED CUSTOM CONFIGS FOR:
+    ❌ Humanities research (history, literature, philosophy - needs JSTOR, Project MUSE, Historical Abstracts)
     ❌ Regional/national archives (non-US government databases, national libraries)
     ❌ Institutional repositories (university archives, research institution databases)
     ❌ Non-English specialized databases (country-specific sources)
@@ -269,7 +272,12 @@ async def browse_papers(
 
     💡 PROACTIVE ACTION: If your search returns 0 results and the topic falls into the "NEED CUSTOM" category, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
 
-    EXAMPLE: Searching for "French colonial archives" returns 0 results → This needs a custom config for French national archives (Archives Nationales). Call get_help() immediately.
+    EXAMPLES:
+    - "French colonial archives" → French national archives (Archives Nationales)
+    - "King Arthur history" → JSTOR, Project MUSE, Historical Abstracts
+    - "Medieval literature" → Humanities databases (JSTOR, MUSE)
+
+    Call get_help() immediately to see configuration examples.
 
     Returns:
         List containing single dict with:
@@ -651,7 +659,9 @@ async def browse_papers_streaming(
                        - "recent" → arXiv, Semantic Scholar
 
     🤖 AI USERS - WHEN TO CREATE CUSTOM CONFIGS:
-    If you get 0 results with an optimized query (2-4 keywords, proper terms), default sources may not cover this domain.
+    If you get 0 results with an optimized query (2-4 keywords, proper terms), this is a DOMAIN COVERAGE ISSUE, not a query problem.
+
+    ⚠️ CRITICAL: No amount of query optimization will help if default sources don't cover your research domain. Immediately check if your topic needs custom configs below.
 
     DEFAULT SOURCES COVER:
     ✅ STEM research (arXiv, Semantic Scholar, CrossRef, OpenAlex)
@@ -662,6 +672,7 @@ async def browse_papers_streaming(
     ✅ Open access repositories
 
     NEED CUSTOM CONFIGS FOR:
+    ❌ Humanities research (history, literature, philosophy - needs JSTOR, Project MUSE, Historical Abstracts)
     ❌ Regional/national archives (non-US government databases, national libraries)
     ❌ Institutional repositories (university archives, research institution databases)
     ❌ Non-English specialized databases (country-specific sources)
@@ -670,7 +681,12 @@ async def browse_papers_streaming(
 
     💡 PROACTIVE ACTION: If your search returns 0 results and the topic falls into the "NEED CUSTOM" category, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
 
-    EXAMPLE: Searching for "French colonial archives" returns 0 results → This needs a custom config for French national archives (Archives Nationales). Call get_help() immediately.
+    EXAMPLES:
+    - "French colonial archives" → French national archives (Archives Nationales)
+    - "King Arthur history" → JSTOR, Project MUSE, Historical Abstracts
+    - "Medieval literature" → Humanities databases (JSTOR, MUSE)
+
+    Call get_help() immediately to see configuration examples.
 
     Returns:
         List containing streaming search results with:
@@ -964,7 +980,9 @@ async def download_papers(
                        💡 EXAMPLE: force_category="historical" for "JFK assassination" queries
 
     🤖 AI USERS - WHEN TO CREATE CUSTOM CONFIGS:
-    If you get 0 results with an optimized query (2-4 keywords, proper terms), default sources may not cover this domain.
+    If you get 0 results with an optimized query (2-4 keywords, proper terms), this is a DOMAIN COVERAGE ISSUE, not a query problem.
+
+    ⚠️ CRITICAL: No amount of query optimization will help if default sources don't cover your research domain. Immediately check if your topic needs custom configs below.
 
     DEFAULT SOURCES COVER:
     ✅ STEM research (arXiv, Semantic Scholar, CrossRef, OpenAlex)
@@ -975,6 +993,7 @@ async def download_papers(
     ✅ Open access repositories
 
     NEED CUSTOM CONFIGS FOR:
+    ❌ Humanities research (history, literature, philosophy - needs JSTOR, Project MUSE, Historical Abstracts)
     ❌ Regional/national archives (non-US government databases, national libraries)
     ❌ Institutional repositories (university archives, research institution databases)
     ❌ Non-English specialized databases (country-specific sources)
@@ -983,7 +1002,12 @@ async def download_papers(
 
     💡 PROACTIVE ACTION: If your search returns 0 results and the topic falls into the "NEED CUSTOM" category, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
 
-    EXAMPLE: Searching for "French colonial archives" returns 0 results → This needs a custom config for French national archives (Archives Nationales). Call get_help() immediately.
+    EXAMPLES:
+    - "French colonial archives" → French national archives (Archives Nationales)
+    - "King Arthur history" → JSTOR, Project MUSE, Historical Abstracts
+    - "Medieval literature" → Humanities databases (JSTOR, MUSE)
+
+    Call get_help() immediately to see configuration examples.
 
     Args (continued):
         convert_to_markdown: If True (default), convert PDFs to markdown. If False, keep as PDFs only.
@@ -2543,7 +2567,9 @@ categories:
                 "3. Run get_status() to verify immediately",
                 "4. Test with browse_papers(force_category='your_category')",
                 "",
-                "💡 When to add custom sources:",
+                "💡 When to add custom sources (DO THIS PROACTIVELY):",
+                "- Humanities research (history, literature, philosophy) - needs JSTOR/Project MUSE",
+                "- You get 0 relevant results with optimized query = wrong domain coverage",
                 "- User needs regional/institutional database",
                 "- Research topic needs domain-specific source",
                 "- User mentions specific archive/repository",
