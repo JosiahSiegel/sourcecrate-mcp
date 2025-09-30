@@ -81,7 +81,9 @@ def _lazy_import_search_functions() -> dict[str, Any]:
         logger.info("Search functions not initialized, forcing initialization...")
         success = manager.initialize()
         if not success:
-            logger.warning("Initialization from singleton failed, attempting direct import...")
+            logger.warning(
+                "Initialization from singleton failed, attempting direct import..."
+            )
             # Fallback: directly import search functions
             manager._import_search_functions_directly()
 
@@ -281,7 +283,7 @@ async def browse_papers(
             get_api_status(),
             user_preferences={
                 "prefer_recent": True,
-                "force_category": force_category
+                "force_category": force_category,
             },  # Prefer recent papers for browsing, respect force_category
         )
 
@@ -576,7 +578,7 @@ async def browse_papers_streaming(
     try:
         # Create and execute streaming search
         async for update in create_streaming_search(
-            available_search_funcs, query, limit, api_status.copy()
+            available_search_funcs, query, limit, get_api_status().copy()
         ):
             streaming_updates.append(update)
 
@@ -1346,13 +1348,19 @@ async def _get_current_categories_and_sources() -> dict[str, Any]:
         available_categories = {}
         for cat_name in category_resolver.get_available_categories():
             cat_info = category_resolver.get_category_info(cat_name)
-            available_categories[cat_name] = cat_info.get('description', 'Custom category')
+            available_categories[cat_name] = cat_info.get(
+                "description", "Custom category"
+            )
 
         # Get available sources with descriptions
         available_sources = {}
         for source_name, source_config in config.sources.items():
             if source_config.enabled:
-                description = getattr(source_config.config, 'description', f'{source_name} academic database')
+                description = getattr(
+                    source_config.config,
+                    "description",
+                    f"{source_name} academic database",
+                )
                 available_sources[source_name] = description
 
         return {
@@ -1360,7 +1368,7 @@ async def _get_current_categories_and_sources() -> dict[str, Any]:
             "available_sources": available_sources,
             "category_count": len(available_categories),
             "source_count": len(available_sources),
-            "note": "This data is loaded dynamically from your current configuration"
+            "note": "This data is loaded dynamically from your current configuration",
         }
 
     except Exception as e:
@@ -1369,7 +1377,7 @@ async def _get_current_categories_and_sources() -> dict[str, Any]:
             "available_sources": {"error": f"Could not load sources: {str(e)}"},
             "category_count": 0,
             "source_count": 0,
-            "note": "Error loading dynamic configuration data"
+            "note": "Error loading dynamic configuration data",
         }
 
 
@@ -1395,43 +1403,55 @@ async def _get_comprehensive_config_info() -> dict[str, Any]:
 
                 # Check which sources are available
                 current_api_status = get_api_status()
-                sources_available = [s for s in resolved_sources if current_api_status.get(s, False)]
-                sources_unavailable = [s for s in resolved_sources if not current_api_status.get(s, False)]
+                sources_available = [
+                    s for s in resolved_sources if current_api_status.get(s, False)
+                ]
+                sources_unavailable = [
+                    s for s in resolved_sources if not current_api_status.get(s, False)
+                ]
 
                 categories_info[cat_name] = {
                     "display_name": cat_config.display_name,
                     "description": cat_config.description,
                     "type": cat_config.type,
                     "sources": sources if cat_config.type == "standard" else [],
-                    "includes": cat_config.includes if cat_config.type == "meta" else [],
+                    "includes": (
+                        cat_config.includes if cat_config.type == "meta" else []
+                    ),
                     "resolved_sources": resolved_sources,
                     "sources_available": sources_available,
                     "sources_unavailable": sources_unavailable,
                     "functional": len(sources_available) > 0,
                     "max_results_per_source": cat_config.max_results_per_source,
                     "parallel_search": cat_config.parallel_search,
-                    "merge_strategy": getattr(cat_config, 'merge_strategy', None),
-                    "weights": getattr(cat_config, 'weights', {}),
+                    "merge_strategy": getattr(cat_config, "merge_strategy", None),
+                    "weights": getattr(cat_config, "weights", {}),
                 }
             except Exception as e:
                 # If there's an error processing a category, include error info
                 categories_info[cat_name] = {
                     "error": f"Failed to process category: {str(e)}",
                     "type": cat_config.type,
-                    "functional": False
+                    "functional": False,
                 }
 
         # Count functional categories
-        functional_categories = sum(1 for info in categories_info.values() if info.get("functional", False))
+        functional_categories = sum(
+            1 for info in categories_info.values() if info.get("functional", False)
+        )
         total_categories = len(categories_info)
 
         # Get routing configuration
-        routing_info = {
-            "enabled": config.routing.enabled,
-            "fallback_enabled": config.routing.fallback_enabled,
-            "domain_keywords": dict(config.routing.domain_keywords),
-            "domain_categories": dict(config.routing.domain_categories),
-        } if config.routing else {"enabled": False}
+        routing_info = (
+            {
+                "enabled": config.routing.enabled,
+                "fallback_enabled": config.routing.fallback_enabled,
+                "domain_keywords": dict(config.routing.domain_keywords),
+                "domain_categories": dict(config.routing.domain_categories),
+            }
+            if config.routing
+            else {"enabled": False}
+        )
 
         return {
             "configuration_loaded": True,
@@ -1442,28 +1462,36 @@ async def _get_comprehensive_config_info() -> dict[str, Any]:
                 "total_categories": total_categories,
                 "functional_categories": functional_categories,
                 "available_categories": list(categories_info.keys()),
-                "category_details": categories_info
+                "category_details": categories_info,
             },
             "sources": {
                 "total_sources": len(config.sources),
-                "enabled_sources": len([s for s, cfg in config.sources.items() if cfg.enabled]),
-                "available_sources": len([s for s in get_api_status().keys() if get_api_status().get(s, False)]),
-                "source_names": list(config.sources.keys())
+                "enabled_sources": len(
+                    [s for s, cfg in config.sources.items() if cfg.enabled]
+                ),
+                "available_sources": len(
+                    [
+                        s
+                        for s in get_api_status().keys()
+                        if get_api_status().get(s, False)
+                    ]
+                ),
+                "source_names": list(config.sources.keys()),
             },
             "routing": routing_info,
             "performance": {
                 "max_concurrent_searches": config.max_concurrent_searches,
                 "global_cache_enabled": config.global_cache_enabled,
                 "global_cache_expire": config.global_cache_expire,
-                "default_output_dir": config.default_output_dir
-            }
+                "default_output_dir": config.default_output_dir,
+            },
         }
 
     except Exception as e:
         return {
             "configuration_loaded": False,
             "error": f"Failed to load configuration: {str(e)}",
-            "yaml_config": "Configuration loading failed"
+            "yaml_config": "Configuration loading failed",
         }
 
 
@@ -1607,27 +1635,27 @@ async def get_help() -> dict[str, Any]:
                 "single_file": {
                     "description": "Traditional single config.yaml approach",
                     "path": ".paperez/config/config.yaml",
-                    "use_case": "Complete custom configuration"
+                    "use_case": "Complete custom configuration",
                 },
                 "multi_file": {
                     "description": "RECOMMENDED: Individual YAML files for different purposes",
                     "path": ".paperez/config/my-custom-category.yaml",
-                    "use_case": "Adding custom categories without complex source definitions"
-                }
+                    "use_case": "Adding custom categories without complex source definitions",
+                },
             },
             "setup_steps": [
                 "1. Create the configuration directory: mkdir -p .paperez/config/",
                 "2. Choose approach: single config.yaml OR individual .yaml files",
                 "3. Create your configuration file(s) using examples below",
                 "4. Use get_status() immediately to verify - changes are detected instantly!",
-                "5. Check 'categories.category_details' in get_status() output to confirm your categories are loaded"
+                "5. Check 'categories.category_details' in get_status() output to confirm your categories are loaded",
             ],
             "important_notes": [
                 "🔥 DYNAMIC LOADING: Changes take effect immediately - no restart needed!",
                 "📁 MULTI-FILE SUPPORT: Create separate .yaml files for different categories",
                 "🔄 SMART MERGING: All .yaml files in .paperez/config/ are automatically merged",
                 "✅ INSTANT VERIFICATION: Use get_status() to see your changes immediately",
-                "⚠️ SOURCE VALIDATION: Only reference sources that exist (see available_sources below)"
+                "⚠️ SOURCE VALIDATION: Only reference sources that exist (see available_sources below)",
             ],
         },
         "file_paths": {
@@ -1816,33 +1844,33 @@ categories:
                     "error": "1 validation error for PaperezConfig: sources - Input should be a valid dictionary",
                     "cause": "Empty or missing sources section when using category-only config",
                     "solution": "Remove 'sources:' line completely OR use existing sources in categories",
-                    "example": "Instead of defining new sources, reference existing ones like: sources: [arxiv, crossref]"
+                    "example": "Instead of defining new sources, reference existing ones like: sources: [arxiv, crossref]",
                 },
                 "category_not_appearing": {
                     "error": "Custom category doesn't show in get_status()",
                     "cause": "YAML syntax error or invalid source references",
-                    "solution": "Check YAML indentation, ensure sources exist in available_sources list below"
-                }
+                    "solution": "Check YAML indentation, ensure sources exist in available_sources list below",
+                },
             },
             "config_not_loading": [
                 "✅ FIRST: Run get_status() - config loads dynamically, check 'configuration_loaded' field",
                 "📁 Check file path: .paperez/config/ directory with .yaml extension",
                 "📝 Validate YAML syntax (use online YAML validator)",
                 "🔍 Check 'categories.total_categories' in get_status() - should increase with your additions",
-                "⚠️ Ensure source names match exactly those in 'available_sources' below"
+                "⚠️ Ensure source names match exactly those in 'available_sources' below",
             ],
             "sources_not_working": [
                 "🔍 Run get_status() and check 'config.categories.category_details.YOUR_CATEGORY.functional'",
                 "✅ Verify sources in your category exist in 'available_sources' list below",
                 "📊 Check 'sources_available' vs 'sources_unavailable' in get_status() output",
-                "⚡ API issues are temporary - categories remain functional when APIs recover"
+                "⚡ API issues are temporary - categories remain functional when APIs recover",
             ],
             "yaml_syntax_errors": [
                 "🔤 Use spaces for indentation, never tabs",
-                "📝 Quote strings with special characters: display_name: \"My Research & Analysis\"",
+                '📝 Quote strings with special characters: display_name: "My Research & Analysis"',
                 "📋 List format: sources: [arxiv, crossref] OR sources:\\n  - arxiv\\n  - crossref",
                 "🔍 Check brackets, quotes, and colons are properly closed",
-                "🧪 Test immediately with get_status() after each change"
+                "🧪 Test immediately with get_status() after each change",
             ],
             "verification_workflow": [
                 "1. Create your .yaml file in .paperez/config/",
@@ -1850,8 +1878,8 @@ categories:
                 "3. Check 'config.categories.total_categories' increased",
                 "4. Find your category in 'config.categories.category_details'",
                 "5. Verify 'functional: true' and correct source count",
-                "6. Test with browse_papers(force_category='your_category_name')"
-            ]
+                "6. Test with browse_papers(force_category='your_category_name')",
+            ],
         },
         "quick_start": {
             "ai_user_workflow": [
@@ -1860,7 +1888,7 @@ categories:
                 "2. Create .paperez/config/my-research.yaml (use example above)",
                 "3. Immediately run get_status() to verify",
                 "4. Your category appears instantly in 'categories.category_details'",
-                "5. Test with browse_papers(force_category='my_ai_research')"
+                "5. Test with browse_papers(force_category='my_ai_research')",
             ],
             "recommended_approach": "Start with 'custom_category_only' - uses existing sources, no complex setup required",
             "verification_command": "get_status()['config']['categories']['total_categories'] should increase after adding your config",
@@ -1869,8 +1897,8 @@ categories:
                 "✅ 'total_categories' increased by number of categories you added",
                 "✅ Your category name appears in 'available_categories' list",
                 "✅ 'functional': True in your category's details",
-                "✅ 'sources_available' > 0 for your category"
-            ]
+                "✅ 'sources_available' > 0 for your category",
+            ],
         },
     }
 
@@ -1934,6 +1962,7 @@ def main() -> None:
     # This ensures the server works correctly when invoked via local file path
     try:
         from paperez_mcp.config.singleton import get_config_manager
+
         manager = get_config_manager()
 
         logger.info("Initializing configuration system at server startup...")
@@ -1942,25 +1971,37 @@ def main() -> None:
         if success:
             # Verify configuration is complete
             if manager.config and manager.config.sources and manager.config.categories:
-                logger.info(f"✓ Configuration initialized successfully: "
-                           f"{len(manager.api_status)} sources, "
-                           f"{len(manager.search_functions)} search functions, "
-                           f"{len(manager.config.categories)} categories ready")
+                logger.info(
+                    f"✓ Configuration initialized successfully: "
+                    f"{len(manager.api_status)} sources, "
+                    f"{len(manager.search_functions)} search functions, "
+                    f"{len(manager.config.categories)} categories ready"
+                )
             else:
-                logger.warning("Configuration incomplete, attempting to rebuild from hardcoded defaults")
+                logger.warning(
+                    "Configuration incomplete, attempting to rebuild from hardcoded defaults"
+                )
                 manager._set_minimal_defaults()
                 if manager.search_functions:
-                    logger.info(f"✓ Rebuilt configuration: {len(manager.search_functions)} search functions ready")
+                    logger.info(
+                        f"✓ Rebuilt configuration: {len(manager.search_functions)} search functions ready"
+                    )
         else:
-            logger.warning("Configuration initialization failed, using comprehensive fallback")
+            logger.warning(
+                "Configuration initialization failed, using comprehensive fallback"
+            )
             # Force loading from hardcoded defaults
             manager._set_minimal_defaults()
 
             # Verify we have working search functions
             if manager.search_functions:
-                logger.info(f"✓ Fallback successful: {len(manager.search_functions)} search functions ready")
+                logger.info(
+                    f"✓ Fallback successful: {len(manager.search_functions)} search functions ready"
+                )
             else:
-                logger.error("CRITICAL: No search functions available even after fallback")
+                logger.error(
+                    "CRITICAL: No search functions available even after fallback"
+                )
                 logger.error("Server may not function properly - consider reinstalling")
     except Exception as e:
         logger.error(f"Error during startup initialization: {e}")

@@ -162,11 +162,14 @@ categories:
     description: Focus on historical and archival content including archaeology and ancient civilizations
     type: standard
     sources:
-      - openalex  # Primary source - 250M+ works with good historical coverage
-      - crossref  # From scientific.yaml for historical academic papers
-      - internet_archive  # Historical documents and archives
-      # - core_repository  # Enable after getting free API key from https://core.ac.uk/services/api
-    max_results_per_source: 8
+      - doaj  # Directory of Open Access Journals - actually hosts PDFs
+      # Metadata-only sources removed from defaults (openalex, crossref)
+      # These don't host PDFs, just link to paywalled publishers
+      # Users can add them to custom configs for browse_papers use case
+      #
+      # Note: Humanities/archaeology have limited open-access infrastructure
+      # compared to STEM fields. DOAJ provides what open-access content exists.
+    max_results_per_source: 10
     parallel_search: true
 
 # GAPS IDENTIFIED - NEED MORE SOURCES:

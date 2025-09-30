@@ -14,13 +14,14 @@ Benefits:
 """
 
 import os
-# Prevent Python from creating bytecode cache files
-os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
 
+# Prevent Python from creating bytecode cache files
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+import shutil
 import subprocess
 import sys
 import venv
-import shutil
 from pathlib import Path
 
 
@@ -38,6 +39,7 @@ def get_venv_path() -> Path:
     if "uvx-cache" in str(repo_root) or "tmp" in str(repo_root):
         # Use user cache directory for persistent venv
         import tempfile
+
         cache_dir = Path(tempfile.gettempdir()) / "paperez-mcp-cache"
         cache_dir.mkdir(exist_ok=True)
         return cache_dir / ".venv"
@@ -130,8 +132,10 @@ def is_already_installed() -> bool:
     """Check if paperez-mcp is already installed in the current Python environment."""
     try:
         import paperez_mcp
+
         # Also check if server module is available
-        from paperez_mcp.server import main
+        import paperez_mcp.server  # noqa: F401
+
         log("PaperezMCP already installed in current environment")
         return True
     except ImportError:
@@ -153,7 +157,7 @@ def install_dependencies(venv_path: Path) -> None:
             [str(python_executable), "--version"],
             capture_output=True,
             timeout=5,
-            text=True
+            text=True,
         )
         if test_result.returncode != 0:
             raise FileNotFoundError("Python executable not runnable")
@@ -167,8 +171,12 @@ def install_dependencies(venv_path: Path) -> None:
     # Upgrade pip first
     log("Upgrading pip...")
     try:
-        subprocess.run(pip_cmd + ["install", "--upgrade", "pip"],
-                      capture_output=True, text=True, timeout=60)
+        subprocess.run(
+            pip_cmd + ["install", "--upgrade", "pip"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
     except Exception as e:
         log(f"Warning: Failed to upgrade pip: {e}")
 
@@ -179,17 +187,24 @@ def install_dependencies(venv_path: Path) -> None:
         # Strategy 1: Install from local pyproject.toml (development)
         lambda: subprocess.run(
             pip_cmd + ["install", "-e", str(repo_root)],
-            capture_output=True, text=True, timeout=300
+            capture_output=True,
+            text=True,
+            timeout=300,
         ),
         # Strategy 2: Install directly from GitHub (production)
         lambda: subprocess.run(
-            pip_cmd + ["install", "git+https://github.com/JosiahSiegel/paperez-mcp.git"],
-            capture_output=True, text=True, timeout=300
+            pip_cmd
+            + ["install", "git+https://github.com/JosiahSiegel/paperez-mcp.git"],
+            capture_output=True,
+            text=True,
+            timeout=300,
         ),
         # Strategy 3: Install from current directory as package
         lambda: subprocess.run(
             pip_cmd + ["install", str(repo_root)],
-            capture_output=True, text=True, timeout=300
+            capture_output=True,
+            text=True,
+            timeout=300,
         ),
     ]
 
@@ -226,7 +241,7 @@ def install_dependencies(venv_path: Path) -> None:
         "asyncio-throttle>=1.0.2",
         "fake-useragent>=1.4.0",
         "free-proxy>=1.1.1",
-        "pdfplumber>=0.10.0"
+        "pdfplumber>=0.10.0",
     ]
 
     log("Installing core dependencies manually...")
@@ -235,8 +250,7 @@ def install_dependencies(venv_path: Path) -> None:
     for dep in core_deps:
         try:
             result = subprocess.run(
-                pip_cmd + ["install", dep],
-                capture_output=True, text=True, timeout=120
+                pip_cmd + ["install", dep], capture_output=True, text=True, timeout=120
             )
             if result.returncode == 0:
                 log(f"✓ Installed {dep}")
@@ -255,12 +269,13 @@ def install_dependencies(venv_path: Path) -> None:
 def launch_server(venv_path: Path) -> None:
     """Launch the paperez-mcp server."""
     # Ensure no bytecode is written
-    os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
+    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
     # Try package-based execution first (for installed packages like uvx)
     try:
         log("Attempting to run server from installed package...")
         from paperez_mcp.server import main as server_main
+
         server_main()
         return
     except ImportError as e:
@@ -275,6 +290,7 @@ def launch_server(venv_path: Path) -> None:
     if not server_script.exists():
         try:
             import importlib.util
+
             spec = importlib.util.find_spec("paperez_mcp.server")
             if spec and spec.origin:
                 server_script = Path(spec.origin)
@@ -293,12 +309,14 @@ def launch_server(venv_path: Path) -> None:
             [str(python_executable), "--version"],
             capture_output=True,
             timeout=5,
-            text=True
+            text=True,
         )
         if test_result.returncode != 0:
             raise FileNotFoundError("Python executable not runnable")
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as e:
-        log(f"Python executable not runnable for server launch ({e}), using current Python environment")
+        log(
+            f"Python executable not runnable for server launch ({e}), using current Python environment"
+        )
         python_executable = Path(sys.executable)
 
     log("Launching PaperezMCP server...")
@@ -316,7 +334,7 @@ def launch_server(venv_path: Path) -> None:
             stdin=sys.stdin,
             stdout=sys.stdout,
             stderr=sys.stderr,
-            check=False
+            check=False,
         )
     except KeyboardInterrupt:
         log("Server stopped by user")
@@ -335,6 +353,7 @@ def main() -> None:
             try:
                 log("Running from pre-installed environment...")
                 from paperez_mcp.server import main as server_main
+
                 server_main()
                 return
             except Exception as e:
@@ -355,6 +374,7 @@ def main() -> None:
     except Exception as e:
         log(f"Setup failed: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

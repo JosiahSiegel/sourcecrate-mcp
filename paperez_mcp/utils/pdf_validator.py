@@ -8,6 +8,7 @@ Addresses Issue 4.1: Low PDF Availability Across Sources from COMPREHENSIVE_ISSU
 import asyncio
 import logging
 import re
+from typing import cast
 
 import aiohttp
 
@@ -20,27 +21,37 @@ class PDFValidator:
     """Validates PDF URLs and provides fallback mechanisms for better PDF availability"""
 
     def __init__(self) -> None:
-        # Common PDF URL patterns for different sources
-        self.pdf_patterns = {
-            "arxiv": {
-                "pattern": r"arxiv\.org/abs/(\d{4}\.\d{4,5})",
-                "pdf_url": "http://arxiv.org/pdf/{}.pdf",
-            },
-            "pmc": {
-                "pattern": r"pmc/articles/PMC(\d+)",
-                "pdf_url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{}/pdf/",
-            },
-            "doi": {
-                "pattern": r"10\.\d{4,}\/[^\s]+",
-                "unpaywall_url": "https://api.unpaywall.org/v2/{}?email=paperez-mcp@github.com",
-            },
-        }
+        # Load PDF patterns from configuration
+        self.pdf_patterns = self._load_pdf_patterns_from_config()
 
         # Cache for validated URLs to avoid repeated checks
         self._validation_cache: dict[str, bool] = {}
 
         # Timeout for HTTP requests
         self.timeout = aiohttp.ClientTimeout(total=10, connect=5)
+
+    def _load_pdf_patterns_from_config(self) -> dict:
+        """Load PDF patterns entirely from configuration"""
+        patterns = {}
+
+        try:
+            config = get_current_config()
+
+            # Load PDF patterns from source configurations
+            for source_name, source_config in config.sources.items():
+                if not source_config.enabled or not source_config.config:
+                    continue
+
+                # Load any PDF patterns defined in the config
+                if source_config.config.get("pdf_patterns"):
+                    patterns[source_name] = source_config.config["pdf_patterns"]
+
+        except Exception as e:
+            logger.warning(f"Could not load PDF patterns from config: {e}")
+
+        # Return whatever patterns were loaded from config
+        # If no patterns are configured, validation will rely on actual URL checking
+        return patterns
 
     def get_all_pdf_patterns(self) -> dict[str, list[str]]:
         """
@@ -121,7 +132,7 @@ class PDFValidator:
         match = re.search(self.pdf_patterns["arxiv"]["pattern"], text)
         if match:
             arxiv_id = match.group(1)
-            return self.pdf_patterns["arxiv"]["pdf_url"].format(arxiv_id)
+            return cast(str, self.pdf_patterns["arxiv"]["pdf_url"].format(arxiv_id))
         return None
 
     def extract_pmc_pdf_url(self, text: str) -> str | None:
@@ -129,7 +140,7 @@ class PDFValidator:
         match = re.search(self.pdf_patterns["pmc"]["pattern"], text)
         if match:
             pmc_id = match.group(1)
-            return self.pdf_patterns["pmc"]["pdf_url"].format(pmc_id)
+            return cast(str, self.pdf_patterns["pmc"]["pdf_url"].format(pmc_id))
         return None
 
     def fix_common_pdf_url_issues(self, url: str) -> str:

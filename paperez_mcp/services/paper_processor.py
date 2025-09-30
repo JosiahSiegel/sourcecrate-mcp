@@ -41,12 +41,17 @@ async def process_papers(
 
     # Validate api_status and search_funcs before proceeding
     if not api_status:
-        logger.warning("Empty api_status provided to process_papers, attempting to load from config")
+        logger.warning(
+            "Empty api_status provided to process_papers, attempting to load from config"
+        )
         try:
             from paperez_mcp.config import get_current_config
+
             config = get_current_config()
             if config and config.sources:
-                api_status = {source: cfg.enabled for source, cfg in config.sources.items()}
+                api_status = {
+                    source: cfg.enabled for source, cfg in config.sources.items()
+                }
                 logger.info(f"Loaded {len(api_status)} sources from config")
         except Exception as e:
             logger.error(f"Failed to load api_status from config: {e}")
@@ -60,7 +65,7 @@ async def process_papers(
             "output_directory": output_dir,
             "query": query,
             "error_suggestions": {
-                "message": f"Search system initialization failed. No search functions available.",
+                "message": "Search system initialization failed. No search functions available.",
                 "domain_detected": None,
                 "suggestions": [
                     {

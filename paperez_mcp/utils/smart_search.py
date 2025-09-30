@@ -7,7 +7,7 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from ..config import get_current_config
+from ..config import get_search_service
 from .bm25_ranker import BM25SourceRanker
 from .enhanced_classifier import EnhancedTopicClassifier
 from .intelligent_error_handler import error_handler
@@ -174,7 +174,7 @@ async def smart_downloadable_search(
         # Split sources based on final relevance scores
         relevance_threshold = 0.3  # Sources below this go to fallback list
 
-        for source_name, description, final_score in adjusted_priority:
+        for source_name, _description, final_score in adjusted_priority:
             if final_score >= relevance_threshold:
                 # High relevance - search first
                 priority_sources_list.append(source_name)
@@ -191,39 +191,26 @@ async def smart_downloadable_search(
 
     # Priority-based category routing if specified
     if force_category:
-        category_sources = {
-            "preprints": ["arxiv", "socarxiv", "osf_preprints"],
-            "journals": ["crossref", "pubmed", "doaj", "europe_pmc", "semantic_scholar", "openalex", "pubmed_central"],  # Expanded to include more journal sources
-            "open_access": [
-                "core",
-                "doaj",
-                "arxiv",
-                "pubmed_central",
-                "socarxiv",
-                "osf_preprints",
-                "europe_pmc",
-            ],
-            "historical": ["openalex", "crossref", "internet_archive", "core"],  # OpenAlex first (always available), CORE last (needs API key)
-            "recent": [
-                "arxiv",
-                "semantic_scholar",
-                "pubmed_central",
-                "clinicaltrials",
-                "osf_preprints",
-                "europe_pmc",
-            ],
-            "medical": ["pubmed", "pubmed_central", "clinicaltrials", "europe_pmc"],
-        }
+        # Dynamically resolve category sources from YAML config
+        search_service = get_search_service()
+        try:
+            category_source_list = search_service.resolve_category_sources(
+                force_category
+            )
+        except Exception as e:
+            logger.warning(f"Could not resolve category '{force_category}': {e}")
+            category_source_list = []
 
-        if force_category in category_sources:
+        if category_source_list:
             # Get priority sources that are available
             priority_sources = [
-                s for s in category_sources[force_category] if api_status.get(s, False)
+                s for s in category_source_list if api_status.get(s, False)
             ]
 
             # Get remaining sources not in the priority category
             remaining_sources = [
-                s for s in all_available_sources
+                s
+                for s in all_available_sources
                 if s not in priority_sources and api_status.get(s, False)
             ]
 
@@ -234,7 +221,9 @@ async def smart_downloadable_search(
                 # Add priority sources with high priority descriptions
                 for s in priority_sources:
                     description = source_descriptions.get(s, f"Source: {s}")
-                    source_priority.append((s, f"{description} (PRIORITY: {force_category})"))
+                    source_priority.append(
+                        (s, f"{description} (PRIORITY: {force_category})")
+                    )
                     priority_sources_list.append(s)  # Track for conditional cascade
 
                 # Add remaining sources as backup (BUT WON'T SEARCH UNLESS NEEDED)
@@ -252,7 +241,11 @@ async def smart_downloadable_search(
                 )
                 # Continue with normal routing if no priority sources available
         else:
-            available_categories = list(category_sources.keys())
+            # Category not found - get list of available categories from config
+            from ..config import get_current_config
+
+            config = get_current_config()
+            available_categories = list(config.categories.keys())
             logger.warning(
                 f"❌ Unknown category '{force_category}'. Available: {available_categories}"
             )
@@ -274,22 +267,31 @@ async def smart_downloadable_search(
         logger.warning("🚨 Empty api_status detected, attempting to load from config")
         try:
             from paperez_mcp.config import get_current_config
+
             config = get_current_config()
             if config and config.sources:
-                api_status = {source: cfg.enabled for source, cfg in config.sources.items()}
+                api_status = {
+                    source: cfg.enabled for source, cfg in config.sources.items()
+                }
                 logger.info(f"Loaded {len(api_status)} sources from config")
             else:
                 # Try to get from search functions themselves
-                api_status = {name: True for name in search_funcs.keys() if name in search_funcs}
+                api_status = {
+                    name: True for name in search_funcs.keys() if name in search_funcs
+                }
                 logger.info(f"Using {len(api_status)} available search functions")
         except Exception as e:
             logger.error(f"Failed to load config: {e}")
             # As last resort, enable all available search functions
             api_status = {name: True for name in search_funcs.keys()}
-            logger.warning(f"Enabling all {len(api_status)} available search functions as fallback")
+            logger.warning(
+                f"Enabling all {len(api_status)} available search functions as fallback"
+            )
 
     # First pass: Check which sources would be skipped by BM25 and other criteria
-    available_sources = [(name, desc) for name, desc in source_priority if api_status.get(name, False)]
+    available_sources = [
+        (name, desc) for name, desc in source_priority if api_status.get(name, False)
+    ]
     sources_to_skip = []
     sources_to_search = []
 
@@ -311,9 +313,7 @@ async def smart_downloadable_search(
         intent_preference = intent_preferences.get(source_name, 0.5)
         if intent_preference < 0.3:  # Low intent-based preference
             skip_source = True
-            skip_reason = (
-                f"Low intent-based preference ({intent_preference:.3f})"
-            )
+            skip_reason = f"Low intent-based preference ({intent_preference:.3f})"
 
         # Domain-specific skipping logic
         if (
@@ -326,9 +326,10 @@ async def smart_downloadable_search(
             ):
                 skip_source = True
                 skip_reason = "Computer Science query, PubMed not relevant"
-        elif topic_classification and topic_classification.get(
-            "primary_topic"
-        ) in ["Medicine", "Biology"]:
+        elif topic_classification and topic_classification.get("primary_topic") in [
+            "Medicine",
+            "Biology",
+        ]:
             if (
                 source_name in ["socarxiv"]
                 and topic_classification.get("confidence", 0) > 0.7
@@ -337,7 +338,9 @@ async def smart_downloadable_search(
                 skip_reason = f"Biomedical query, {source_name} not relevant"
 
         if skip_source:
-            sources_to_skip.append((source_name, skip_reason, source_score, intent_preference))
+            sources_to_skip.append(
+                (source_name, skip_reason, source_score, intent_preference)
+            )
         else:
             sources_to_search.append((source_name, description))
 
@@ -346,7 +349,9 @@ async def smart_downloadable_search(
     if len(sources_to_search) == 0 and len(available_sources) > 0:
         # Force search at least the top 3 available sources
         min_sources_to_search = min(3, len(available_sources))
-        logger.warning(f"🚨 All sources would be skipped! Using fallback: searching top {min_sources_to_search} sources")
+        logger.warning(
+            f"🚨 All sources would be skipped! Using fallback: searching top {min_sources_to_search} sources"
+        )
 
         # Take the top sources by priority order
         for i in range(min_sources_to_search):
@@ -354,7 +359,11 @@ async def smart_downloadable_search(
             sources_to_search.append((source_name, description))
 
             # Remove from skip list if it was there
-            sources_to_skip = [(name, reason, score, pref) for name, reason, score, pref in sources_to_skip if name != source_name]
+            sources_to_skip = [
+                (name, reason, score, pref)
+                for name, reason, score, pref in sources_to_skip
+                if name != source_name
+            ]
 
     # Log skipped sources
     for source_name, skip_reason, source_score, intent_preference in sources_to_skip:
@@ -378,11 +387,15 @@ async def smart_downloadable_search(
         else:
             # Edge case: Source not in either list (should be rare now)
             # This can happen if a source was added after BM25 ranking
-            logger.warning(f"⚠️ Source {source_name} not in priority or additional lists, defaulting to priority")
+            logger.warning(
+                f"⚠️ Source {source_name} not in priority or additional lists, defaulting to priority"
+            )
             priority_sources_to_search.append((source_name, description))
 
     # Phase 1: Search priority sources first
-    logger.info(f"🎯 Phase 1: Searching {len(priority_sources_to_search)} priority sources")
+    logger.info(
+        f"🎯 Phase 1: Searching {len(priority_sources_to_search)} priority sources"
+    )
     for source_name, description in priority_sources_to_search:
         try:
             search_func = search_funcs.get(source_name)
@@ -440,16 +453,12 @@ async def smart_downloadable_search(
                     )
 
                 logger.info(f"🔎 Searching {source_name}: {description}")
-                results = await search_func(
-                    optimized_query, search_limit_per_source
-                )
+                results = await search_func(optimized_query, search_limit_per_source)
                 all_candidates.extend(results)
 
                 # Count papers with PDFs
                 has_pdfs = sum(
-                    1
-                    for r in results
-                    if r.get("pdf_url") or r.get("open_access_pdf")
+                    1 for r in results if r.get("pdf_url") or r.get("open_access_pdf")
                 )
 
                 search_log["sources_searched"].append(source_name)
@@ -586,7 +595,9 @@ async def smart_downloadable_search(
                         "error": "Search function not available",
                         "fallback": True,
                     }
-                    logger.warning(f"❌ [Fallback] {source_name}: Search function not available")
+                    logger.warning(
+                        f"❌ [Fallback] {source_name}: Search function not available"
+                    )
 
             except Exception as e:
                 search_log["results_per_source"][source_name] = {
@@ -608,6 +619,7 @@ async def smart_downloadable_search(
         source_name = paper.get("source", "")
         try:
             from paperez_mcp.config import get_current_config
+
             config = get_current_config()
             source_config = config.sources.get(source_name)
         except Exception:
@@ -707,7 +719,9 @@ async def smart_downloadable_search(
                     # Accept all PDF URLs returned by search sources - they are inherently trusted
                     # If a source provides a PDF URL, we trust it's downloadable
                     paper["download_success"] = True
-                    paper["download_note"] = "PDF URL from trusted search source - skipping HEAD verification"
+                    paper["download_note"] = (
+                        "PDF URL from trusted search source - skipping HEAD verification"
+                    )
                     downloadable_papers.append(paper)
                     logger.info(
                         f"✅ Accepted paper {len(downloadable_papers)}: {paper.get('title', '')[:50]}"

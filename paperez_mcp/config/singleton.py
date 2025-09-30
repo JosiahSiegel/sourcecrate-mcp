@@ -22,11 +22,11 @@ class ConfigurationManager:
     avoiding the timing issues that occur with module-level initialization.
     """
 
-    _instance: Optional['ConfigurationManager'] = None
+    _instance: Optional["ConfigurationManager"] = None
     _lock = threading.Lock()
     _initialized = False
 
-    def __new__(cls) -> 'ConfigurationManager':
+    def __new__(cls) -> "ConfigurationManager":
         """Ensure only one instance exists."""
         if cls._instance is None:
             with cls._lock:
@@ -45,11 +45,11 @@ class ConfigurationManager:
             if self._initialized:
                 return
 
-            self._config: Optional[PaperezConfig] = None
-            self._search_service: Optional[Any] = None
+            self._config: PaperezConfig | None = None
+            self._search_service: Any | None = None
             self._api_status: dict[str, bool] = {}
             self._search_functions: dict[str, Any] = {}
-            self._initialization_error: Optional[str] = None
+            self._initialization_error: str | None = None
             self._initialized = True
 
     def initialize(self) -> bool:
@@ -71,7 +71,9 @@ class ConfigurationManager:
                 logger.info("Initializing PaperezMCP configuration system...")
 
                 # Initialize configuration system
-                self._search_service = initialize_configuration_system(enable_hot_reload=False)
+                self._search_service = initialize_configuration_system(
+                    enable_hot_reload=False
+                )
 
                 # Get configuration
                 self._config = get_current_config()
@@ -81,8 +83,7 @@ class ConfigurationManager:
 
                 # Build API status
                 self._api_status = {
-                    source: cfg.enabled
-                    for source, cfg in self._config.sources.items()
+                    source: cfg.enabled for source, cfg in self._config.sources.items()
                 }
 
                 # Get search functions
@@ -112,37 +113,28 @@ class ConfigurationManager:
                 return False
 
     def _import_search_functions_directly(self) -> None:
-        """Import all available search functions directly as a fallback."""
+        """Import builtin search functions as a fallback."""
         try:
-            import importlib
+            # Import only the minimal builtin functions
+            # Everything else should be handled by generic HTTP client via YAML config
+            from paperez_mcp.builtin_functions import (
+                search_arxiv,
+                search_pubmed,
+                search_pubmed_central,
+            )
 
-            # Complete list of search functions to import
-            imports = [
-                ("arxiv", "paperez_mcp.api_clients.arxiv_client", "search_arxiv"),
-                ("pubmed", "paperez_mcp.api_clients.pubmed_client", "search_pubmed"),
-                ("pubmed_central", "paperez_mcp.api_clients.pubmed_client", "search_pubmed_central"),
-                ("crossref", "paperez_mcp.api_clients.crossref_client", "search_crossref"),
-                ("semantic_scholar", "paperez_mcp.api_clients.semantic_scholar_client", "search_semantic_scholar"),
-                ("europe_pmc", "paperez_mcp.api_clients.generic_http_client", "search_europe_pmc"),
-                ("doaj", "paperez_mcp.api_clients.generic_http_client", "search_doaj"),
-                ("clinicaltrials", "paperez_mcp.api_clients.generic_http_client", "search_clinicaltrials"),
-                ("openalex", "paperez_mcp.api_clients.generic_http_client", "search_openalex"),
-                ("openlibrary", "paperez_mcp.api_clients.generic_http_client", "search_openlibrary"),
-            ]
+            self._search_functions = {
+                "arxiv": search_arxiv,
+                "pubmed": search_pubmed,
+                "pubmed_central": search_pubmed_central,
+            }
 
-            for name, module_path, func_name in imports:
-                try:
-                    module = importlib.import_module(module_path)
-                    if hasattr(module, func_name):
-                        self._search_functions[name] = getattr(module, func_name)
-                        logger.debug(f"Imported {name} search function")
-                except Exception as e:
-                    logger.warning(f"Could not import {name}: {e}")
-
-            logger.info(f"Directly imported {len(self._search_functions)} search functions")
+            logger.info(
+                f"Imported {len(self._search_functions)} builtin search functions"
+            )
 
         except Exception as e:
-            logger.error(f"Failed to import search functions directly: {e}")
+            logger.error(f"Failed to import builtin search functions: {e}")
 
     def _set_minimal_defaults(self) -> None:
         """Set defaults by importing search functions directly and building minimal config."""
@@ -151,32 +143,26 @@ class ConfigurationManager:
         # First, import all available search functions
         self._import_search_functions_directly()
 
-        # Set API status for sources we have functions for
+        # Set API status based on available functions and YAML config
+        # Start with builtin functions
         self._api_status = {
             "arxiv": "arxiv" in self._search_functions,
             "pubmed": "pubmed" in self._search_functions,
             "pubmed_central": "pubmed_central" in self._search_functions,
-            "crossref": "crossref" in self._search_functions,
-            "semantic_scholar": "semantic_scholar" in self._search_functions,
-            "europe_pmc": "europe_pmc" in self._search_functions,
-            "doaj": "doaj" in self._search_functions,
-            "clinicaltrials": "clinicaltrials" in self._search_functions,
-            "openalex": "openalex" in self._search_functions,
-            "openlibrary": "openlibrary" in self._search_functions,
-            # Disabled sources
-            "core_repository": False,
-            "repec": False,
-            "federal_register": False,
-            "hathitrust": False,
-            "internet_archive": False,
-            "courtlistener": False,
         }
+
+        # Add other sources from config if available
+        if self._config and self._config.sources:
+            for source_name, source_config in self._config.sources.items():
+                if source_name not in self._api_status:
+                    self._api_status[source_name] = source_config.enabled
 
         # If config is not set, try to load it from YAML files
         if not self._config:
             try:
                 # Force configuration reload
                 from paperez_mcp.config import get_current_config
+
                 self._config = get_current_config()
                 if self._config:
                     logger.info("Loaded configuration from YAML files")
@@ -186,7 +172,7 @@ class ConfigurationManager:
         logger.info(f"Set defaults with {len(self._search_functions)} search functions")
 
     @property
-    def config(self) -> Optional[PaperezConfig]:
+    def config(self) -> PaperezConfig | None:
         """Get configuration, initializing if needed."""
         if self._config is None:
             self.initialize()
@@ -207,7 +193,7 @@ class ConfigurationManager:
         return self._search_functions
 
     @property
-    def search_service(self) -> Optional[Any]:
+    def search_service(self) -> Any | None:
         """Get search service, initializing if needed."""
         if self._search_service is None:
             self.initialize()
@@ -219,7 +205,7 @@ class ConfigurationManager:
         return self._config is not None
 
     @property
-    def initialization_error(self) -> Optional[str]:
+    def initialization_error(self) -> str | None:
         """Get initialization error if any."""
         return self._initialization_error
 
@@ -236,7 +222,7 @@ class ConfigurationManager:
 
 
 # Global singleton instance
-_config_manager: Optional[ConfigurationManager] = None
+_config_manager: ConfigurationManager | None = None
 
 
 def get_config_manager() -> ConfigurationManager:
