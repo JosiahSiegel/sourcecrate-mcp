@@ -3,13 +3,13 @@ BM25-based source ranking for intelligent source selection.
 Uses BM25 algorithm to rank academic sources based on query relevance.
 Supports both built-in and custom user-defined sources.
 
-Uses rank-bm25 library for industry-standard BM25 implementation.
+Uses bm25s library for high-performance BM25 implementation (500x faster than rank-bm25).
 """
 
 from dataclasses import dataclass
 from typing import Any
 
-from rank_bm25 import BM25Okapi
+import bm25s
 
 from ..config import get_current_config
 
@@ -826,11 +826,11 @@ class BM25SourceRanker:
         return fallback_profile
 
     def _initialize_bm25_index(self) -> None:
-        """Initialize BM25 index using rank-bm25 library."""
+        """Initialize BM25 index using bm25s library (500x faster than rank-bm25)."""
         # Build corpus from source profiles
         # Each document is the tokenized specialty terms of a source
         self.source_names_ordered = list(self.source_profiles.keys())
-        corpus = []
+        corpus_tokens = []
 
         for source_name in self.source_names_ordered:
             profile = self.source_profiles[source_name]
@@ -839,10 +839,12 @@ class BM25SourceRanker:
             for specialty_term in profile.specialty_terms:
                 tokens = self._tokenize_query(specialty_term)
                 doc_tokens.extend(tokens)
-            corpus.append(doc_tokens)
+            corpus_tokens.append(doc_tokens)
 
-        # Initialize BM25Okapi with custom parameters
-        self.bm25 = BM25Okapi(corpus, k1=self.k1, b=self.b)
+        # Initialize BM25S with custom parameters and index the corpus
+        # Using method="lucene" for compatibility with academic search conventions
+        self.bm25 = bm25s.BM25(k1=self.k1, b=self.b, method="lucene")
+        self.bm25.index(corpus_tokens)
 
     def _tokenize_query(self, query: str) -> list[str]:
         """Tokenize and normalize query."""
@@ -856,14 +858,33 @@ class BM25SourceRanker:
     def _calculate_bm25_score(
         self, query_terms: list[str], source_name: str
     ) -> float:
-        """Calculate BM25 score for a query against a source using rank-bm25."""
-        # Get all BM25 scores for the query
-        scores = self.bm25.get_scores(query_terms)
+        """Calculate BM25 score for a query against a source using bm25s."""
+        if not query_terms:
+            return 0.0
+
+        # BM25S retrieve returns (results, scores) where:
+        # - results: document indices sorted by score (shape: n_queries x k)
+        # - scores: BM25 scores for those documents (shape: n_queries x k)
+        # We request all documents to get scores for all sources
+        results, scores = self.bm25.retrieve(
+            query_terms, k=len(self.source_names_ordered)
+        )
 
         # Find the score for this specific source by name
         try:
             source_idx = self.source_names_ordered.index(source_name)
-            return float(scores[source_idx])
+
+            # BM25S returns arrays: results[0] has doc indices, scores[0] has their scores
+            # We need to find where our source_idx appears in results[0]
+            if len(results) > 0 and len(results[0]) > 0:
+                # Find position of source_idx in the results array
+                result_indices = results[0]
+                for i, doc_idx in enumerate(result_indices):
+                    if doc_idx == source_idx:
+                        return float(scores[0][i])
+
+            # Source not in results or no results
+            return 0.0
         except (ValueError, IndexError):
             # Source not in index, return 0
             return 0.0
