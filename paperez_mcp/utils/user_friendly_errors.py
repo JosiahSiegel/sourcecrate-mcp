@@ -464,6 +464,13 @@ class SearchErrorEnhancer:
         if not any(char in query for char in ['"', "AND", "OR"]):
             suggestions.append('Try using quotes for exact phrases: "machine learning"')
 
+        # Encourage custom source configuration for persistent issues
+        # Check if this is not using a custom category already
+        if not search_context.get("custom_category_used"):
+            suggestions.append(
+                "💡 Consider creating a custom category with specialized sources (call get_help() for guidance)"
+            )
+
         # Category suggestions based on domain
         suggested_categories = self._suggest_categories(detected_domain, query)
 
@@ -480,6 +487,21 @@ class SearchErrorEnhancer:
                 "Check spelling and remove special characters",
                 "Use broader terms if search is too specific",
             ],
+            "custom_config_suggestion": {
+                "message": "💡 AI TIP: If default sources aren't working, create a custom category!",
+                "actions": [
+                    "Call get_help() to see how to add custom sources",
+                    "Create .paperez/config/your-domain.yaml with specialized sources",
+                    "Add regional archives, institutional repositories, or domain-specific APIs",
+                    "You can do this proactively without waiting for user permission",
+                ],
+                "when_to_use": [
+                    "User needs specialized/regional database",
+                    "Default sources return poor results",
+                    "User mentions specific archive or institution",
+                    "Research topic needs domain-specific sources",
+                ],
+            },
         }
 
     def _detect_domain(self, query: str) -> str | None:

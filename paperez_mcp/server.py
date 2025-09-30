@@ -189,23 +189,36 @@ async def browse_papers(
     """
     🔍 BROWSE: Find and explore papers (metadata/abstracts only)
 
-    ⚠️ CRITICAL - QUERY EXPANSION REQUIRED FOR AI CALLERS:
-    Academic databases require SPECIFIC terminology. Generic queries return 0 results.
-    YOU MUST expand generic terms to academic equivalents before searching.
+    ⚠️ CRITICAL - QUERY OPTIMIZATION REQUIRED FOR AI CALLERS:
+    Academic databases use simple keyword matching. Follow these rules for best results:
 
-    Examples of required expansion:
-      ❌ User says: "egypt history"
-      ✅ You search: "egyptology ancient egypt pharaohs archaeology historical"
+    1. **OPTIMAL LENGTH**: Use 2-4 core concepts (not 1, not 7+)
+       - Too few terms (1) = too generic, poor relevance
+       - Too many terms (7+) = all must match (AND logic), often 0 results
+       - Sweet spot: 2-4 carefully chosen terms
 
-      ❌ User says: "climate"
-      ✅ You search: "climate change climatology atmospheric science environmental"
+    2. **SPACE = AND**: Most APIs treat spaces as AND (all terms must match)
+       ❌ "egyptology ancient egypt pharaohs archaeology" = 5 ANDs = 0 results
+       ✅ "ancient egypt archaeology" = 3 terms = good results
 
-      ❌ User says: "AI"
-      ✅ You search: "artificial intelligence machine learning neural networks deep learning"
+    3. **USE PHRASES**: Use quotes for multi-word concepts
+       ❌ "machine learning neural networks" = must match all 4 words separately
+       ✅ "machine learning" = phrase match, better precision
 
-    The tool searches ALL databases exhaustively, but databases can only match
-    the specific terms you provide. Be specific. Use academic vocabulary.
-    Add related technical terms and synonyms.
+    4. **ACADEMIC TERMINOLOGY**: Use specific domain vocabulary
+       ❌ "egypt history" (too generic)
+       ✅ "ancient egypt archaeology" (specific field)
+
+    GOOD query expansion examples:
+      User: "egypt history" → You: "ancient egypt archaeology"
+      User: "climate" → You: "climate change"
+      User: "AI" → You: "machine learning artificial intelligence"
+
+    BAD query expansion (TOO MANY TERMS - causes 0 results):
+      ❌ "egyptology ancient egypt pharaohs archaeology historical civilization"
+      ❌ "climate change climatology atmospheric environmental science"
+
+    Keep queries concise: 2-4 core concepts maximum for best results.
 
     ---
 
@@ -340,29 +353,47 @@ async def browse_papers(
         )
 
     # Convert to browse format (metadata only, remove download info)
+    # Filter to only include downloadable papers
     browse_results = []
+    non_downloadable_count = 0
     fallback_used = False
     original_category = None
 
     for paper in papers:
-        browse_paper = {
-            k: v
-            for k, v in paper.items()
-            if k
-            not in [
-                "download_success",
-                "local_markdown",
-                "markdown_characters",
-                "_fallback_used",
-                "_original_category",
-            ]
-        }
-        browse_results.append(browse_paper)
+        # Check if paper has PDF URL (downloadable)
+        has_pdf = paper.get("pdf_url") or paper.get("open_access_pdf")
+
+        if has_pdf:
+            # Include only downloadable papers
+            browse_paper = {
+                k: v
+                for k, v in paper.items()
+                if k
+                not in [
+                    "download_success",
+                    "local_markdown",
+                    "markdown_characters",
+                    "_fallback_used",
+                    "_original_category",
+                ]
+            }
+            # Add downloadability indicator
+            browse_paper["is_downloadable"] = True
+            browse_results.append(browse_paper)
+        else:
+            # Count papers without PDF URLs that were filtered out
+            non_downloadable_count += 1
 
         # Check if any paper used fallback
         if paper.get("_fallback_used"):
             fallback_used = True
             original_category = paper.get("_original_category")
+
+    # Log filtering statistics
+    if non_downloadable_count > 0:
+        logger.info(
+            f"📊 Filtered {non_downloadable_count} papers without PDF URLs (showing {len(browse_results)} downloadable papers)"
+        )
 
     result = {
         "results": browse_results,
@@ -373,6 +404,15 @@ async def browse_papers(
         ),
         "query": query,
     }
+
+    # Add filtering statistics if papers were filtered
+    if non_downloadable_count > 0:
+        result["filtering_stats"] = {
+            "total_candidates": len(papers),
+            "downloadable": len(browse_results),
+            "filtered_out": non_downloadable_count,
+            "note": "Only showing papers with available PDF downloads",
+        }
 
     # Add fallback notification if used
     if fallback_used:
@@ -432,23 +472,36 @@ async def browse_papers_streaming(
     """
     🌊 STREAMING BROWSE: Find papers with real-time results as sources complete
 
-    ⚠️ CRITICAL - QUERY EXPANSION REQUIRED FOR AI CALLERS:
-    Academic databases require SPECIFIC terminology. Generic queries return 0 results.
-    YOU MUST expand generic terms to academic equivalents before searching.
+    ⚠️ CRITICAL - QUERY OPTIMIZATION REQUIRED FOR AI CALLERS:
+    Academic databases use simple keyword matching. Follow these rules for best results:
 
-    Examples of required expansion:
-      ❌ User says: "egypt history"
-      ✅ You search: "egyptology ancient egypt pharaohs archaeology historical"
+    1. **OPTIMAL LENGTH**: Use 2-4 core concepts (not 1, not 7+)
+       - Too few terms (1) = too generic, poor relevance
+       - Too many terms (7+) = all must match (AND logic), often 0 results
+       - Sweet spot: 2-4 carefully chosen terms
 
-      ❌ User says: "climate"
-      ✅ You search: "climate change climatology atmospheric science environmental"
+    2. **SPACE = AND**: Most APIs treat spaces as AND (all terms must match)
+       ❌ "egyptology ancient egypt pharaohs archaeology" = 5 ANDs = 0 results
+       ✅ "ancient egypt archaeology" = 3 terms = good results
 
-      ❌ User says: "AI"
-      ✅ You search: "artificial intelligence machine learning neural networks deep learning"
+    3. **USE PHRASES**: Use quotes for multi-word concepts
+       ❌ "machine learning neural networks" = must match all 4 words separately
+       ✅ "machine learning" = phrase match, better precision
 
-    The tool searches ALL databases exhaustively, but databases can only match
-    the specific terms you provide. Be specific. Use academic vocabulary.
-    Add related technical terms and synonyms.
+    4. **ACADEMIC TERMINOLOGY**: Use specific domain vocabulary
+       ❌ "egypt history" (too generic)
+       ✅ "ancient egypt archaeology" (specific field)
+
+    GOOD query expansion examples:
+      User: "egypt history" → You: "ancient egypt archaeology"
+      User: "climate" → You: "climate change"
+      User: "AI" → You: "machine learning artificial intelligence"
+
+    BAD query expansion (TOO MANY TERMS - causes 0 results):
+      ❌ "egyptology ancient egypt pharaohs archaeology historical civilization"
+      ❌ "climate change climatology atmospheric environmental science"
+
+    Keep queries concise: 2-4 core concepts maximum for best results.
 
     ---
 
@@ -716,23 +769,36 @@ async def download_papers(
     """
     📄 GET FULL PAPERS: Download academic papers as files (PDF or Markdown)
 
-    ⚠️ CRITICAL - QUERY EXPANSION REQUIRED FOR AI CALLERS:
-    Academic databases require SPECIFIC terminology. Generic queries return 0 results.
-    YOU MUST expand generic terms to academic equivalents before searching.
+    ⚠️ CRITICAL - QUERY OPTIMIZATION REQUIRED FOR AI CALLERS:
+    Academic databases use simple keyword matching. Follow these rules for best results:
 
-    Examples of required expansion:
-      ❌ User says: "egypt history"
-      ✅ You search: "egyptology ancient egypt pharaohs archaeology historical"
+    1. **OPTIMAL LENGTH**: Use 2-4 core concepts (not 1, not 7+)
+       - Too few terms (1) = too generic, poor relevance
+       - Too many terms (7+) = all must match (AND logic), often 0 results
+       - Sweet spot: 2-4 carefully chosen terms
 
-      ❌ User says: "climate"
-      ✅ You search: "climate change climatology atmospheric science environmental"
+    2. **SPACE = AND**: Most APIs treat spaces as AND (all terms must match)
+       ❌ "egyptology ancient egypt pharaohs archaeology" = 5 ANDs = 0 results
+       ✅ "ancient egypt archaeology" = 3 terms = good results
 
-      ❌ User says: "AI"
-      ✅ You search: "artificial intelligence machine learning neural networks deep learning"
+    3. **USE PHRASES**: Use quotes for multi-word concepts
+       ❌ "machine learning neural networks" = must match all 4 words separately
+       ✅ "machine learning" = phrase match, better precision
 
-    The tool searches ALL databases exhaustively, but databases can only match
-    the specific terms you provide. Be specific. Use academic vocabulary.
-    Add related technical terms and synonyms.
+    4. **ACADEMIC TERMINOLOGY**: Use specific domain vocabulary
+       ❌ "egypt history" (too generic)
+       ✅ "ancient egypt archaeology" (specific field)
+
+    GOOD query expansion examples:
+      User: "egypt history" → You: "ancient egypt archaeology"
+      User: "climate" → You: "climate change"
+      User: "AI" → You: "machine learning artificial intelligence"
+
+    BAD query expansion (TOO MANY TERMS - causes 0 results):
+      ❌ "egyptology ancient egypt pharaohs archaeology historical civilization"
+      ❌ "climate change climatology atmospheric environmental science"
+
+    Keep queries concise: 2-4 core concepts maximum for best results.
 
     ---
 
