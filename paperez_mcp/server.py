@@ -6,6 +6,7 @@ A comprehensive academic research server with multi-source fallback,
 robust caching, and graceful error handling. Built with modular architecture.
 """
 
+import asyncio
 import logging
 import os
 import sys
@@ -352,34 +353,90 @@ async def browse_papers(
             metadata_only=True,
         )
 
+    # Validate PDF URLs to ensure papers are actually downloadable
+    validation_start_time = time.time()
+    validated_urls: dict[str, bool] = {}
+    urls_to_validate: list[tuple[int, str]] = []
+
+    # Collect all PDF URLs that need validation
+    for idx, paper in enumerate(papers):
+        pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
+        if pdf_url:
+            urls_to_validate.append((idx, pdf_url))
+
+    # Validate URLs concurrently (up to 20 at a time for performance)
+    if urls_to_validate:
+        logger.info(f"🔍 Validating {len(urls_to_validate)} PDF URLs...")
+        validation_tasks = [
+            pdf_validator.validate_pdf_url(url) for _, url in urls_to_validate
+        ]
+
+        # Run validations with timeout
+        try:
+            validation_results = await asyncio.gather(*validation_tasks, return_exceptions=True)
+
+            # Process validation results
+            for (_, url), result in zip(urls_to_validate, validation_results, strict=True):
+                if isinstance(result, Exception):
+                    logger.debug(f"Validation error for {url}: {result}")
+                    validated_urls[url] = False
+                elif isinstance(result, tuple) and len(result) == 2:
+                    is_valid, _ = result
+                    validated_urls[url] = is_valid
+                else:
+                    validated_urls[url] = False
+
+        except Exception as e:
+            logger.warning(f"PDF validation failed: {e}")
+            # Fall back to not validating (assume all URLs are valid)
+            for _, url in urls_to_validate:
+                validated_urls[url] = True
+
+    validation_time = time.time() - validation_start_time
+    valid_count = sum(1 for valid in validated_urls.values() if valid)
+    invalid_count = len(validated_urls) - valid_count
+
+    logger.info(
+        f"✅ PDF validation complete: {valid_count} valid, {invalid_count} invalid (took {validation_time:.2f}s)"
+    )
+
     # Convert to browse format (metadata only, remove download info)
-    # Filter to only include downloadable papers
+    # Filter to only include papers with validated PDF URLs
     browse_results = []
     non_downloadable_count = 0
+    invalid_pdf_count = 0
     fallback_used = False
     original_category = None
 
     for paper in papers:
-        # Check if paper has PDF URL (downloadable)
-        has_pdf = paper.get("pdf_url") or paper.get("open_access_pdf")
+        # Check if paper has PDF URL
+        pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
 
-        if has_pdf:
-            # Include only downloadable papers
-            browse_paper = {
-                k: v
-                for k, v in paper.items()
-                if k
-                not in [
-                    "download_success",
-                    "local_markdown",
-                    "markdown_characters",
-                    "_fallback_used",
-                    "_original_category",
-                ]
-            }
-            # Add downloadability indicator
-            browse_paper["is_downloadable"] = True
-            browse_results.append(browse_paper)
+        if pdf_url:
+            # Check if URL was validated successfully
+            is_valid = validated_urls.get(pdf_url, False)
+
+            if is_valid:
+                # Include only papers with validated PDFs
+                browse_paper = {
+                    k: v
+                    for k, v in paper.items()
+                    if k
+                    not in [
+                        "download_success",
+                        "local_markdown",
+                        "markdown_characters",
+                        "_fallback_used",
+                        "_original_category",
+                    ]
+                }
+                # Add downloadability indicators
+                browse_paper["is_downloadable"] = True
+                browse_paper["pdf_validated"] = True
+                browse_results.append(browse_paper)
+            else:
+                # Count papers with invalid PDF URLs
+                invalid_pdf_count += 1
         else:
             # Count papers without PDF URLs that were filtered out
             non_downloadable_count += 1
@@ -390,9 +447,11 @@ async def browse_papers(
             original_category = paper.get("_original_category")
 
     # Log filtering statistics
-    if non_downloadable_count > 0:
+    total_filtered = non_downloadable_count + invalid_pdf_count
+    if total_filtered > 0:
         logger.info(
-            f"📊 Filtered {non_downloadable_count} papers without PDF URLs (showing {len(browse_results)} downloadable papers)"
+            f"📊 Filtered {total_filtered} papers: {non_downloadable_count} without PDF URLs, "
+            f"{invalid_pdf_count} with invalid URLs (showing {len(browse_results)} validated papers)"
         )
 
     result = {
@@ -405,13 +464,24 @@ async def browse_papers(
         "query": query,
     }
 
+    # Add validation statistics (always include to show validation happened)
+    if urls_to_validate:
+        result["validation_stats"] = {
+            "urls_checked": len(validated_urls),
+            "valid_urls": valid_count,
+            "invalid_urls": invalid_count,
+            "validation_time_seconds": round(validation_time, 2),
+            "note": "PDF URLs validated via HEAD requests to ensure downloadability",
+        }
+
     # Add filtering statistics if papers were filtered
-    if non_downloadable_count > 0:
+    if total_filtered > 0:
         result["filtering_stats"] = {
             "total_candidates": len(papers),
-            "downloadable": len(browse_results),
-            "filtered_out": non_downloadable_count,
-            "note": "Only showing papers with available PDF downloads",
+            "validated_downloadable": len(browse_results),
+            "filtered_no_pdf": non_downloadable_count,
+            "filtered_invalid_pdf": invalid_pdf_count,
+            "note": "Only showing papers with validated, accessible PDF downloads",
         }
 
     # Add fallback notification if used
