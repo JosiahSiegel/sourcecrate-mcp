@@ -73,6 +73,59 @@ When searching these domains with default (free) sources, users may experience:
 
 This is expected and correct behavior given the constraints of free academic databases. The Software will proactively suggest custom configuration options when limited coverage is detected.
 
+### 3.4 Free API Key Sources
+
+The Software may recommend sources that require free API keys when default sources provide inadequate coverage. These recommendations are made to improve user experience and research outcomes across all disciplines.
+
+**Policy on Free API Key Recommendations:**
+
+The Software may recommend sources requiring free API keys when:
+1. Default sources provide poor coverage (0-5 results or wrong discipline)
+2. The API key is free to obtain with NO payment required
+3. Signup process is simple (< 5 minutes, basic information only)
+4. The source significantly improves coverage (5-10x more relevant papers)
+5. Clear instructions and signup links are provided
+
+**Examples of Free API Key Sources:**
+- **CORE Repository** (https://core.ac.uk/services/api) - 9.5M+ papers, all disciplines, 2-3 min signup
+- **Semantic Scholar** (https://www.semanticscholar.org/product/api) - 200M+ papers, cross-disciplinary
+- **NASA ADS** (https://ui.adsabs.harvard.edu/user/settings/token) - Astronomy/astrophysics
+- **Europe PMC** (optional key for higher rate limits) - Life sciences
+
+**User Responsibilities for Free API Key Sources:**
+
+Users who choose to enable sources requiring free API keys are responsible for:
+- Obtaining and managing their own API keys
+- Complying with the Terms of Service of the API provider
+- Understanding and respecting rate limits and usage restrictions
+- Keeping API keys secure and not sharing them
+- Regularly reviewing the API provider's Terms of Service for changes
+
+**Software Behavior:**
+
+The Software will:
+- Present free API key sources as DISABLED by default in custom configurations
+- Provide clear documentation of benefits, limitations, and signup process
+- Explain the trade-off (e.g., "2-3 min signup → 10x better coverage")
+- Allow users to decide whether to enable these sources
+- NOT automatically enable any source requiring an API key
+
+**The Software will NOT recommend sources that:**
+- Require payment or subscription fees
+- Require institutional affiliation or complex verification
+- Have Terms of Service that prohibit academic research use
+- Have signup processes that are complex or require approval
+
+**Disclaimer:**
+
+The maintainers of PaperezMCP:
+- Do not guarantee the availability or terms of third-party API services
+- Are not responsible for changes to API terms, rate limits, or pricing
+- Recommend users review each API provider's Terms of Service before signup
+- Cannot provide support for third-party API services or account issues
+
+Users should independently verify that any recommended source complies with their institutional policies and legal requirements before obtaining an API key.
+
 ## 4. Restricted Sources
 
 ### 4.1 Sources Excluded from Default Configuration

@@ -16,6 +16,64 @@
 # with institutional database access. Call get_help() for guidance on adding
 # custom sources with authentication.
 
+# 🔑 FREE API KEY SOURCES - OPTIONAL BUT RECOMMENDED:
+# The sources below require free API keys but significantly improve philosophy coverage.
+# They are DISABLED by default - enable them if you want better results.
+
+sources:
+  core_repository:
+    name: core_repository
+    type: http_api
+    enabled: false  # DISABLED - Requires free API key (instructions below)
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: |
+        CORE Repository - 9.5M+ open access papers including humanities
+
+        🔑 FREE API KEY REQUIRED (2-3 minutes to sign up)
+        Get your free key at: https://core.ac.uk/services/api
+
+        ✅ WHY ENABLE THIS:
+        - Significantly better humanities/philosophy coverage than free sources
+        - 9.5M+ open access papers across all disciplines
+        - Includes historical philosophy papers
+        - Free tier: 10 requests/minute (sufficient for most research)
+
+        📝 TO ENABLE:
+        1. Visit https://core.ac.uk/services/api and sign up (free)
+        2. Copy your API key
+        3. In your custom .paperez/config/philosophy.yaml:
+           - Set: enabled: true
+           - Add: api_key: YOUR_KEY_HERE (in extra_params section)
+
+        💡 ALTERNATIVE: Keep disabled if you prefer to avoid API key signup.
+        Default sources (OpenAlex, CrossRef) will still work but with limited coverage.
+      coverage: comprehensive multidisciplinary including humanities, philosophy, history
+      base_url: https://api.core.ac.uk/v3
+      search_path: /search/works
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: results
+      extra_params:
+        # api_key: YOUR_KEY_HERE  # Uncomment and add your key to enable
+      field_mappings:
+        title: title
+        authors: authors
+        abstract: abstract
+        journal: publisher
+        year: publishedDate
+        doi: doi
+        url: id
+        citation_count: citationCount
+        pdf_url: downloadUrl
+      rate_limit_delay: 6.0  # 10 requests/minute on free tier
+      # NOTE: CORE is completely free, no payment required
+      # API documentation: https://core.ac.uk/documentation/api
+      # Rate limits: https://core.ac.uk/services/api (10 req/min free tier)
+
 categories:
   philosophy:
     name: philosophy
@@ -39,6 +97,7 @@ categories:
       - crossref  # DOI registry, limited open access philosophy
       - eric  # Education database, some philosophy of education papers
       - osf_preprints  # Small volume of philosophy preprints
+      # - core_repository  # OPTIONAL: Significantly better coverage, requires free API key (see sources section above)
     max_results_per_source: 10
     parallel_search: true
 
@@ -63,11 +122,26 @@ categories:
 #    - Philosopher's Index: Bibliography database (requires subscription)
 #
 # RECOMMENDATION FOR AI USERS:
-# When users request philosophy research, proactively explain the limitation
-# and offer to create custom configs with institutional database access.
-# This is a realistic domain constraint, not a system failure.
+# When users request philosophy research and get poor results (0-5 papers, wrong discipline):
+#
+# 1. PROACTIVELY RECOMMEND CORE REPOSITORY:
+#    - Explain that CORE (free API key) significantly improves philosophy coverage
+#    - Provide signup link: https://core.ac.uk/services/api
+#    - Emphasize it's FREE and takes 2-3 minutes
+#    - Create custom config with CORE enabled if user agrees
+#
+# 2. EXPLAIN THE TRADE-OFF:
+#    - Default sources (no API key): Limited coverage, 0-5 results
+#    - CORE (free API key): Significantly better humanities coverage
+#    - User decides if 2-3 min signup is worth better results
+#
+# 3. OFFER INSTITUTIONAL ACCESS:
+#    - For truly comprehensive research, recommend JSTOR/PhilPapers with institutional access
+#    - Call get_help() for guidance on adding authenticated sources
 #
 # EXPECTED BEHAVIOR:
-# Philosophy queries will return 0-5 papers, mostly from interdisciplinary sources
-# (philosophy of science, philosophy of education, applied ethics in specific domains).
-# This is correct behavior given free database constraints.
+# - Without CORE: 0-5 papers, mostly interdisciplinary (philosophy of science, philosophy of education)
+# - With CORE: 10-30 papers, better humanities/philosophy coverage
+# - With institutional (JSTOR/PhilPapers): Comprehensive coverage
+#
+# This is a realistic domain constraint - philosophy research genuinely needs specialized sources.

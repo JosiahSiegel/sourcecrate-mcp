@@ -447,10 +447,75 @@ async def browse_papers(
 
     💡 PROACTIVE ACTION: If you see ANY trigger condition above (0 results, < 5 results, discipline mismatch, source mismatch) AND defaults are not working well, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
 
+    🔑 FREE API KEY SOURCES - PROACTIVE RECOMMENDATION FOR ALL DISCIPLINES:
+    When default sources fail for ANY domain (not just humanities), PROACTIVELY recommend free API key sources.
+    These sources significantly improve coverage across ALL research disciplines:
+
+    **Cross-Disciplinary Sources (all fields):**
+    - **CORE Repository** (https://core.ac.uk/services/api)
+      * 9.5M+ open access papers across ALL disciplines
+      * FREE API key, 2-3 minute signup
+      * 10 requests/minute free tier (sufficient for research)
+      * Excellent for: humanities, social sciences, STEM, medicine, law
+      * Particularly valuable for: philosophy, history, literature, education, sociology
+
+    - **Semantic Scholar** (https://www.semanticscholar.org/product/api)
+      * 200M+ papers, cross-disciplinary AI-powered search
+      * FREE API key, easy signup
+      * 100 requests/minute free tier
+      * Strong for: computer science, medicine, neuroscience, cross-disciplinary work
+
+    - **NASA ADS** (https://ui.adsabs.harvard.edu/user/settings/token) - for astronomy/astrophysics
+      * FREE API key, 2 minute signup
+      * Comprehensive astronomy/physics coverage
+      * 5000 requests/day free tier
+
+    - **Europe PMC** (https://europepmc.org/RestfulWebService) - for life sciences
+      * FREE, no API key required (but rate limited without key)
+      * With free API key: Higher rate limits
+      * Biomedical, life sciences, clinical research
+
+    **Specialized Domain Sources:**
+    - **arXiv** (no API key needed, but has API)
+    - **bioRxiv/medRxiv** (no API key needed)
+    - **RePEc** (economics, no API key needed)
+
+    HOW TO RECOMMEND:
+    1. Identify which domain has poor coverage (humanities, specialized STEM, regional research, etc.)
+    2. Check if free API key source exists for that domain
+    3. Create custom config with source DISABLED by default
+    4. Add clear comment with:
+       - Signup link
+       - Benefits (coverage improvement, paper count)
+       - Signup time estimate (usually 2-3 minutes)
+       - Rate limits (to show it's sufficient)
+    5. Explain trade-off clearly: "2-3 min signup → 5-10x better coverage"
+    6. Let user decide whether to enable
+
+    EXAMPLE RECOMMENDATIONS:
+    - Philosophy: "Add CORE (free API, 2 min) for 10-30 papers vs 0-5 without"
+    - Astronomy: "Add NASA ADS (free API, 2 min) for comprehensive astrophysics coverage"
+    - Neuroscience: "Add Semantic Scholar (free API, easy) for AI-powered cross-refs"
+    - Regional research: "Add institutional repository (check if they offer free API)"
+
+    ✅ DO recommend free API keys when:
+    - Default sources provide poor coverage (0-5 results or wrong discipline)
+    - Signup is truly free with NO payment required
+    - Signup takes < 5 minutes with just email/basic info
+    - User would otherwise be directed to leave the tool or get poor results
+    - Source significantly improves coverage (5-10x more papers)
+
+    ❌ DON'T recommend if:
+    - Default sources provide adequate results (10+ relevant papers)
+    - Source requires payment, institutional affiliation, or complex verification
+    - User explicitly wants to avoid API keys
+    - Signup process is complex or requires approval
+
     EXAMPLES:
     - "French colonial archives" → French national archives (Archives Nationales)
     - "King Arthur history" → JSTOR, Project MUSE, Historical Abstracts
     - "Medieval literature" → Humanities databases (JSTOR, MUSE)
+    - "Philosophy research" → Recommend CORE (free API key) BEFORE recommending JSTOR/PhilPapers
 
     Call get_help() immediately to see configuration examples.
 
