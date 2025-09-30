@@ -185,6 +185,11 @@ class IntelligentResultCache:
             if time.time() - entry.timestamp >= self.default_ttl:
                 continue
 
+            # Only use similarity matching within the SAME source
+            # This prevents cache poisoning across sources (e.g., europe_pmc results when asking for crossref)
+            if entry.source != source:
+                continue
+
             # Calculate similarity with original cached query
             similarity = self._calculate_query_similarity(query, entry.original_query)
 
@@ -194,7 +199,7 @@ class IntelligentResultCache:
                 self.hits += 1
 
                 logger.debug(
-                    f"📋 Similar cache hit (sim={similarity:.2f}) for: {query[:50]}..."
+                    f"📋 Similar cache hit (sim={similarity:.2f}) for: {query[:50]}... [source: {source}]"
                 )
                 return entry.results
 
@@ -759,12 +764,15 @@ async def optimize_search_performance(
     all_results = []
     remaining_sources = []
 
+    # Prepare cache filters to include force_category
+    cache_filters = {"force_category": force_category} if force_category else None
+
     for source_name, search_func in sources_to_search.items():
         if not api_status.get(source_name, True):
             continue
 
         total_requests += 1
-        cached_results = intelligent_cache.get(query, source_name)
+        cached_results = intelligent_cache.get(query, source_name, cache_filters)
 
         if cached_results:
             cache_hits += 1
@@ -781,8 +789,8 @@ async def optimize_search_performance(
 
         for source_name, results, success in search_results:
             if success and results:
-                # Cache successful results
-                intelligent_cache.put(query, source_name, results)
+                # Cache successful results with force_category filter
+                intelligent_cache.put(query, source_name, results, cache_filters)
                 all_results.extend(results)
 
             # Track source performance
