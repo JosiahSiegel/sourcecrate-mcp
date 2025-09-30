@@ -95,6 +95,7 @@ class ConfigManager:
         self._config_lock = threading.RLock()
         self._observers: list = []  # List[Observer] when watchdog available
         self._reload_callbacks: list[Callable[[PaperezConfig], None]] = []
+        self._failed_configs: list[dict[str, str]] = []  # Track failed config loads
 
         # Configuration directory paths (load ALL YAML files from these directories)
         # Get the root directory of the paperez-mcp package with fallback search
@@ -370,6 +371,9 @@ class ConfigManager:
     def _load_config(self) -> None:
         """Load and merge configuration from all sources (directories and individual files)."""
         with self._config_lock:
+            # Clear failed configs list for fresh tracking
+            self._failed_configs = []
+
             try:
                 # Check if user wants to disable default sources by checking all config directories
                 use_defaults = True
@@ -523,6 +527,13 @@ class ConfigManager:
                 logger.debug(f"Loaded config file: {yaml_file}")
             except Exception as e:
                 logger.warning(f"Failed to load config file {yaml_file}: {e}")
+                self._failed_configs.append(
+                    {
+                        "file": str(yaml_file),
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    }
+                )
 
         if yaml_files:
             logger.info(f"Loaded {len(yaml_files)} YAML files from {directory_path}")
@@ -651,6 +662,15 @@ class ConfigManager:
                 # Force configuration load if not already loaded
                 self._load_config()
             return self._config  # type: ignore  # _load_config ensures this is not None
+
+    def get_failed_configs(self) -> list[dict[str, str]]:
+        """Get list of configuration files that failed to load.
+
+        Returns:
+            List of dicts containing 'file', 'error', and 'error_type' for each failed config.
+        """
+        with self._config_lock:
+            return self._failed_configs.copy()
 
     def add_reload_callback(self, callback: Callable[[PaperezConfig], None]) -> None:
         """Add callback to be called when configuration is reloaded."""

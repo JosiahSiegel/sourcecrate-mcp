@@ -276,12 +276,16 @@ async def browse_papers(
     1. ❌ ZERO RESULTS: Optimized query (2-4 keywords) returns 0 papers
     2. ❌ LOW RESULTS: < 5 papers for well-known topics/figures (e.g., "Kant ethics" with 2 results)
     3. ❌ DISCIPLINE MISMATCH: Philosophy query returns only CS/AI papers (wrong field, not philosophy scholarship)
-    4. ❌ DOMAIN KEYWORDS: Query contains "Kant", "philosophy", "ethics", "literature", "history"
-       → Trigger JSTOR/humanities sources immediately, even if you get STEM results
-    5. ❌ SOURCE MISMATCH: All results from arXiv/Semantic Scholar for humanities topics
+    4. ❌ SOURCE MISMATCH: All results from arXiv/Semantic Scholar for humanities topics
 
     💡 QUALITY > QUANTITY: 2 CS papers about formalizing Kant ≠ philosophy scholarship coverage
        Even if you get results, check if they're FROM the right discipline, not just ABOUT the topic.
+
+    ✅ DON'T CREATE CUSTOM CONFIG IF:
+    - Default sources return relevant, high-quality results that match your query intent
+    - Results are FROM the right discipline (philosophy papers for philosophy queries, not CS papers)
+    - You get enough papers that fully answer the query (even if < 5, quality matters more)
+    - Sources are appropriate for the discipline (CrossRef/OpenAlex can include humanities journals)
 
     DEFAULT SOURCES COVER:
     ✅ STEM research (arXiv, Semantic Scholar, CrossRef, OpenAlex)
@@ -294,15 +298,13 @@ async def browse_papers(
     NEED CUSTOM CONFIGS FOR:
     ❌ Humanities research (history, literature, philosophy - needs JSTOR, Project MUSE, Historical Abstracts)
        NOTE: These sources provide academic PAPERS about texts, not the primary texts themselves
-       TRIGGER KEYWORDS: Kant, Hegel, Aristotle, Plato, Shakespeare, Victorian, Renaissance, medieval,
-                         ancient Greece/Rome, philosophy, ethics, aesthetics, literary criticism, historiography
     ❌ Regional/national archives (non-US government databases, national libraries)
     ❌ Institutional repositories (university archives, research institution databases)
     ❌ Non-English specialized databases (country-specific sources)
     ❌ Specialized domains (specific industry databases, niche academic fields)
     ❌ Subscription-only databases requiring authentication
 
-    💡 PROACTIVE ACTION: If you see ANY trigger condition above (0 results, < 5 results, discipline mismatch, domain keywords, source mismatch) and the topic falls into the "NEED CUSTOM" category, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
+    💡 PROACTIVE ACTION: If you see ANY trigger condition above (0 results, < 5 results, discipline mismatch, source mismatch) AND defaults are not working well, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
 
     EXAMPLES:
     - "French colonial archives" → French national archives (Archives Nationales)
@@ -717,12 +719,16 @@ async def browse_papers_streaming(
     1. ❌ ZERO RESULTS: Optimized query (2-4 keywords) returns 0 papers
     2. ❌ LOW RESULTS: < 5 papers for well-known topics/figures (e.g., "Kant ethics" with 2 results)
     3. ❌ DISCIPLINE MISMATCH: Philosophy query returns only CS/AI papers (wrong field, not philosophy scholarship)
-    4. ❌ DOMAIN KEYWORDS: Query contains "Kant", "philosophy", "ethics", "literature", "history"
-       → Trigger JSTOR/humanities sources immediately, even if you get STEM results
-    5. ❌ SOURCE MISMATCH: All results from arXiv/Semantic Scholar for humanities topics
+    4. ❌ SOURCE MISMATCH: All results from arXiv/Semantic Scholar for humanities topics
 
     💡 QUALITY > QUANTITY: 2 CS papers about formalizing Kant ≠ philosophy scholarship coverage
        Even if you get results, check if they're FROM the right discipline, not just ABOUT the topic.
+
+    ✅ DON'T CREATE CUSTOM CONFIG IF:
+    - Default sources return relevant, high-quality results that match your query intent
+    - Results are FROM the right discipline (philosophy papers for philosophy queries, not CS papers)
+    - You get enough papers that fully answer the query (even if < 5, quality matters more)
+    - Sources are appropriate for the discipline (CrossRef/OpenAlex can include humanities journals)
 
     DEFAULT SOURCES COVER:
     ✅ STEM research (arXiv, Semantic Scholar, CrossRef, OpenAlex)
@@ -735,15 +741,13 @@ async def browse_papers_streaming(
     NEED CUSTOM CONFIGS FOR:
     ❌ Humanities research (history, literature, philosophy - needs JSTOR, Project MUSE, Historical Abstracts)
        NOTE: These sources provide academic PAPERS about texts, not the primary texts themselves
-       TRIGGER KEYWORDS: Kant, Hegel, Aristotle, Plato, Shakespeare, Victorian, Renaissance, medieval,
-                         ancient Greece/Rome, philosophy, ethics, aesthetics, literary criticism, historiography
     ❌ Regional/national archives (non-US government databases, national libraries)
     ❌ Institutional repositories (university archives, research institution databases)
     ❌ Non-English specialized databases (country-specific sources)
     ❌ Specialized domains (specific industry databases, niche academic fields)
     ❌ Subscription-only databases requiring authentication
 
-    💡 PROACTIVE ACTION: If you see ANY trigger condition above (0 results, < 5 results, discipline mismatch, domain keywords, source mismatch) and the topic falls into the "NEED CUSTOM" category, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
+    💡 PROACTIVE ACTION: If you see ANY trigger condition above (0 results, < 5 results, discipline mismatch, source mismatch) AND defaults are not working well, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
 
     EXAMPLES:
     - "French colonial archives" → French national archives (Archives Nationales)
@@ -1070,12 +1074,16 @@ async def download_papers(
     1. ❌ ZERO RESULTS: Optimized query (2-4 keywords) returns 0 papers
     2. ❌ LOW RESULTS: < 5 papers for well-known topics/figures (e.g., "Kant ethics" with 2 results)
     3. ❌ DISCIPLINE MISMATCH: Philosophy query returns only CS/AI papers (wrong field, not philosophy scholarship)
-    4. ❌ DOMAIN KEYWORDS: Query contains "Kant", "philosophy", "ethics", "literature", "history"
-       → Trigger JSTOR/humanities sources immediately, even if you get STEM results
-    5. ❌ SOURCE MISMATCH: All results from arXiv/Semantic Scholar for humanities topics
+    4. ❌ SOURCE MISMATCH: All results from arXiv/Semantic Scholar for humanities topics
 
     💡 QUALITY > QUANTITY: 2 CS papers about formalizing Kant ≠ philosophy scholarship coverage
        Even if you get results, check if they're FROM the right discipline, not just ABOUT the topic.
+
+    ✅ DON'T CREATE CUSTOM CONFIG IF:
+    - Default sources return relevant, high-quality results that match your query intent
+    - Results are FROM the right discipline (philosophy papers for philosophy queries, not CS papers)
+    - You get enough papers that fully answer the query (even if < 5, quality matters more)
+    - Sources are appropriate for the discipline (CrossRef/OpenAlex can include humanities journals)
 
     DEFAULT SOURCES COVER:
     ✅ STEM research (arXiv, Semantic Scholar, CrossRef, OpenAlex)
@@ -1088,15 +1096,13 @@ async def download_papers(
     NEED CUSTOM CONFIGS FOR:
     ❌ Humanities research (history, literature, philosophy - needs JSTOR, Project MUSE, Historical Abstracts)
        NOTE: These sources provide academic PAPERS about texts, not the primary texts themselves
-       TRIGGER KEYWORDS: Kant, Hegel, Aristotle, Plato, Shakespeare, Victorian, Renaissance, medieval,
-                         ancient Greece/Rome, philosophy, ethics, aesthetics, literary criticism, historiography
     ❌ Regional/national archives (non-US government databases, national libraries)
     ❌ Institutional repositories (university archives, research institution databases)
     ❌ Non-English specialized databases (country-specific sources)
     ❌ Specialized domains (specific industry databases, niche academic fields)
     ❌ Subscription-only databases requiring authentication
 
-    💡 PROACTIVE ACTION: If you see ANY trigger condition above (0 results, < 5 results, discipline mismatch, domain keywords, source mismatch) and the topic falls into the "NEED CUSTOM" category, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
+    💡 PROACTIVE ACTION: If you see ANY trigger condition above (0 results, < 5 results, discipline mismatch, source mismatch) AND defaults are not working well, immediately call get_help() to learn how to create custom source configurations. Don't wait for user permission - proactively create the config if you identify a missing source.
 
     EXAMPLES:
     - "French colonial archives" → French national archives (Archives Nationales)
@@ -1986,6 +1992,9 @@ async def get_status(force_reload: bool = False) -> dict[str, Any]:
             str(d) for d in config_manager.config_directories.values()
         ]
 
+        # Get failed configs
+        failed_configs = config_manager.get_failed_configs()
+
         basic_status["config_diagnostics"] = {
             "hot_reload_available": watchdog_available,
             "config_directories_watched": (
@@ -1994,6 +2003,9 @@ async def get_status(force_reload: bool = False) -> dict[str, Any]:
             "restart_required_for_new_configs": not watchdog_available,
             "manual_reload_available": True,
             "manual_reload_command": "get_status(force_reload=True)",
+            "failed_configs": failed_configs,
+            "failed_configs_count": len(failed_configs),
+            "has_failed_configs": len(failed_configs) > 0,
         }
     except Exception as e:
         logger.warning(f"Failed to add config diagnostics: {e}")
@@ -2545,6 +2557,32 @@ categories:
                     "solution": "Check YAML indentation, ensure sources exist in available_sources list below",
                 },
             },
+            "faulty_configs": {
+                "description": "Faulty configs are IGNORED, not break the system - check get_status()['config_diagnostics']['failed_configs']",
+                "common_errors": {
+                    "YAML syntax": "Invalid YAML: tabs instead of spaces, missing quotes, mismatched brackets",
+                    "Schema validation": "Invalid field names, wrong types, required fields missing",
+                    "File permissions": "Cannot read config file due to permission issues",
+                },
+                "how_to_check": [
+                    "1. Run get_status() and check 'config_diagnostics.has_failed_configs'",
+                    "2. If true, inspect 'config_diagnostics.failed_configs' for details",
+                    "3. Each entry shows: file path, error message, error type",
+                    "4. Fix the error and run get_status(force_reload=True) to retry",
+                ],
+                "system_behavior": [
+                    "✅ Faulty configs are skipped - system continues with working configs",
+                    "✅ Default sources always available as fallback",
+                    "⚠️ Failed configs are logged with details in get_status()",
+                    "🔄 Fix the error and reload with get_status(force_reload=True)",
+                ],
+                "prevention": [
+                    "🧪 Test config immediately after creation with get_status()",
+                    "📝 Validate YAML syntax before committing (use online validator)",
+                    "🔍 Check example configs in get_help() for correct structure",
+                    "⚡ Make small changes and test incrementally",
+                ],
+            },
             "config_not_loading": [
                 "✅ FIRST: Run get_status() - config loads dynamically, check 'configuration_loaded' field",
                 "📁 Check file path: .paperez/config/ directory with .yaml extension",
@@ -2709,10 +2747,9 @@ categories:
                 "3. Run get_status() to verify immediately",
                 "4. Test with browse_papers(force_category='your_category')",
                 "",
-                "💡 When to add custom sources (DO THIS PROACTIVELY):",
+                "💡 When to add custom sources (DO THIS PROACTIVELY, but check if defaults work first!):",
                 "- 0 results OR < 5 results for well-known topics = coverage gap",
                 "- Discipline mismatch: philosophy query → only STEM papers = missing sources",
-                "- Domain keywords: 'Kant', 'philosophy', 'ethics' → trigger humanities sources immediately",
                 "- Source mismatch: All results from arXiv/Semantic Scholar for humanities topics",
                 "- Humanities research (history, literature, philosophy) - needs JSTOR/Project MUSE",
                 "- User needs regional/institutional database",
@@ -2720,6 +2757,7 @@ categories:
                 "- User mentions specific archive/repository",
                 "- You know of better sources for their query",
                 "",
+                "✅ DON'T CREATE if defaults return relevant, high-quality results (even if < 5)",
                 "💡 Remember: 2 CS papers about Kant ≠ philosophy scholarship coverage (quality > quantity)",
             ],
             "recommended_approach": "Start with 'custom_category_only' - uses existing sources, no complex setup required",
