@@ -713,14 +713,28 @@ async def smart_downloadable_search(
     else:
         # Original download testing logic for get_papers/download_papers
         attempted_downloads = 0
+        # Over-fetch with buffer to account for download failures (403/404 errors common)
+        buffer_multiplier = (
+            2.5  # Search for 2.5x limit to account for ~60% download failure rate
+        )
+        buffered_limit = int(limit * buffer_multiplier)
         max_attempts = min(
-            50, len(unique_candidates)
-        )  # Cap attempts to avoid infinite loops
+            100, len(unique_candidates)
+        )  # Increased cap to support buffer strategy
 
-        logger.info(f"📥 Starting download attempts (max: {max_attempts})")
+        logger.info(
+            f"📥 Starting download attempts with buffer strategy (target: {limit}, buffer: {buffered_limit}, max attempts: {max_attempts})"
+        )
+        logger.info(
+            "💡 Over-fetching to account for potential 403/404 errors and access restrictions"
+        )
 
         for paper in unique_candidates[:max_attempts]:
-            if len(downloadable_papers) >= limit:
+            # Over-fetch with buffer to handle download failures
+            if len(downloadable_papers) >= buffered_limit:
+                logger.info(
+                    f"📦 Reached buffer limit ({buffered_limit}), stopping search phase"
+                )
                 break
 
             pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")

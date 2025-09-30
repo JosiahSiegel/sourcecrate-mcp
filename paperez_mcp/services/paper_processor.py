@@ -88,8 +88,15 @@ async def process_papers(
 
     downloaded_count = 0
 
-    # Process each downloadable paper
+    # Process each downloadable paper (may have buffer of extra papers)
     for paper in downloadable_papers:
+        # Stop once we've successfully downloaded the requested limit
+        if downloaded_count >= limit:
+            logger.info(
+                f"✅ Reached download limit ({limit} papers), stopping download phase"
+            )
+            break
+
         pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
         if pdf_url:
             try:
