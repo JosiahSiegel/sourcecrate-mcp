@@ -2,12 +2,14 @@
 BM25-based source ranking for intelligent source selection.
 Uses BM25 algorithm to rank academic sources based on query relevance.
 Supports both built-in and custom user-defined sources.
+
+Uses rank-bm25 library for industry-standard BM25 implementation.
 """
 
-import math
-from collections import Counter
 from dataclasses import dataclass
 from typing import Any
+
+from rank_bm25 import BM25Okapi
 
 from ..config import get_current_config
 
@@ -30,10 +32,11 @@ class BM25SourceRanker:
 
     def __init__(self) -> None:
         self.source_profiles = self._build_source_profiles()
-        self.idf_cache: dict[str, float] = {}
         self.k1 = 1.2  # Term frequency saturation parameter
         self.b = 0.75  # Document length normalization parameter
-        self._compute_idf_scores()
+
+        # Initialize rank-bm25 with source profiles as corpus
+        self._initialize_bm25_index()
 
     def _create_default_profile(
         self, source_name: str, source_config: Any
@@ -822,35 +825,24 @@ class BM25SourceRanker:
         self.source_profiles[source_name] = fallback_profile
         return fallback_profile
 
-    def _compute_idf_scores(self) -> None:
-        """Pre-compute IDF scores for all terms across sources."""
-        # Collect all terms from all sources (tokenize specialty terms)
-        all_terms = set()
-        for profile in self.source_profiles.values():
+    def _initialize_bm25_index(self) -> None:
+        """Initialize BM25 index using rank-bm25 library."""
+        # Build corpus from source profiles
+        # Each document is the tokenized specialty terms of a source
+        self.source_names_ordered = list(self.source_profiles.keys())
+        corpus = []
+
+        for source_name in self.source_names_ordered:
+            profile = self.source_profiles[source_name]
+            # Tokenize all specialty terms for this source into a single document
+            doc_tokens = []
             for specialty_term in profile.specialty_terms:
-                # Tokenize each specialty term to get individual words
-                words = self._tokenize_query(specialty_term)
-                all_terms.update(words)
+                tokens = self._tokenize_query(specialty_term)
+                doc_tokens.extend(tokens)
+            corpus.append(doc_tokens)
 
-        # Calculate IDF for each term
-        total_sources = len(self.source_profiles)
-
-        for term in all_terms:
-            # Count sources containing this term (check within specialty term strings)
-            sources_with_term = sum(
-                1
-                for profile in self.source_profiles.values()
-                if any(
-                    term in specialty_term.lower()
-                    for specialty_term in profile.specialty_terms
-                )
-            )
-
-            # Calculate IDF
-            idf = math.log(
-                (total_sources - sources_with_term + 0.5) / (sources_with_term + 0.5)
-            )
-            self.idf_cache[term] = max(0.0, idf)  # Ensure non-negative
+        # Initialize BM25Okapi with custom parameters
+        self.bm25 = BM25Okapi(corpus, k1=self.k1, b=self.b)
 
     def _tokenize_query(self, query: str) -> list[str]:
         """Tokenize and normalize query."""
@@ -862,38 +854,19 @@ class BM25SourceRanker:
         return [word for word in words if len(word) > 2]  # Filter short words
 
     def _calculate_bm25_score(
-        self, query_terms: list[str], source_profile: SourceProfile
+        self, query_terms: list[str], source_name: str
     ) -> float:
-        """Calculate BM25 score for a query against a source profile."""
-        source_terms = [term.lower() for term in source_profile.specialty_terms]
-        source_length = len(source_terms)
+        """Calculate BM25 score for a query against a source using rank-bm25."""
+        # Get all BM25 scores for the query
+        scores = self.bm25.get_scores(query_terms)
 
-        # Calculate average document length across all sources
-        avg_length = sum(
-            len(profile.specialty_terms) for profile in self.source_profiles.values()
-        ) / len(self.source_profiles)
-
-        score = 0.0
-        query_term_counts = Counter(query_terms)
-
-        for term, _query_tf in query_term_counts.items():
-            # Calculate term frequency in source (count occurrences in all specialty terms)
-            source_tf = sum(source_term.count(term) for source_term in source_terms)
-
-            if source_tf > 0:
-
-                # Get IDF score
-                idf = self.idf_cache.get(term, 0.0)
-
-                # BM25 calculation
-                numerator = source_tf * (self.k1 + 1)
-                denominator = source_tf + self.k1 * (
-                    1 - self.b + self.b * (source_length / avg_length)
-                )
-
-                score += idf * (numerator / denominator)
-
-        return score
+        # Find the score for this specific source by name
+        try:
+            source_idx = self.source_names_ordered.index(source_name)
+            return float(scores[source_idx])
+        except (ValueError, IndexError):
+            # Source not in index, return 0
+            return 0.0
 
     def _apply_domain_boost(
         self, base_score: float, query_terms: list[str], source_profile: SourceProfile
@@ -1032,8 +1005,8 @@ class BM25SourceRanker:
             # Use get_source_profile to handle unknown/custom sources
             profile = self.get_source_profile(source_name)
 
-            # Calculate base BM25 score
-            base_score = self._calculate_bm25_score(query_terms, profile)
+            # Calculate base BM25 score (pass source_name for indexing)
+            base_score = self._calculate_bm25_score(query_terms, source_name)
 
             # Apply domain-specific boosts
             boosted_score = self._apply_domain_boost(base_score, query_terms, profile)
