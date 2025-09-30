@@ -745,11 +745,40 @@ async def optimize_search_performance(
     cache_hits = 0
     total_requests = 0
 
+    # Filter sources by force_category if specified
+    sources_to_search = dict(search_functions)
+    if user_preferences and user_preferences.get("force_category"):
+        force_category = user_preferences["force_category"]
+        logger.info(f"🎯 Filtering sources by category: {force_category}")
+
+        try:
+            from paperez_mcp.config import get_search_service
+
+            search_service = get_search_service()
+            category_sources = search_service.resolve_category_sources(force_category)
+
+            if category_sources:
+                # Filter to only include sources in the category
+                sources_to_search = {
+                    name: func
+                    for name, func in search_functions.items()
+                    if name in category_sources
+                }
+                logger.info(f"📋 Category sources: {list(sources_to_search.keys())}")
+            else:
+                logger.warning(
+                    f"⚠️  Category '{force_category}' has no sources, using all sources"
+                )
+        except Exception as e:
+            logger.warning(
+                f"❌ Could not resolve category '{force_category}': {e}, using all sources"
+            )
+
     # Check cache first
     all_results = []
     remaining_sources = []
 
-    for source_name, search_func in search_functions.items():
+    for source_name, search_func in sources_to_search.items():
         if not api_status.get(source_name, True):
             continue
 
