@@ -63,6 +63,29 @@ Ask Claude naturally:
 | **`get_status`** | Check API health and system status |
 | **`get_help`** | Configuration guide and examples |
 
+## 📋 Scope & Use Cases
+
+### What PaperezMCP Does
+PaperezMCP finds **academic research papers**:
+- ✅ Journal articles, preprints, conference papers
+- ✅ Papers **about** topics (scholarly analysis, research)
+- ✅ Metadata + PDFs + markdown conversion
+
+### What PaperezMCP Doesn't Do
+- ❌ Primary literary texts/books (use [Project Gutenberg](https://gutenberg.org))
+- ❌ General books (use [Google Books](https://books.google.com))
+- ❌ Non-scholarly content
+
+### Example: Humanities Research
+**✅ Correct:** "scholarship on Arthurian legend" → PaperezMCP finds academic papers ABOUT the topic
+**❌ Incorrect:** "Le Morte d'Arthur full text" → Use Project Gutenberg for the actual book
+
+**For primary texts, use:**
+- [Project Gutenberg](https://gutenberg.org) - Public domain books
+- [Internet Archive](https://archive.org) - Books, manuscripts, media
+- [HathiTrust](https://hathitrust.org) - Digitized books
+- [Google Books](https://books.google.com) - Book search
+
 ## 🔧 Configuration (Optional)
 
 ### Environment Variables (Enhanced Performance)

@@ -236,6 +236,23 @@ async def browse_papers(
     Searches CrossRef, Semantic Scholar, arXiv, PubMed, and Google Scholar.
     Supports DOI queries, author queries, and keyword searches.
 
+    📋 SCOPE & LIMITATIONS:
+    This tool searches for ACADEMIC RESEARCH PAPERS:
+    ✅ Journal articles, preprints, conference papers, dissertations
+    ✅ Papers ABOUT topics (e.g., "scholarship on Le Morte d'Arthur")
+    ❌ Primary literary texts/books (e.g., "Le Morte d'Arthur full text")
+    ❌ Non-scholarly content (news, blogs, general books)
+
+    🔗 FOR PRIMARY LITERARY TEXTS:
+    - Project Gutenberg: gutenberg.org (public domain books)
+    - Internet Archive: archive.org (books, manuscripts, media)
+    - HathiTrust: hathitrust.org (digitized books)
+    - Google Books: books.google.com (book search)
+
+    💡 EXAMPLE:
+    ✅ "scholarship on Arthurian legend" → Use paperez (finds academic papers)
+    ❌ "Le Morte d'Arthur full text" → Use Project Gutenberg (finds the book)
+
     Args:
         query: Search query (keywords, DOI with "doi:" prefix, title, or author)
         limit: Maximum number of results to return (default: 10, max recommended: 20)
@@ -264,6 +281,7 @@ async def browse_papers(
 
     NEED CUSTOM CONFIGS FOR:
     ❌ Humanities research (history, literature, philosophy - needs JSTOR, Project MUSE, Historical Abstracts)
+       NOTE: These sources provide academic PAPERS about texts, not the primary texts themselves
     ❌ Regional/national archives (non-US government databases, national libraries)
     ❌ Institutional repositories (university archives, research institution databases)
     ❌ Non-English specialized databases (country-specific sources)
@@ -648,6 +666,23 @@ async def browse_papers_streaming(
     - Metadata-only results (titles, authors, abstracts, DOIs)
     - Advanced deduplication and relevance scoring
 
+    📋 SCOPE & LIMITATIONS:
+    This tool searches for ACADEMIC RESEARCH PAPERS:
+    ✅ Journal articles, preprints, conference papers, dissertations
+    ✅ Papers ABOUT topics (e.g., "scholarship on Le Morte d'Arthur")
+    ❌ Primary literary texts/books (e.g., "Le Morte d'Arthur full text")
+    ❌ Non-scholarly content (news, blogs, general books)
+
+    🔗 FOR PRIMARY LITERARY TEXTS:
+    - Project Gutenberg: gutenberg.org (public domain books)
+    - Internet Archive: archive.org (books, manuscripts, media)
+    - HathiTrust: hathitrust.org (digitized books)
+    - Google Books: books.google.com (book search)
+
+    💡 EXAMPLE:
+    ✅ "scholarship on Arthurian legend" → Use paperez (finds academic papers)
+    ❌ "Le Morte d'Arthur full text" → Use Project Gutenberg (finds the book)
+
     Args:
         query: Search query (keywords, DOI with "doi:" prefix, title, or author)
         limit: Maximum number of results to return (default: 10, max recommended: 20)
@@ -673,6 +708,7 @@ async def browse_papers_streaming(
 
     NEED CUSTOM CONFIGS FOR:
     ❌ Humanities research (history, literature, philosophy - needs JSTOR, Project MUSE, Historical Abstracts)
+       NOTE: These sources provide academic PAPERS about texts, not the primary texts themselves
     ❌ Regional/national archives (non-US government databases, national libraries)
     ❌ Institutional repositories (university archives, research institution databases)
     ❌ Non-English specialized databases (country-specific sources)
@@ -965,6 +1001,23 @@ async def download_papers(
 
     Use this when users say "get papers", "download papers", or "save papers".
 
+    📋 SCOPE & LIMITATIONS:
+    This tool searches for ACADEMIC RESEARCH PAPERS:
+    ✅ Journal articles, preprints, conference papers, dissertations
+    ✅ Papers ABOUT topics (e.g., "scholarship on Le Morte d'Arthur")
+    ❌ Primary literary texts/books (e.g., "Le Morte d'Arthur full text")
+    ❌ Non-scholarly content (news, blogs, general books)
+
+    🔗 FOR PRIMARY LITERARY TEXTS:
+    - Project Gutenberg: gutenberg.org (public domain books)
+    - Internet Archive: archive.org (books, manuscripts, media)
+    - HathiTrust: hathitrust.org (digitized books)
+    - Google Books: books.google.com (book search)
+
+    💡 EXAMPLE:
+    ✅ "scholarship on Arthurian legend" → Use paperez (finds academic papers)
+    ❌ "Le Morte d'Arthur full text" → Use Project Gutenberg (finds the book)
+
     Args:
         query: Search query (keywords, DOI, title, or author)
         limit: Maximum papers to download (default: 5, recommended: 5-10)
@@ -994,6 +1047,7 @@ async def download_papers(
 
     NEED CUSTOM CONFIGS FOR:
     ❌ Humanities research (history, literature, philosophy - needs JSTOR, Project MUSE, Historical Abstracts)
+       NOTE: These sources provide academic PAPERS about texts, not the primary texts themselves
     ❌ Regional/national archives (non-US government databases, national libraries)
     ❌ Institutional repositories (university archives, research institution databases)
     ❌ Non-English specialized databases (country-specific sources)
@@ -2555,6 +2609,52 @@ categories:
                         "fix": "Install watchdog: pip install watchdog>=3.0.0 for automatic config reloading",
                     },
                 ],
+            },
+        },
+        "scope_and_use_cases": {
+            "what_paperez_does": {
+                "description": "Paperez finds ACADEMIC RESEARCH PAPERS",
+                "supported_content": [
+                    "Journal articles (Nature, Science, PLOS)",
+                    "Preprints (arXiv, bioRxiv, SocArXiv)",
+                    "Conference papers (ACM, IEEE)",
+                    "Dissertations/theses",
+                    "Research reports",
+                    "Scholarly articles with DOIs/citations",
+                ],
+                "what_you_get": "Metadata (title, authors, abstract, DOI) + PDF download + markdown conversion",
+            },
+            "what_paperez_does_not_do": {
+                "description": "Paperez does NOT provide primary literary texts or full books",
+                "out_of_scope": [
+                    "❌ Full text of novels/literature (e.g., 'Le Morte d'Arthur')",
+                    "❌ Non-academic books (fiction, popular non-fiction)",
+                    "❌ Primary source manuscripts",
+                    "❌ News articles, blog posts",
+                    "❌ General web content",
+                ],
+                "use_instead": {
+                    "literary_texts": "Project Gutenberg (gutenberg.org), Internet Archive (archive.org)",
+                    "books": "Google Books (books.google.com), HathiTrust (hathitrust.org)",
+                    "manuscripts": "Institutional digital libraries, national archives",
+                },
+            },
+            "use_case_examples": {
+                "humanities_research_correct": {
+                    "query": "scholarship on Arthurian legend Malory",
+                    "tool": "paperez",
+                    "result": "Academic papers ABOUT Le Morte d'Arthur (literary analysis, historical context)",
+                },
+                "humanities_research_incorrect": {
+                    "query": "Le Morte d'Arthur full text",
+                    "tool": "Project Gutenberg (gutenberg.org/ebooks/46853)",
+                    "why_not_paperez": "Primary literary text, not an academic paper",
+                },
+                "stem_research": {
+                    "query": "machine learning transformers",
+                    "tool": "paperez",
+                    "result": "Recent research papers from arXiv, Semantic Scholar, etc.",
+                },
             },
         },
         "quick_start": {
