@@ -46,26 +46,47 @@ categories:
     parallel_search: true
 
 # MAJOR GAPS IDENTIFIED - NEED MORE SPECIALIZED SOURCES:
-# - JSTOR (major humanities database)
-# - Project MUSE (humanities and social sciences)
-# - MLA International Bibliography (literature and language)
-# - Philosopher's Index
-# - Art Index/Art Abstracts
-# - Music Index
-# - Film & Television Literature Index
-# - Historical Abstracts
-# - Religious and Theological Abstracts
-# - Classical studies databases
-# - Medieval studies sources
-# - Renaissance studies
-# - Modern language databases
-# - Comparative literature sources
-# - Cultural studies databases
-# - Digital humanities repositories
-# - Museum and gallery databases
-# - Theater and performance studies
-# - Creative writing repositories
+# - JSTOR (major humanities database - requires subscription)
+# - Project MUSE (humanities and social sciences - requires subscription)
+# - MLA International Bibliography (literature and language - requires subscription)
+# - Philosopher's Index (philosophy - requires subscription)
+# - Art Index/Art Abstracts (art history - requires subscription)
+# - Music Index (musicology - requires subscription)
+# - Film & Television Literature Index (media studies - requires subscription)
+# - Historical Abstracts (history - requires subscription)
+# - Religious and Theological Abstracts (religious studies - requires subscription)
+# - Classical studies databases (classics - requires subscription)
+# - Medieval studies sources (medieval history - requires subscription)
+# - Renaissance studies (Renaissance history - requires subscription)
+# - Modern language databases (linguistics - requires subscription)
+# - Comparative literature sources (literature - requires subscription)
+# - Cultural studies databases (cultural studies - requires subscription)
+# - Digital humanities repositories (varies by repository)
+# - Museum and gallery databases (art history - varies by institution)
+# - Theater and performance studies (performing arts - requires subscription)
+# - Creative writing repositories (creative writing - varies by repository)
 #
-# ISSUE: Humanities under-resourced with only 2 sources (Open Library + CORE Repository)
+# ⚠️ FUNDAMENTAL LIMITATION: Humanities research requires subscription databases
+#
+# ISSUE: Humanities under-resourced with only 2 free sources (Open Library + CORE Repository)
 # Priority: HIGH - Major academic discipline needs more specialized sources
-# Users researching literature, philosophy, arts, etc. need more dedicated resources
+#
+# WHY FREE SOURCES ARE INSUFFICIENT:
+# 1. Lower Open Access Adoption: Humanities has significantly lower OA publishing rates than STEM
+# 2. Book-Based Scholarship: Much humanities research published as books, not papers
+# 3. Minimal Preprint Culture: Humanities lacks robust preprint servers (unlike arXiv for STEM)
+# 4. Journal Business Models: Core humanities journals operate on subscription models
+#
+# RECOMMENDATION FOR USERS:
+# For comprehensive humanities research, users should create custom configurations
+# with institutional database access. Call get_help() for guidance on adding
+# authenticated sources (JSTOR, Project MUSE, etc.).
+#
+# See also: philosophy.yaml for specific philosophy research limitations
+#
+# EXPECTED BEHAVIOR:
+# Humanities queries will return 0-10 papers, primarily from:
+# - Open Library (books, not academic papers)
+# - CORE Repository (if user has API key)
+# - Interdisciplinary sources from other categories
+# This is correct behavior given free database constraints.

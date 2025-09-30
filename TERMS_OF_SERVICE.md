@@ -36,6 +36,43 @@ All default sources have been verified for Terms of Service compliance and API a
 
 **API Testing Completed:** All enabled sources tested on January 7, 2025 to confirm JSON/XML API availability.
 
+### 3.3 Domain Coverage Limitations
+
+While PaperezMCP includes comprehensive free academic sources, certain research domains have inherently limited coverage in open-access databases. This is a fundamental constraint of free academic resources, not a limitation of the Software.
+
+**Domains with Limited Free Coverage:**
+
+- **Philosophy Research** - Core philosophy journals (Mind, Journal of Philosophy, Philosophical Review, Ethics) require subscriptions. Recommended sources: JSTOR, PhilPapers, Project MUSE, Philosopher's Index.
+
+- **Historical Research** - Historical archives and specialized journals typically require institutional access. Recommended sources: JSTOR, Historical Abstracts, national archives.
+
+- **Literary Studies** - Literature research requires specialized databases. Recommended sources: MLA International Bibliography, JSTOR, Project MUSE.
+
+- **Fine Arts & Music** - Art and music scholarship databases require subscriptions. Recommended sources: Art Index, Music Index, JSTOR.
+
+**Why These Limitations Exist:**
+
+1. **Lower Open Access Adoption**: Humanities and social sciences have significantly lower open access publishing rates compared to STEM fields
+2. **Book-Based Scholarship**: Much humanities research is published as books by university presses, not as papers in indexed journals
+3. **Minimal Preprint Culture**: Humanities disciplines lack robust preprint servers like arXiv (which serves STEM)
+4. **Journal Business Models**: Many core journals in these fields operate on subscription models
+
+**Recommendation for These Domains:**
+
+Users researching these domains should create custom configurations with institutional database access. The Software provides guidance through the `get_help()` function for adding authenticated sources. This approach ensures:
+- Comprehensive coverage for specialized domains
+- Compliance with institutional licensing agreements
+- Access to subscription-only content where authorized
+
+**System Behavior for Limited Domains:**
+
+When searching these domains with default (free) sources, users may experience:
+- Low result counts (0-5 papers)
+- Results primarily from interdisciplinary sources (e.g., philosophy of science, philosophy of education)
+- Recommendations to create custom configurations
+
+This is expected and correct behavior given the constraints of free academic databases. The Software will proactively suggest custom configuration options when limited coverage is detected.
+
 ## 4. Restricted Sources
 
 ### 4.1 Sources Excluded from Default Configuration

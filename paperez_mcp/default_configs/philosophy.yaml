@@ -1,0 +1,73 @@
+# Philosophy Research Configuration
+# Sources and categories for philosophy, ethics, and related humanities scholarship
+
+# ⚠️ IMPORTANT - LIMITED FREE COVERAGE:
+# Philosophy research is significantly under-represented in free/open-access databases.
+# Comprehensive philosophy research requires subscription databases:
+# - JSTOR (major humanities database)
+# - PhilPapers (philosophy-specific database)
+# - Project MUSE (humanities and social sciences journals)
+# - Philosopher's Index (specialized philosophy database)
+#
+# The free sources below provide minimal coverage with accessible PDFs.
+# Most core philosophy journals require institutional access.
+#
+# For comprehensive philosophy research, users should create custom configurations
+# with institutional database access. Call get_help() for guidance on adding
+# custom sources with authentication.
+
+categories:
+  philosophy:
+    name: philosophy
+    display_name: Philosophy Research
+    description: |
+      Philosophy, ethics, metaphysics, epistemology, logic, moral philosophy
+
+      ⚠️ LIMITED FREE COVERAGE: Philosophy research typically requires
+      subscription databases (JSTOR, PhilPapers, Project MUSE, Philosopher's Index).
+      Free sources provide minimal coverage with accessible PDFs.
+
+      Most core philosophy journals (Mind, Journal of Philosophy, Philosophical Review,
+      Ethics, etc.) require institutional subscriptions and are not available through
+      free academic APIs.
+
+      For comprehensive philosophy research, create a custom config with institutional
+      database access (call get_help() for guidance).
+    type: standard
+    sources:
+      - openalex  # General academic index, limited philosophy coverage
+      - crossref  # DOI registry, limited open access philosophy
+      - eric  # Education database, some philosophy of education papers
+      - osf_preprints  # Small volume of philosophy preprints
+    max_results_per_source: 10
+    parallel_search: true
+
+# KNOWN LIMITATIONS FOR PHILOSOPHY RESEARCH:
+#
+# 1. MINIMAL OPEN ACCESS: Most philosophy journals do not offer open access
+#    - Core journals (Mind, JP, Phil Review, etc.) behind paywalls
+#    - Philosophy has lower open access adoption than STEM fields
+#
+# 2. PREPRINT CULTURE: Philosophy has minimal preprint culture compared to STEM
+#    - arXiv philosophy section is very small
+#    - PhilSci-Archive exists but not integrated (no public API)
+#
+# 3. BOOK-BASED DISCIPLINE: Much philosophy scholarship published as books
+#    - University presses (Oxford, Cambridge, Harvard, etc.)
+#    - Not indexed in paper-focused databases
+#
+# 4. SPECIALIZED SOURCES NEEDED:
+#    - PhilPapers: 2.5M+ entries, philosophy-specific (requires subscription)
+#    - JSTOR: Essential for historical philosophy research (requires subscription)
+#    - Project MUSE: Humanities journals (requires subscription)
+#    - Philosopher's Index: Bibliography database (requires subscription)
+#
+# RECOMMENDATION FOR AI USERS:
+# When users request philosophy research, proactively explain the limitation
+# and offer to create custom configs with institutional database access.
+# This is a realistic domain constraint, not a system failure.
+#
+# EXPECTED BEHAVIOR:
+# Philosophy queries will return 0-5 papers, mostly from interdisciplinary sources
+# (philosophy of science, philosophy of education, applied ethics in specific domains).
+# This is correct behavior given free database constraints.
