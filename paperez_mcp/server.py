@@ -446,6 +446,28 @@ async def browse_papers(
             fallback_used = True
             original_category = paper.get("_original_category")
 
+    # Deduplicate browse_results by DOI or title to prevent duplicates
+    # This handles cases where optimize_search_performance doesn't deduplicate
+    seen_papers = set()
+    deduplicated_results = []
+    duplicate_count = 0
+
+    for paper in browse_results:
+        # Create identifier from DOI or title
+        identifier = paper.get("doi") or paper.get("title", "").lower().strip()
+        if identifier and identifier not in seen_papers:
+            seen_papers.add(identifier)
+            deduplicated_results.append(paper)
+        else:
+            duplicate_count += 1
+
+    if duplicate_count > 0:
+        logger.info(
+            f"🔄 Removed {duplicate_count} duplicate papers (showing {len(deduplicated_results)} unique papers)"
+        )
+
+    browse_results = deduplicated_results
+
     # Log filtering statistics
     total_filtered = non_downloadable_count + invalid_pdf_count
     if total_filtered > 0:

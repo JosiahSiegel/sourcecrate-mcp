@@ -136,6 +136,7 @@ async def process_papers(
                             if save_result.get("success"):
                                 paper["local_markdown"] = str(output_path)
                                 paper["markdown_characters"] = len(markdown_content)
+                                paper["download_success"] = True
                                 downloaded_count += 1
 
                                 # Clean up PDF file since we only need the markdown
@@ -152,10 +153,12 @@ async def process_papers(
                                         f"Failed to clean up PDF file {pdf_file_path}: {e}"
                                     )
                             else:
+                                paper["download_success"] = False
                                 paper["download_error"] = (
                                     f"Failed to save markdown: {save_result.get('error')}"
                                 )
                         else:
+                            paper["download_success"] = False
                             paper["download_error"] = (
                                 f"Failed to convert to markdown: {markdown_result.get('error')}"
                             )
@@ -163,12 +166,15 @@ async def process_papers(
                         # PDF-only mode: keep the PDF file
                         paper["local_pdf"] = pdf_file_path
                         paper["pdf_file_size"] = download_result.get("file_size", 0)
+                        paper["download_success"] = True
                         downloaded_count += 1
                 else:
+                    paper["download_success"] = False
                     paper["download_error"] = (
                         f"Failed to download PDF: {download_result.get('error')}"
                     )
             except Exception as e:
+                paper["download_success"] = False
                 paper["download_error"] = str(e)
 
     # Check for fallback usage

@@ -27,8 +27,8 @@ class PDFValidator:
         # Cache for validated URLs to avoid repeated checks
         self._validation_cache: dict[str, bool] = {}
 
-        # Timeout for HTTP requests
-        self.timeout = aiohttp.ClientTimeout(total=10, connect=5)
+        # Timeout for HTTP requests - reduced for faster failure detection
+        self.timeout = aiohttp.ClientTimeout(total=5, connect=2)
 
     def _load_pdf_patterns_from_config(self) -> dict:
         """Load PDF patterns entirely from configuration"""

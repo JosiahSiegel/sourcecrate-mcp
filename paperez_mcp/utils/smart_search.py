@@ -741,9 +741,8 @@ async def smart_downloadable_search(
             if pdf_url:
                 attempted_downloads += 1
                 try:
-                    # Accept all PDF URLs returned by search sources - they are inherently trusted
-                    # If a source provides a PDF URL, we trust it's downloadable
-                    paper["download_success"] = True
+                    # Accept all PDF URLs returned by search sources
+                    # download_success will be set by paper_processor after actual download
                     paper["download_note"] = (
                         "PDF URL from trusted search source - skipping HEAD verification"
                     )
