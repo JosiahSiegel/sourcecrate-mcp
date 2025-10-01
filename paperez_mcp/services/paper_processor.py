@@ -191,6 +191,29 @@ async def process_papers(
                         "suggestions", []
                     )
                     paper["retry_attempts"] = download_result.get("final_attempt", 0)
+
+                    # Capture detailed Unpaywall diagnostics
+                    paper["unpaywall_api_response"] = download_result.get(
+                        "unpaywall_api_response", "not_tried"
+                    )
+                    paper["unpaywall_oa_url"] = download_result.get(
+                        "unpaywall_oa_url", None
+                    )
+                    paper["unpaywall_oa_version"] = download_result.get(
+                        "unpaywall_oa_version", None
+                    )
+                    paper["unpaywall_oa_license"] = download_result.get(
+                        "unpaywall_oa_license", None
+                    )
+                    paper["unpaywall_download_attempted"] = download_result.get(
+                        "unpaywall_download_attempted", False
+                    )
+                    paper["unpaywall_download_status"] = download_result.get(
+                        "unpaywall_download_status", None
+                    )
+                    paper["unpaywall_download_error"] = download_result.get(
+                        "unpaywall_download_error", None
+                    )
             except Exception as e:
                 paper["download_success"] = False
                 paper["download_status"] = "failed"

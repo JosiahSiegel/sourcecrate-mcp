@@ -229,8 +229,17 @@ async def download_pdf(
             f"last_error: {last_error}, last_response_status: {last_response.status_code if last_response else None}"
         )
 
-        # Try Unpaywall fallback if DOI is available
+        # Initialize Unpaywall diagnostic variables
         unpaywall_tried = False
+        unpaywall_api_response = "not_tried"
+        unpaywall_oa_url = None
+        unpaywall_oa_version = None
+        unpaywall_oa_license = None
+        unpaywall_download_attempted = False
+        unpaywall_download_status = None
+        unpaywall_download_error = None
+
+        # Try Unpaywall fallback if DOI is available
         if doi and (
             is_cloudflare
             or "403" in str(last_error)
@@ -245,19 +254,35 @@ async def download_pdf(
 
             unpaywall_tried = True
 
+            # Track API response type
+            if oa_info is None:
+                unpaywall_api_response = "api_error"
+            elif oa_info.get("is_oa") is False:
+                unpaywall_api_response = "no_oa"
+            elif oa_info.get("is_oa") is True:
+                unpaywall_api_response = "found_oa"
+
             if oa_info and oa_info.get("is_oa"):
                 best_location = oa_info["best_oa_location"]
                 oa_pdf_url = best_location.get("url_for_pdf")
+
+                # Capture Unpaywall metadata
+                unpaywall_oa_url = oa_pdf_url
+                unpaywall_oa_version = best_location.get("version")
+                unpaywall_oa_license = best_location.get("license")
 
                 if oa_pdf_url:
                     logger.info(f"✅ Found open access PDF via Unpaywall: {oa_pdf_url}")
 
                     # Try downloading from open access URL
+                    unpaywall_download_attempted = True
+
                     try:
                         async with httpx.AsyncClient(
                             timeout=60.0, follow_redirects=True
                         ) as client:
                             response = await client.get(oa_pdf_url)
+                            unpaywall_download_status = response.status_code
 
                             if response.status_code == 200:
                                 with open(pdf_path, "wb") as f:
@@ -272,7 +297,12 @@ async def download_pdf(
                                     "oa_version": best_location.get("version"),
                                     "oa_license": best_location.get("license"),
                                 }
+                            else:
+                                unpaywall_download_error = (
+                                    f"HTTP {response.status_code}"
+                                )
                     except Exception as e:
+                        unpaywall_download_error = str(e)
                         logger.warning(f"❌ Unpaywall download also failed: {e}")
 
         # Log if Unpaywall was tried but didn't find open access version
@@ -293,6 +323,14 @@ async def download_pdf(
             "cloudflare_detected": is_cloudflare,
             "unpaywall_tried": unpaywall_tried,
             "suggestions": suggestions,
+            # Detailed Unpaywall diagnostics
+            "unpaywall_api_response": unpaywall_api_response,
+            "unpaywall_oa_url": unpaywall_oa_url,
+            "unpaywall_oa_version": unpaywall_oa_version,
+            "unpaywall_oa_license": unpaywall_oa_license,
+            "unpaywall_download_attempted": unpaywall_download_attempted,
+            "unpaywall_download_status": unpaywall_download_status,
+            "unpaywall_download_error": unpaywall_download_error,
         }
 
     except Exception as e:
