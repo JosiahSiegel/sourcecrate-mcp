@@ -63,6 +63,99 @@ Ask Claude naturally:
 | **`get_status`** | Check API health and system status |
 | **`get_help`** | Configuration guide and examples |
 
+## 🌐 HTTP Server (NEW in v1.1.0)
+
+PaperezMCP now includes an HTTP/REST API server for browser-based and HTTP client access!
+
+### Quick Start
+
+```bash
+# Install with HTTP support
+pip install -e ".[http]"
+
+# Start the HTTP server
+paperez-http
+# Server runs on http://localhost:8000
+```
+
+### Browser UI Example
+
+Included example browser interface:
+
+```bash
+# Open examples/browser-ui/index.html in your browser
+# Or serve with Python:
+cd examples/browser-ui
+python -m http.server 3000
+# Visit http://localhost:3000
+```
+
+### Docker Deployment
+
+```bash
+# Build and run with Docker Compose
+docker-compose up
+
+# HTTP API: http://localhost:8000
+# Browser UI: http://localhost:3000
+```
+
+### API Documentation
+
+- **Interactive Docs**: http://localhost:8000/docs (Swagger UI)
+- **ReDoc**: http://localhost:8000/redoc
+- **Full API Reference**: [docs/HTTP_API.md](docs/HTTP_API.md)
+
+### Available Endpoints
+
+All 8 MCP tools available as REST endpoints:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/v1/search` | POST | Browse papers (metadata) |
+| `/api/v1/search/streaming` | POST | Streaming search |
+| `/api/v1/download` | POST | Download papers |
+| `/api/v1/convert/pdf-to-text` | POST | Convert PDF to text |
+| `/api/v1/convert/pdf-to-markdown` | POST | Convert PDF to markdown |
+| `/api/v1/convert/batch` | POST | Batch convert PDFs |
+| `/api/v1/status` | GET | System status |
+| `/api/v1/help` | GET | Configuration help |
+
+### Example Usage
+
+**Python:**
+```python
+import requests
+
+response = requests.post('http://localhost:8000/api/v1/search',
+    json={'query': 'quantum computing', 'limit': 10})
+papers = response.json()
+```
+
+**JavaScript:**
+```javascript
+const response = await fetch('http://localhost:8000/api/v1/search', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify({query: 'quantum computing', limit: 10})
+});
+const papers = await response.json();
+```
+
+**cURL:**
+```bash
+curl -X POST http://localhost:8000/api/v1/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"quantum computing","limit":10}'
+```
+
+### Use Cases
+
+- **Browser-based research** - Web UI for paper search
+- **Integration** - Add paper search to your apps
+- **Automation** - Programmatic access via REST API
+- **Remote access** - Deploy on server, access from anywhere
+
 ## 📋 Scope & Use Cases
 
 ### What PaperezMCP Does

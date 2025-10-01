@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaperezMCP - Academic Paper Research</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 PaperezMCP</h1>
+            <p class="subtitle">Academic Paper Research Made Easy</p>
+        </header>
+
+        <main>
+            <!-- Search Section -->
+            <section class="search-section">
+                <h2>Search Papers</h2>
+                <form id="searchForm">
+                    <div class="form-group">
+                        <input
+                            type="text"
+                            id="searchQuery"
+                            placeholder="Enter search query (e.g., machine learning, DOI, author name)"
+                            required
+                        >
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="limit">Max Results:</label>
+                            <input type="number" id="limit" value="10" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label for="streaming">
+                                <input type="checkbox" id="streaming">
+                                Use Streaming Search
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Search</button>
+                </form>
+            </section>
+
+            <!-- Status Indicator -->
+            <div id="statusIndicator" class="status-indicator"></div>
+
+            <!-- Results Section -->
+            <section class="results-section">
+                <h2>Results</h2>
+                <div id="results" class="results-container">
+                    <p class="placeholder">Search results will appear here</p>
+                </div>
+            </section>
+
+            <!-- System Status Section -->
+            <section class="status-section">
+                <h2>System Status</h2>
+                <button onclick="checkStatus()" class="btn btn-secondary">Check Status</button>
+                <div id="systemStatus" class="system-status">
+                    <p class="placeholder">Click to check system status</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by <a href="https://github.com/JosiahSiegel/paperez-mcp" target="_blank">PaperezMCP</a></p>
+            <p>API Server: <span id="apiServer">http://localhost:8000</span></p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

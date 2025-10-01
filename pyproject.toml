@@ -1,6 +1,6 @@
 [project]
 name = "paperez-mcp"
-version = "1.0.0"
+version = "1.1.0"
 description = "PaperezMCP - Academic paper research made easy with full-text retrieval and multi-source search"
 authors = [{name = "Josiah Siegel"}]
 readme = "README.md"
@@ -51,6 +51,7 @@ Documentation = "https://github.com/JosiahSiegel/paperez-mcp#readme"
 
 [project.scripts]
 paperez-mcp = "paperez_mcp.install_and_run:main"
+paperez-http = "paperez_mcp.http_server:main"
 
 [project.optional-dependencies]
 dev = [
@@ -59,6 +60,11 @@ dev = [
     "black>=23.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0"
+]
+http = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "python-multipart>=0.0.6"  # For file uploads (if needed in future)
 ]
 
 [build-system]
