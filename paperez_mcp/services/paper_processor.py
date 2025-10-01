@@ -179,6 +179,18 @@ async def process_papers(
                     paper["download_error"] = (
                         f"Failed to download PDF: {download_result.get('error')}"
                     )
+
+                    # Capture diagnostic fields for debugging Unpaywall/Cloudflare issues
+                    paper["cloudflare_detected"] = download_result.get(
+                        "cloudflare_detected", False
+                    )
+                    paper["unpaywall_tried"] = download_result.get(
+                        "unpaywall_tried", False
+                    )
+                    paper["download_suggestions"] = download_result.get(
+                        "suggestions", []
+                    )
+                    paper["retry_attempts"] = download_result.get("final_attempt", 0)
             except Exception as e:
                 paper["download_success"] = False
                 paper["download_status"] = "failed"
