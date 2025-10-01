@@ -174,30 +174,8 @@ async def smart_downloadable_search(
     adjusted_priority.sort(key=lambda x: x[2], reverse=True)
     source_priority = [(name, desc) for name, desc, _ in adjusted_priority]
 
-    # Track priority and additional sources for conditional cascade
-    priority_sources_list = []
-    additional_sources_list = []
-
-    # When NOT using force_category, split sources by relevance score for cascade
-    # This ensures lower-relevance sources can serve as fallback
-    if not force_category:
-        # Split sources based on final relevance scores
-        relevance_threshold = 0.3  # Sources below this go to fallback list
-
-        for source_name, _description, final_score in adjusted_priority:
-            if final_score >= relevance_threshold:
-                # High relevance - search first
-                priority_sources_list.append(source_name)
-            else:
-                # Lower relevance - use as fallback for cascade
-                additional_sources_list.append(source_name)
-
-        logger.info(
-            f"📊 Relevance-based split: {len(priority_sources_list)} priority sources "
-            f"(score ≥ {relevance_threshold}), {len(additional_sources_list)} fallback sources"
-        )
-        logger.debug(f"  Priority: {priority_sources_list[:5]}")
-        logger.debug(f"  Fallback: {additional_sources_list[:5]}")
+    # Track category sources for priority boosting (but no hard filtering)
+    category_priority_sources = []
 
     # Priority-based category routing if specified (using shared utility)
     if force_category:
@@ -228,16 +206,15 @@ async def smart_downloadable_search(
                     source_priority.append(
                         (s, f"{description} (PRIORITY: {force_category})")
                     )
-                    priority_sources_list.append(s)  # Track for conditional cascade
+                    category_priority_sources.append(s)  # Track for priority boosting
 
-                # Add remaining sources as backup (BUT WON'T SEARCH UNLESS NEEDED)
+                # Add remaining sources with lower priority (WILL be searched if needed)
                 for s in remaining_sources:
                     description = source_descriptions.get(s, f"Source: {s}")
-                    source_priority.append((s, f"{description} (additional)"))
-                    additional_sources_list.append(s)  # Track for conditional cascade
+                    source_priority.append((s, f"{description} (fallback)"))
 
                 logger.info(
-                    f"🎯 Category '{force_category}': Prioritizing {priority_sources}, additional sources available if needed: {remaining_sources[:5]}..."
+                    f"🎯 Category '{force_category}': Prioritizing {priority_sources}, will cascade to {len(remaining_sources)} fallback sources if needed"
                 )
             else:
                 logger.warning(
@@ -270,137 +247,20 @@ async def smart_downloadable_search(
 
     api_status = validate_api_status(api_status, search_funcs)
 
-    # First pass: Check which sources would be skipped by BM25 and other criteria
-    available_sources = [
+    # Simplified: Search ALL sources in priority order (no filtering, no splitting)
+    # Sources are already ordered by BM25 + intent + category priority
+    sources_to_search = [
         (name, desc) for name, desc in source_priority if api_status.get(name, False)
     ]
-    sources_to_skip = []
-    sources_to_search = []
 
-    for source_name, description in available_sources:
-        # When force_category is set, skip BM25/intent filtering for category sources
-        # This ensures category sources are always searched without scoring-based skipping
-        if force_category and source_name in priority_sources_list:
-            # Category source - always search, no filtering
-            sources_to_search.append((source_name, description))
-            logger.debug(
-                f"🎯 Force category: {source_name} will be searched (category source, skipping BM25/intent filters)"
-            )
-            continue
-
-        # Enhanced source skipping using new classification system
-        skip_source = False
-        skip_reason = None
-
-        # Check BM25 score threshold for skipping very low-relevance sources
-        source_score = next(
-            (score for name, score in source_rankings if name == source_name),
-            0.0,
-        )
-        if source_score < 0.1:  # Very low relevance threshold
-            skip_source = True
-            skip_reason = f"Very low BM25 relevance score ({source_score:.3f})"
-
-        # Check intent-based source preferences
-        intent_preference = intent_preferences.get(source_name, 0.5)
-        if intent_preference < 0.3:  # Low intent-based preference
-            skip_source = True
-            skip_reason = f"Low intent-based preference ({intent_preference:.3f})"
-
-        # Domain-specific skipping logic
-        if (
-            topic_classification
-            and topic_classification.get("primary_topic") == "Computer Science"
-        ):
-            if (
-                source_name == "pubmed"
-                and topic_classification.get("confidence", 0) > 0.7
-            ):
-                skip_source = True
-                skip_reason = "Computer Science query, PubMed not relevant"
-        elif topic_classification and topic_classification.get("primary_topic") in [
-            "Medicine",
-            "Biology",
-        ]:
-            if (
-                source_name in ["socarxiv"]
-                and topic_classification.get("confidence", 0) > 0.7
-            ):
-                skip_source = True
-                skip_reason = f"Biomedical query, {source_name} not relevant"
-
-        if skip_source:
-            sources_to_skip.append(
-                (source_name, skip_reason, source_score, intent_preference)
-            )
-        else:
-            sources_to_search.append((source_name, description))
-
-    # Fallback mechanism using shared utility
-    from paperez_mcp.utils.search_helpers import apply_source_fallback
-
-    # When force_category is set, fallback should ONLY use category sources
-    # Otherwise, fallback can use all available sources
-    fallback_pool = available_sources
-    if force_category and priority_sources_list:
-        # Restrict fallback to category sources only
-        fallback_pool = [
-            (name, desc)
-            for name, desc in available_sources
-            if name in priority_sources_list
-        ]
-        logger.debug(
-            f"🎯 Force category: restricting fallback pool to {len(fallback_pool)} category sources"
-        )
-
-    sources_to_search = apply_source_fallback(
-        sources_to_search,
-        fallback_pool,
-        fallback_count=3,
-        reason="BM25/intent filtering excluded all sources",
-    )
-
-    # Update skip list to remove sources that were added via fallback
-    if len(sources_to_search) > 0 and len(available_sources) > 0:
-        sources_to_search_names = {name for name, _ in sources_to_search}
-        sources_to_skip = [
-            (name, reason, score, pref)
-            for name, reason, score, pref in sources_to_skip
-            if name not in sources_to_search_names
-        ]
-
-    # Log skipped sources
-    for source_name, skip_reason, source_score, intent_preference in sources_to_skip:
-        search_log["results_per_source"][source_name] = {
-            "skipped": True,
-            "reason": skip_reason,
-            "bm25_score": source_score,
-            "intent_preference": intent_preference,
-        }
-        logger.info(f"⏭️ Skipping {source_name}: {skip_reason}")
-
-    # Split sources into priority and additional for conditional cascade
-    priority_sources_to_search = []
-    additional_sources_to_search = []
-
-    for source_name, description in sources_to_search:
-        if source_name in priority_sources_list:
-            priority_sources_to_search.append((source_name, description))
-        elif source_name in additional_sources_list:
-            additional_sources_to_search.append((source_name, description))
-        else:
-            # Edge case: Source not in either list (should be rare now)
-            # This can happen if a source was added after BM25 ranking
-            logger.warning(
-                f"⚠️ Source {source_name} not in priority or additional lists, defaulting to priority"
-            )
-            priority_sources_to_search.append((source_name, description))
-
-    # Phase 1: Search priority sources first
     logger.info(
-        f"🎯 Phase 1: Searching {len(priority_sources_to_search)} priority sources"
+        f"🚀 Will search {len(sources_to_search)} sources in priority order until limit reached"
     )
-    for source_name, description in priority_sources_to_search:
+    logger.info(f"   Top sources: {[s[0] for s in sources_to_search[:5]]}")
+
+    # Unified search loop: Search sources in priority order until done
+    logger.info("🔍 Searching sources in priority order")
+    for source_name, description in sources_to_search:
         try:
             search_func = search_funcs.get(source_name)
             if search_func:
@@ -519,142 +379,8 @@ async def smart_downloadable_search(
             }
             logger.warning(f"❌ {source_name} search failed: {e}")
 
-    # Cascade through additional sources for comprehensive coverage
-    # Special handling for force_category:
-    # - If category sources found results: respect explicit restriction, skip cascade
-    # - If category sources found 0 results: cascade to all sources for comprehensive coverage
-    used_fallback = False
-    if additional_sources_to_search and not force_category:
-        logger.info(
-            f"🔄 Cascading to {len(additional_sources_to_search)} additional sources "
-            f"(relevance-based cascade) to ensure comprehensive coverage..."
-        )
-        used_fallback = True
-    elif additional_sources_to_search and force_category and len(all_candidates) == 0:
-        # Category sources returned 0 results - cascade to all sources
-        logger.warning(
-            f"⚠️  Category '{force_category}' returned 0 results from {len(priority_sources_to_search)} sources. "
-            f"Cascading to {len(additional_sources_to_search)} additional sources for comprehensive coverage..."
-        )
-        used_fallback = True
-    elif additional_sources_to_search and force_category:
-        logger.info(
-            f"⏭️  Skipping {len(additional_sources_to_search)} non-category sources "
-            f"(force_category='{force_category}' found {len(all_candidates)} results - respecting explicit category restriction)"
-        )
-
-    # Phase 2: Search all additional sources exhaustively (only if cascading)
-    # Stopping happens naturally at download loop when limit is reached
-    if used_fallback:
-        for source_name, description in additional_sources_to_search:
-            try:
-                search_func = search_funcs.get(source_name)
-                if search_func:
-                    # Enhanced query optimization using routing recommendations
-                    optimized_query = query
-
-                    # Use query expansions from intent analysis
-                    if routing_recommendations and routing_recommendations.get(
-                        "query_expansions"
-                    ):
-                        # Select best expansion for this source based on intent and temporal preference
-                        expansions = routing_recommendations["query_expansions"]
-                        if (
-                            expansions
-                            and intent_analysis
-                            and intent_analysis.temporal_preference.value == "recent"
-                        ):
-                            # For recent queries, try temporal expansions first
-                            temporal_expansions = [
-                                exp
-                                for exp in expansions
-                                if any(
-                                    term in exp.lower()
-                                    for term in ["recent", "latest", "2024", "2025"]
-                                )
-                            ]
-                            if temporal_expansions:
-                                optimized_query = temporal_expansions[0]
-                        elif (
-                            expansions
-                            and intent_analysis
-                            and intent_analysis.intent.value == "survey_review"
-                        ):
-                            # For review queries, try review-focused expansions
-                            review_expansions = [
-                                exp
-                                for exp in expansions
-                                if any(
-                                    term in exp.lower()
-                                    for term in ["review", "survey", "state of the art"]
-                                )
-                            ]
-                            if review_expansions:
-                                optimized_query = review_expansions[0]
-                        elif expansions:
-                            # Use first expansion as fallback
-                            optimized_query = expansions[0]
-
-                    # Enhanced routing provides intelligent query optimization
-
-                    if optimized_query != query:
-                        logger.info(
-                            f"🔧 Enhanced query optimization for {source_name}: '{optimized_query}'"
-                        )
-
-                    logger.info(f"🔎 [Fallback] Searching {source_name}: {description}")
-                    results = await search_func(
-                        optimized_query, search_limit_per_source
-                    )
-
-                    # Mark papers as coming from fallback expansion
-                    for paper in results:
-                        paper["_fallback_used"] = True
-                        paper["_original_category"] = force_category
-
-                    all_candidates.extend(results)
-
-                    # Count papers with PDFs
-                    has_pdfs = sum(
-                        1
-                        for r in results
-                        if r.get("pdf_url") or r.get("open_access_pdf")
-                    )
-
-                    search_log["sources_searched"].append(source_name)
-                    search_log["results_per_source"][source_name] = {
-                        "count": len(results),
-                        "has_pdfs": has_pdfs,
-                        "sample_title": results[0].get("title") if results else None,
-                        "pdf_ratio": f"{has_pdfs}/{len(results)}" if results else "0/0",
-                        "optimized_query": (
-                            optimized_query if optimized_query != query else None
-                        ),
-                        "fallback": True,
-                    }
-
-                    logger.info(
-                        f"✅ [Fallback] {source_name}: Found {len(results)} papers ({has_pdfs} with PDFs)"
-                    )
-                else:
-                    search_log["results_per_source"][source_name] = {
-                        "error": "Search function not available",
-                        "fallback": True,
-                    }
-                    logger.warning(
-                        f"❌ [Fallback] {source_name}: Search function not available"
-                    )
-
-            except Exception as e:
-                search_log["results_per_source"][source_name] = {
-                    "error": str(e),
-                    "count": 0,
-                    "fallback": True,
-                }
-                logger.warning(f"❌ [Fallback] {source_name} search failed: {e}")
-
+    # Simplified: No conditional cascading - all sources searched in priority order
     search_log["total_candidates"] = len(all_candidates)
-    search_log["used_fallback"] = used_fallback
     logger.info(f"📊 Total candidates from all sources: {len(all_candidates)}")
 
     # Sort by PDF availability using capability-based priority

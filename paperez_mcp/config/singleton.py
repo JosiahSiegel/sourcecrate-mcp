@@ -9,7 +9,7 @@ import logging
 import threading
 from typing import Any, Optional
 
-from paperez_mcp.config import get_current_config, initialize_configuration_system
+from paperez_mcp.config.manager import get_current_config
 from paperez_mcp.config.schemas import PaperezConfig
 
 logger = logging.getLogger(__name__)
@@ -70,13 +70,13 @@ class ConfigurationManager:
             try:
                 logger.info("Initializing PaperezMCP configuration system...")
 
-                # Initialize configuration system
-                self._search_service = initialize_configuration_system(
-                    enable_hot_reload=False
-                )
-
                 # Get configuration
                 self._config = get_current_config()
+
+                # Initialize search service
+                from paperez_mcp.config.registry import get_search_service
+
+                self._search_service = get_search_service()
 
                 if not self._config or not self._config.sources:
                     raise ValueError("Configuration loaded but no sources found")
