@@ -45,6 +45,16 @@ async def smart_downloadable_search(
     downloadable_papers: list[dict] = []
     all_candidates = []
 
+    # Check for empty search functions using shared utility
+    from paperez_mcp.utils.search_helpers import check_empty_search_functions
+
+    if check_empty_search_functions(search_funcs, "downloadable search"):
+        return [], {
+            "query": query,
+            "error": "No search functions available",
+            "total_candidates": 0,
+        }
+
     # Enhanced analysis using new classification system
     topic_classification = None
     intent_analysis = None
@@ -255,31 +265,10 @@ async def smart_downloadable_search(
     logger.info(f"🔍 Starting smart search for '{query}' (limit: {limit})")
     logger.info(f"📊 API Status: {json.dumps(api_status.copy(), indent=2)}")
 
-    # Handle empty api_status by loading from config dynamically
-    if not api_status:
-        logger.warning("🚨 Empty api_status detected, attempting to load from config")
-        try:
-            from paperez_mcp.config import get_current_config
+    # Validate and normalize api_status using shared utility
+    from paperez_mcp.utils.search_helpers import validate_api_status
 
-            config = get_current_config()
-            if config and config.sources:
-                api_status = {
-                    source: cfg.enabled for source, cfg in config.sources.items()
-                }
-                logger.info(f"Loaded {len(api_status)} sources from config")
-            else:
-                # Try to get from search functions themselves
-                api_status = {
-                    name: True for name in search_funcs.keys() if name in search_funcs
-                }
-                logger.info(f"Using {len(api_status)} available search functions")
-        except Exception as e:
-            logger.error(f"Failed to load config: {e}")
-            # As last resort, enable all available search functions
-            api_status = {name: True for name in search_funcs.keys()}
-            logger.warning(
-                f"Enabling all {len(api_status)} available search functions as fallback"
-            )
+    api_status = validate_api_status(api_status, search_funcs)
 
     # First pass: Check which sources would be skipped by BM25 and other criteria
     available_sources = [
@@ -347,26 +336,24 @@ async def smart_downloadable_search(
         else:
             sources_to_search.append((source_name, description))
 
-    # Fallback mechanism: If ALL sources would be skipped, force search the top sources
-    # Also handle case where no sources are available but we have search functions
-    if len(sources_to_search) == 0 and len(available_sources) > 0:
-        # Force search at least the top 3 available sources
-        min_sources_to_search = min(3, len(available_sources))
-        logger.warning(
-            f"🚨 All sources would be skipped! Using fallback: searching top {min_sources_to_search} sources"
-        )
+    # Fallback mechanism using shared utility
+    from paperez_mcp.utils.search_helpers import apply_source_fallback
 
-        # Take the top sources by priority order
-        for i in range(min_sources_to_search):
-            source_name, description = available_sources[i]
-            sources_to_search.append((source_name, description))
+    sources_to_search = apply_source_fallback(
+        sources_to_search,
+        available_sources,
+        fallback_count=3,
+        reason="BM25/intent filtering excluded all sources",
+    )
 
-            # Remove from skip list if it was there
-            sources_to_skip = [
-                (name, reason, score, pref)
-                for name, reason, score, pref in sources_to_skip
-                if name != source_name
-            ]
+    # Update skip list to remove sources that were added via fallback
+    if len(sources_to_search) > 0 and len(available_sources) > 0:
+        sources_to_search_names = {name for name, _ in sources_to_search}
+        sources_to_skip = [
+            (name, reason, score, pref)
+            for name, reason, score, pref in sources_to_skip
+            if name not in sources_to_search_names
+        ]
 
     # Log skipped sources
     for source_name, skip_reason, source_score, intent_preference in sources_to_skip:

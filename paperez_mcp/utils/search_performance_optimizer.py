@@ -750,6 +750,25 @@ async def optimize_search_performance(
     cache_hits = 0
     total_requests = 0
 
+    # Check for empty search functions using shared utility
+    from paperez_mcp.utils.search_helpers import (
+        check_empty_search_functions,
+        validate_api_status,
+    )
+
+    if check_empty_search_functions(search_functions, "optimized search"):
+        return [], PerformanceMetrics(
+            total_search_time=0.0,
+            source_response_times={},
+            cache_hit_rate=0.0,
+            result_quality_score=0.0,
+            concurrent_efficiency=0.0,
+            memory_usage=0,
+        )
+
+    # Validate and normalize api_status using shared utility
+    api_status = validate_api_status(api_status, search_functions)
+
     # Filter sources by force_category if specified (using shared utility)
     from paperez_mcp.utils.category_filter import filter_search_functions_by_category
 
@@ -759,6 +778,32 @@ async def optimize_search_performance(
     sources_to_search = filter_search_functions_by_category(
         search_functions, force_category
     )
+
+    # Apply fallback if category filtering resulted in no sources
+    from paperez_mcp.utils.search_helpers import (
+        apply_source_fallback,
+        filter_available_sources,
+    )
+
+    # Convert dict to list format for fallback mechanism
+    available_sources_list = filter_available_sources(sources_to_search, api_status)
+    all_available_sources_list = filter_available_sources(search_functions, api_status)
+
+    # Apply fallback if all sources filtered out
+    sources_after_fallback = apply_source_fallback(
+        available_sources_list,
+        all_available_sources_list,
+        fallback_count=3,
+        reason="category filtering excluded all sources",
+    )
+
+    # Convert back to dict format for compatibility with rest of function
+    if sources_after_fallback != available_sources_list:
+        # Fallback was applied - rebuild dict from fallback list
+        sources_to_search = {
+            name: search_functions[name] for name, _ in sources_after_fallback
+        }
+        logger.info(f"🔄 Fallback applied: using {len(sources_to_search)} sources")
 
     # Check cache first
     all_results = []
