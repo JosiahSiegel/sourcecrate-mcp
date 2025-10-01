@@ -747,11 +747,21 @@ async def smart_downloadable_search(
 
     # Handle metadata-only mode vs download testing
     if metadata_only:
-        # For metadata-only mode (browse_papers), return papers without download testing
+        # For metadata-only mode (browse_papers), filter to only include papers with PDF URLs
+        # This ensures consistency with download_papers behavior
+        papers_with_pdfs = [
+            p for p in unique_candidates if p.get("pdf_url") or p.get("open_access_pdf")
+        ]
+
+        papers_without_pdfs = len(unique_candidates) - len(papers_with_pdfs)
         logger.info(
-            f"📄 Metadata-only mode: Returning top {limit} papers without download testing"
+            f"📄 Metadata-only mode: Filtered {len(unique_candidates)} candidates → {len(papers_with_pdfs)} with PDFs (filtered out {papers_without_pdfs} without PDFs)"
         )
-        downloadable_papers = unique_candidates[:limit]
+
+        downloadable_papers = papers_with_pdfs[:limit]
+        logger.info(
+            f"📄 Returning top {len(downloadable_papers)} papers with PDF URLs (limit: {limit})"
+        )
         attempted_downloads = 0
 
         # Mark metadata-only papers for distinction
