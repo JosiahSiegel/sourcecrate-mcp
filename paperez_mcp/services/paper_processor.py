@@ -19,6 +19,7 @@ async def process_papers(
     api_status: dict[str, bool],
     force_category: str | None = None,
     convert_to_markdown: bool = True,
+    debug: bool = False,
 ) -> dict[str, Any]:
     """
     Core paper processing logic used by both download_papers and get_papers.
@@ -32,6 +33,7 @@ async def process_papers(
         api_status: API status tracking dict
         force_category: Force specific source category
         convert_to_markdown: If True, convert PDFs to markdown. If False, keep as PDFs.
+        debug: If True, capture detailed diagnostic fields. If False (default), minimal output.
 
     Returns:
         Dictionary with results, download counts, and metadata
@@ -113,7 +115,7 @@ async def process_papers(
                 paper_doi = paper.get("doi")  # DOI for Unpaywall fallback
                 logger.info(f"Downloading PDF with title: '{paper_title}'")
                 download_result = await utils["download_pdf"](
-                    pdf_url, output_dir, paper_title, paper_url, paper_doi
+                    pdf_url, output_dir, paper_title, paper_url, paper_doi, debug
                 )
                 if download_result.get("success"):
                     logger.info(f"PDF downloaded to: {download_result.get('pdf_path')}")
@@ -180,48 +182,52 @@ async def process_papers(
                         f"Failed to download PDF: {download_result.get('error')}"
                     )
 
-                    # Capture diagnostic fields for debugging Unpaywall/Cloudflare issues
-                    paper["cloudflare_detected"] = download_result.get(
-                        "cloudflare_detected", False
-                    )
-                    paper["unpaywall_tried"] = download_result.get(
-                        "unpaywall_tried", False
-                    )
-                    paper["download_suggestions"] = download_result.get(
-                        "suggestions", []
-                    )
-                    paper["retry_attempts"] = download_result.get("final_attempt", 0)
+                    # Capture diagnostic fields only in debug mode
+                    if debug:
+                        # Capture diagnostic fields for debugging Unpaywall/Cloudflare issues
+                        paper["cloudflare_detected"] = download_result.get(
+                            "cloudflare_detected", False
+                        )
+                        paper["unpaywall_tried"] = download_result.get(
+                            "unpaywall_tried", False
+                        )
+                        paper["download_suggestions"] = download_result.get(
+                            "suggestions", []
+                        )
+                        paper["retry_attempts"] = download_result.get(
+                            "final_attempt", 0
+                        )
 
-                    # Capture detailed Unpaywall diagnostics
-                    paper["unpaywall_api_response"] = download_result.get(
-                        "unpaywall_api_response", "not_tried"
-                    )
-                    paper["unpaywall_oa_url"] = download_result.get(
-                        "unpaywall_oa_url", None
-                    )
-                    paper["unpaywall_oa_version"] = download_result.get(
-                        "unpaywall_oa_version", None
-                    )
-                    paper["unpaywall_oa_license"] = download_result.get(
-                        "unpaywall_oa_license", None
-                    )
-                    paper["unpaywall_download_attempted"] = download_result.get(
-                        "unpaywall_download_attempted", False
-                    )
-                    paper["unpaywall_download_status"] = download_result.get(
-                        "unpaywall_download_status", None
-                    )
-                    paper["unpaywall_download_error"] = download_result.get(
-                        "unpaywall_download_error", None
-                    )
+                        # Capture detailed Unpaywall diagnostics
+                        paper["unpaywall_api_response"] = download_result.get(
+                            "unpaywall_api_response", "not_tried"
+                        )
+                        paper["unpaywall_oa_url"] = download_result.get(
+                            "unpaywall_oa_url", None
+                        )
+                        paper["unpaywall_oa_version"] = download_result.get(
+                            "unpaywall_oa_version", None
+                        )
+                        paper["unpaywall_oa_license"] = download_result.get(
+                            "unpaywall_oa_license", None
+                        )
+                        paper["unpaywall_download_attempted"] = download_result.get(
+                            "unpaywall_download_attempted", False
+                        )
+                        paper["unpaywall_download_status"] = download_result.get(
+                            "unpaywall_download_status", None
+                        )
+                        paper["unpaywall_download_error"] = download_result.get(
+                            "unpaywall_download_error", None
+                        )
 
-                    # Capture multi-URL retry diagnostics
-                    paper["unpaywall_alternatives_count"] = download_result.get(
-                        "unpaywall_alternatives_count", 0
-                    )
-                    paper["unpaywall_urls_tried"] = download_result.get(
-                        "unpaywall_urls_tried", []
-                    )
+                        # Capture multi-URL retry diagnostics
+                        paper["unpaywall_alternatives_count"] = download_result.get(
+                            "unpaywall_alternatives_count", 0
+                        )
+                        paper["unpaywall_urls_tried"] = download_result.get(
+                            "unpaywall_urls_tried", []
+                        )
             except Exception as e:
                 paper["download_success"] = False
                 paper["download_status"] = "failed"

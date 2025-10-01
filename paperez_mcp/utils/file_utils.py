@@ -20,6 +20,7 @@ async def download_pdf(
     title: str | None = None,
     paper_url: str | None = None,
     doi: str | None = None,
+    debug: bool = False,
 ) -> dict[str, Any]:
     """
     Download a PDF from URL to local directory with enhanced headers and retry logic.
@@ -35,9 +36,10 @@ async def download_pdf(
         title: Optional paper title for readable filename
         paper_url: Optional main paper URL for referrer header
         doi: Optional DOI for Unpaywall fallback
+        debug: If True, return detailed diagnostic fields. If False (default), minimal output.
 
     Returns:
-        Dictionary with download results
+        Dictionary with download results (minimal in non-debug mode, detailed in debug mode)
     """
     try:
         # Apply URL transformations and rate limiting based on configuration
@@ -178,14 +180,19 @@ async def download_pdf(
                         with open(pdf_path, "wb") as f:
                             f.write(response.content)
 
-                        return {
+                        result = {
                             "success": True,
                             "pdf_path": pdf_path,
                             "file_size": len(response.content),
                             "filename": filename,
-                            "retry_attempt": attempt + 1,
-                            "headers_used": list(current_headers.keys()),
                         }
+
+                        # Add diagnostic fields only in debug mode
+                        if debug:
+                            result["retry_attempt"] = attempt + 1
+                            result["headers_used"] = list(current_headers.keys())
+
+                        return result
                     else:
                         last_error = f"HTTP {response.status_code}"
                         if attempt < max_retries - 1:
@@ -332,19 +339,24 @@ async def download_pdf(
                                     f"✅ Success! Downloaded from Unpaywall location {idx+1}"
                                 )
 
-                                return {
+                                result = {
                                     "success": True,
                                     "pdf_path": pdf_path,
                                     "file_size": len(response.content),
                                     "filename": filename,
                                     "source": "unpaywall",
-                                    "oa_version": oa_version,
-                                    "oa_license": oa_license,
-                                    "unpaywall_location_index": idx + 1,
-                                    "unpaywall_alternatives_tried": len(
-                                        unpaywall_urls_tried
-                                    ),
                                 }
+
+                                # Add diagnostic fields only in debug mode
+                                if debug:
+                                    result["oa_version"] = oa_version
+                                    result["oa_license"] = oa_license
+                                    result["unpaywall_location_index"] = idx + 1
+                                    result["unpaywall_alternatives_tried"] = len(
+                                        unpaywall_urls_tried
+                                    )
+
+                                return result
                             else:
                                 unpaywall_download_error = (
                                     f"HTTP {response.status_code}"
@@ -384,26 +396,31 @@ async def download_pdf(
 
         suggestions = suggest_alternatives(pdf_url, doi, unpaywall_urls_for_suggestions)
 
-        return {
+        result = {
             "success": False,
             "error": error_msg,
-            "pdf_url": pdf_url,
-            "final_attempt": max_retries,
-            "cloudflare_detected": is_cloudflare,
-            "unpaywall_tried": unpaywall_tried,
-            "suggestions": suggestions,
-            # Detailed Unpaywall diagnostics
-            "unpaywall_api_response": unpaywall_api_response,
-            "unpaywall_oa_url": unpaywall_oa_url,
-            "unpaywall_oa_version": unpaywall_oa_version,
-            "unpaywall_oa_license": unpaywall_oa_license,
-            "unpaywall_download_attempted": unpaywall_download_attempted,
-            "unpaywall_download_status": unpaywall_download_status,
-            "unpaywall_download_error": unpaywall_download_error,
-            # Multi-URL retry diagnostics
-            "unpaywall_alternatives_count": unpaywall_alternatives_count,
-            "unpaywall_urls_tried": unpaywall_urls_tried,
         }
+
+        # Add diagnostic fields only in debug mode
+        if debug:
+            result["pdf_url"] = pdf_url
+            result["final_attempt"] = max_retries
+            result["cloudflare_detected"] = is_cloudflare
+            result["unpaywall_tried"] = unpaywall_tried
+            result["suggestions"] = suggestions
+            # Detailed Unpaywall diagnostics
+            result["unpaywall_api_response"] = unpaywall_api_response
+            result["unpaywall_oa_url"] = unpaywall_oa_url
+            result["unpaywall_oa_version"] = unpaywall_oa_version
+            result["unpaywall_oa_license"] = unpaywall_oa_license
+            result["unpaywall_download_attempted"] = unpaywall_download_attempted
+            result["unpaywall_download_status"] = unpaywall_download_status
+            result["unpaywall_download_error"] = unpaywall_download_error
+            # Multi-URL retry diagnostics
+            result["unpaywall_alternatives_count"] = unpaywall_alternatives_count
+            result["unpaywall_urls_tried"] = unpaywall_urls_tried
+
+        return result
 
     except Exception as e:
         return {"success": False, "error": f"Download failed: {str(e)}"}

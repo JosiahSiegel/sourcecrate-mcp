@@ -326,7 +326,7 @@ All file-saving tools default to current directory and accept custom output path
 
 @mcp.tool
 async def browse_papers(
-    query: str, limit: int = 10, force_category: str | None = None
+    query: str, limit: int = 10, force_category: str | None = None, debug: bool = False
 ) -> list[dict[str, Any]]:
     """
     🔍 BROWSE: Find research papers, academic documents, and scholarly publications (metadata/abstracts only)
@@ -576,6 +576,10 @@ async def browse_papers(
     - "Philosophy research" → Recommend CORE (free API key) BEFORE recommending JSTOR/PhilPapers
 
     Call get_help() immediately to see configuration examples.
+
+        debug: If True, include detailed diagnostic fields (source metadata, config layers, etc.).
+               If False (default), return clean minimal output for AI clients.
+               Use debug=True when troubleshooting search issues.
 
     Returns:
         List containing single dict with:
@@ -852,12 +856,26 @@ async def browse_papers(
             result["error_suggestions"] = enhanced_search_error
             result["enhanced_no_results"] = True
 
+    # Strip diagnostic fields when not in debug mode
+    if not debug:
+        # Remove verbose result-level fields
+        if "error_suggestions" in result:
+            del result["error_suggestions"]
+        if "enhanced_no_results" in result:
+            del result["enhanced_no_results"]
+
+        # Remove per-paper diagnostic fields
+        if "results" in result and isinstance(result["results"], list):
+            for paper in result["results"]:
+                if "config_layer" in paper:
+                    del paper["config_layer"]
+
     return [result]
 
 
 @mcp.tool
 async def browse_papers_streaming(
-    query: str, limit: int = 10, force_category: str | None = None
+    query: str, limit: int = 10, force_category: str | None = None, debug: bool = False
 ) -> list[dict[str, Any]]:
     """
     🌊 STREAMING BROWSE: Find research papers, academic documents, and scholarly publications with real-time results as sources complete
@@ -1041,6 +1059,10 @@ async def browse_papers_streaming(
     - "Medieval literature" → Humanities databases (JSTOR, MUSE)
 
     Call get_help() immediately to see configuration examples.
+
+        debug: If True, include detailed diagnostic fields (source metadata, config layers, streaming metrics).
+               If False (default), return clean minimal output for AI clients.
+               Use debug=True when troubleshooting streaming search issues.
 
     Returns:
         List containing streaming search results with:
@@ -1283,15 +1305,34 @@ async def browse_papers_streaming(
     else:
         early_results_to_return = []
 
-    return [
-        {
-            "streaming_results": cleaned_results,
-            "streaming_summary": streaming_summary,
-            "early_results": early_results_to_return,  # Enriched early results
-            "streaming_stats": timing_stats,
-            "source_performance": source_performance,
-        }
-    ]
+    # Prepare result dict
+    result_dict = {
+        "streaming_results": cleaned_results,
+        "streaming_summary": streaming_summary,
+        "early_results": early_results_to_return,  # Enriched early results
+        "streaming_stats": timing_stats,
+        "source_performance": source_performance,
+    }
+
+    # Strip diagnostic fields when not in debug mode
+    if not debug:
+        # Remove verbose result-level fields
+        if "source_performance" in result_dict:
+            del result_dict["source_performance"]
+        if "streaming_stats" in result_dict:
+            del result_dict["streaming_stats"]
+
+        # Remove per-paper diagnostic fields from streaming_results
+        for paper in result_dict.get("streaming_results", []):
+            if "config_layer" in paper:
+                del paper["config_layer"]
+
+        # Remove per-paper diagnostic fields from early_results
+        for paper in result_dict.get("early_results", []):
+            if "config_layer" in paper:
+                del paper["config_layer"]
+
+    return [result_dict]
 
 
 @mcp.tool
@@ -1301,6 +1342,7 @@ async def download_papers(
     output_dir: str = ".paperez",
     force_category: str | None = None,
     convert_to_markdown: bool = True,
+    debug: bool = False,
 ) -> list[dict[str, Any]]:
     """
     📄 GET FULL PAPERS: Download research papers, academic documents, and scholarly publications as files (PDF or Markdown)
@@ -1481,6 +1523,9 @@ async def download_papers(
 
     Args (continued):
         convert_to_markdown: If True (default), convert PDFs to markdown. If False, keep as PDFs only.
+        debug: If True, include detailed diagnostic fields (Unpaywall status, Cloudflare detection, etc.).
+               If False (default), return clean minimal output for AI clients.
+               Use debug=True when troubleshooting download issues.
 
     Returns:
         List containing single dict with:
@@ -1511,6 +1556,7 @@ async def download_papers(
         api_status=get_api_status(),
         force_category=force_category,
         convert_to_markdown=convert_to_markdown,
+        debug=debug,
     )
 
     # Enrich results with source metadata (config layer info)
@@ -1527,6 +1573,40 @@ async def download_papers(
         for paper in result["results"]:
             if "abstract" in paper:
                 del paper["abstract"]
+
+    # Strip diagnostic fields when not in debug mode
+    if not debug:
+        # Remove verbose result-level fields
+        if "source_performance" in result:
+            del result["source_performance"]
+        if "error_suggestions" in result:
+            del result["error_suggestions"]
+        if "fallback_notification" in result:
+            del result["fallback_notification"]
+
+        # Remove per-paper diagnostic fields
+        if "results" in result and isinstance(result["results"], list):
+            for paper in result["results"]:
+                # Remove Unpaywall diagnostics
+                for field in [
+                    "cloudflare_detected",
+                    "unpaywall_tried",
+                    "retry_attempts",
+                    "unpaywall_api_response",
+                    "unpaywall_oa_url",
+                    "unpaywall_oa_version",
+                    "unpaywall_oa_license",
+                    "unpaywall_download_attempted",
+                    "unpaywall_download_status",
+                    "unpaywall_download_error",
+                    "unpaywall_alternatives_count",
+                    "unpaywall_urls_tried",
+                    "download_note",
+                    "download_suggestions",
+                    "config_layer",
+                ]:
+                    if field in paper:
+                        del paper[field]
 
     return [result]
 
