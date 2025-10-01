@@ -99,6 +99,7 @@ class ConfigManager:
         self._source_origins: dict[str, str] = (
             {}
         )  # Track which config layer each source came from
+        self._config_loaded = False  # Lazy loading flag
 
         # Configuration directory paths (load ALL YAML files from these directories)
         # Get the root directory of the paperez-mcp package with fallback search
@@ -115,7 +116,8 @@ class ConfigManager:
             "user_home": Path.home() / ".paperez" / "config" / "config.yaml",
         }
 
-        self._load_config()
+        # Lazy loading: Config will be loaded on first access
+        # self._load_config()  # REMOVED for lazy loading
         if self.enable_hot_reload and WATCHDOG_AVAILABLE:
             self._setup_file_watching()
 
@@ -370,6 +372,16 @@ class ConfigManager:
             )
 
         return config_dict
+
+    def ensure_loaded(self) -> None:
+        """Ensure configuration is loaded (lazy loading trigger)."""
+        if not self._config_loaded:
+            with self._config_lock:
+                # Double-check inside lock
+                if not self._config_loaded:
+                    logger.info("Lazy-loading configuration on first access...")
+                    self._load_config()
+                    self._config_loaded = True
 
     def _load_config(self) -> None:
         """Load and merge configuration from all sources (directories and individual files)."""
@@ -665,11 +677,9 @@ class ConfigManager:
 
     def get_config(self) -> PaperezConfig:
         """Get current configuration."""
-        with self._config_lock:
-            if self._config is None:
-                # Force configuration load if not already loaded
-                self._load_config()
-            return self._config  # type: ignore  # _load_config ensures this is not None
+        # Trigger lazy loading if not already loaded
+        self.ensure_loaded()
+        return self._config  # type: ignore  # ensure_loaded ensures this is not None
 
     def get_failed_configs(self) -> list[dict[str, str]]:
         """Get list of configuration files that failed to load.

@@ -244,13 +244,20 @@ class ConfigurableSearchService:
     def __init__(self) -> None:
         self.source_registry = SourceRegistry()
         self.category_resolver = CategoryResolver(self.source_registry)
-        self._initialize()
+        self._initialized = False  # Lazy loading flag
 
         # Register for configuration changes
         from .manager import get_config_manager
 
         config_manager = get_config_manager()
         config_manager.add_reload_callback(self._on_config_reload)
+
+    def ensure_initialized(self) -> None:
+        """Ensure service is initialized (lazy loading trigger)."""
+        if not self._initialized:
+            logger.info("Lazy-loading search service on first access...")
+            self._initialize()
+            self._initialized = True
 
     def _initialize(self) -> None:
         """Initialize the service with current configuration."""
@@ -265,6 +272,7 @@ class ConfigurableSearchService:
 
     def get_search_functions(self) -> dict[str, Callable]:
         """Get dictionary of search functions."""
+        self.ensure_initialized()
         search_funcs = {}
         for source_name in self.source_registry.get_enabled_sources():
             search_func = self.source_registry.get_source_function(source_name)
@@ -276,6 +284,7 @@ class ConfigurableSearchService:
 
     def resolve_category_sources(self, category_name: str) -> list[str]:
         """Resolve category to list of available source names."""
+        self.ensure_initialized()
         return self.category_resolver.resolve_category(category_name)
 
     def get_smart_category_for_query(self, query: str) -> str:
@@ -301,6 +310,7 @@ class ConfigurableSearchService:
 
     def get_service_status(self) -> dict[str, Any]:
         """Get comprehensive service status."""
+        self.ensure_initialized()
         config = get_current_config()
         enabled_sources = self.source_registry.get_enabled_sources()
 
@@ -318,6 +328,7 @@ class ConfigurableSearchService:
 
     def validate_category(self, category_name: str) -> dict[str, Any]:
         """Validate a category and return detailed status."""
+        self.ensure_initialized()
         if category_name not in get_current_config().categories:
             return {"valid": False, "error": f"Category '{category_name}' not found"}
 

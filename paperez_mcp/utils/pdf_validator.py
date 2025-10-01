@@ -21,14 +21,21 @@ class PDFValidator:
     """Validates PDF URLs and provides fallback mechanisms for better PDF availability"""
 
     def __init__(self) -> None:
-        # Load PDF patterns from configuration
-        self.pdf_patterns = self._load_pdf_patterns_from_config()
+        # Lazy loading: Patterns will be loaded on first use
+        self.pdf_patterns: dict | None = None
+        self._patterns_loaded = False
 
         # Cache for validated URLs to avoid repeated checks
         self._validation_cache: dict[str, bool] = {}
 
         # Timeout for HTTP requests - reduced for faster failure detection
         self.timeout = aiohttp.ClientTimeout(total=5, connect=2)
+
+    def _ensure_patterns_loaded(self) -> None:
+        """Ensure PDF patterns are loaded (lazy loading trigger)."""
+        if not self._patterns_loaded:
+            self.pdf_patterns = self._load_pdf_patterns_from_config()
+            self._patterns_loaded = True
 
     def _load_pdf_patterns_from_config(self) -> dict:
         """Load PDF patterns entirely from configuration"""
@@ -60,10 +67,11 @@ class PDFValidator:
         Returns:
             Dict mapping source names to lists of regex patterns
         """
+        self._ensure_patterns_loaded()
         all_patterns = {}
 
         # Add built-in patterns
-        for source, pattern_info in self.pdf_patterns.items():
+        for source, pattern_info in (self.pdf_patterns or {}).items():
             if "pattern" in pattern_info:
                 all_patterns[source] = [pattern_info["pattern"]]
 
@@ -129,6 +137,9 @@ class PDFValidator:
 
     def extract_arxiv_pdf_url(self, text: str) -> str | None:
         """Extract arXiv PDF URL from text containing arXiv identifier"""
+        self._ensure_patterns_loaded()
+        if not self.pdf_patterns or "arxiv" not in self.pdf_patterns:
+            return None
         match = re.search(self.pdf_patterns["arxiv"]["pattern"], text)
         if match:
             arxiv_id = match.group(1)
@@ -137,6 +148,9 @@ class PDFValidator:
 
     def extract_pmc_pdf_url(self, text: str) -> str | None:
         """Extract PMC PDF URL from text containing PMC identifier"""
+        self._ensure_patterns_loaded()
+        if not self.pdf_patterns or "pmc" not in self.pdf_patterns:
+            return None
         match = re.search(self.pdf_patterns["pmc"]["pattern"], text)
         if match:
             pmc_id = match.group(1)
@@ -215,39 +229,41 @@ class PDFValidator:
 
     async def _get_doi_pdf_alternatives(self, doi: str) -> list[str]:
         """Get alternative PDF URLs based on DOI using multiple sources"""
+        self._ensure_patterns_loaded()
         alternatives = []
 
         # Strategy 1: Try Unpaywall API for open access PDFs
-        try:
-            unpaywall_url = self.pdf_patterns["doi"]["unpaywall_url"].format(doi)
-            async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(unpaywall_url) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data.get("is_oa"):
-                            # Get best open access location
-                            best_oa = data.get("best_oa_location")
-                            if best_oa and best_oa.get("url_for_pdf"):
-                                alternatives.append(best_oa["url_for_pdf"])
+        if self.pdf_patterns and "doi" in self.pdf_patterns:
+            try:
+                unpaywall_url = self.pdf_patterns["doi"]["unpaywall_url"].format(doi)
+                async with aiohttp.ClientSession(timeout=self.timeout) as session:
+                    async with session.get(unpaywall_url) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            if data.get("is_oa"):
+                                # Get best open access location
+                                best_oa = data.get("best_oa_location")
+                                if best_oa and best_oa.get("url_for_pdf"):
+                                    alternatives.append(best_oa["url_for_pdf"])
 
-                            # Also check all open access locations for additional PDFs
-                            oa_locations = data.get("oa_locations", [])
-                            for location in oa_locations:
-                                pdf_url = location.get("url_for_pdf")
-                                if pdf_url and pdf_url not in alternatives:
-                                    alternatives.append(pdf_url)
+                                # Also check all open access locations for additional PDFs
+                                oa_locations = data.get("oa_locations", [])
+                                for location in oa_locations:
+                                    pdf_url = location.get("url_for_pdf")
+                                    if pdf_url and pdf_url not in alternatives:
+                                        alternatives.append(pdf_url)
 
-                        logger.debug(
-                            f"Unpaywall found {len(alternatives)} open access PDFs for DOI {doi}"
-                        )
-                    elif response.status == 404:
-                        logger.debug(f"DOI {doi} not found in Unpaywall database")
-                    else:
-                        logger.debug(
-                            f"Unpaywall API returned status {response.status} for DOI {doi}"
-                        )
-        except Exception as e:
-            logger.debug(f"Unpaywall lookup failed for DOI {doi}: {e}")
+                            logger.debug(
+                                f"Unpaywall found {len(alternatives)} open access PDFs for DOI {doi}"
+                            )
+                        elif response.status == 404:
+                            logger.debug(f"DOI {doi} not found in Unpaywall database")
+                        else:
+                            logger.debug(
+                                f"Unpaywall API returned status {response.status} for DOI {doi}"
+                            )
+            except Exception as e:
+                logger.debug(f"Unpaywall lookup failed for DOI {doi}: {e}")
 
         # Strategy 2: Try publisher-specific PDF URL patterns
         publisher_patterns = self._get_publisher_pdf_patterns(doi)
