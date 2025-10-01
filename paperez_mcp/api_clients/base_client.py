@@ -7,7 +7,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from diskcache import Cache
+from diskcache import Cache  # type: ignore
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from ..utils.metadata_normalizer import metadata_normalizer

@@ -5,6 +5,7 @@ Tests streaming search results, progress updates, and early delivery.
 
 import asyncio
 import time
+from typing import Any
 
 import pytest
 
@@ -20,7 +21,7 @@ from paperez_mcp.utils.result_streaming import (
 class TestStreamedResult:
     """Test suite for StreamedResult class."""
 
-    def test_streamed_result_creation(self):
+    def test_streamed_result_creation(self) -> None:
         """Test creation of StreamedResult with required fields."""
         timestamp = time.time()
         result = StreamedResult(
@@ -33,7 +34,7 @@ class TestStreamedResult:
         assert result.confidence_score == 0.0  # Default value
         assert result.is_final is False  # Default value
 
-    def test_streamed_result_with_confidence(self):
+    def test_streamed_result_with_confidence(self) -> None:
         """Test StreamedResult with custom confidence score."""
         result = StreamedResult(
             source="test_source",
@@ -50,7 +51,7 @@ class TestStreamedResult:
 class TestStreamingUpdate:
     """Test suite for StreamingUpdate class."""
 
-    def test_streaming_update_creation(self):
+    def test_streaming_update_creation(self) -> None:
         """Test creation of StreamingUpdate with different types."""
         # Result update
         result_update = StreamingUpdate(
@@ -61,6 +62,7 @@ class TestStreamingUpdate:
 
         assert result_update.type == "result"
         assert result_update.source == "test_source"
+        assert result_update.results is not None
         assert len(result_update.results) == 1
 
         # Progress update
@@ -72,10 +74,11 @@ class TestStreamingUpdate:
         )
 
         assert progress_update.type == "progress"
+        assert progress_update.progress is not None
         assert progress_update.progress["completed"] == 2
         assert progress_update.completed_sources == 2
 
-    def test_streaming_update_defaults(self):
+    def test_streaming_update_defaults(self) -> None:
         """Test StreamingUpdate default values."""
         update = StreamingUpdate(type="test")
 
@@ -92,7 +95,7 @@ class TestStreamingUpdate:
 class TestResultStreamer:
     """Test suite for ResultStreamer class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         # Reset global state for test isolation
         result_streamer.reset_streaming_state()
@@ -104,7 +107,7 @@ class TestResultStreamer:
             result_buffer_size=10,
         )
 
-    def test_streamer_initialization(self):
+    def test_streamer_initialization(self) -> None:
         """Test ResultStreamer initialization."""
         assert self.streamer.enable_early_results is True
         assert self.streamer.min_results_for_early_delivery == 2
@@ -115,26 +118,26 @@ class TestResultStreamer:
         assert len(self.streamer.error_sources) == 0
         assert len(self.streamer.source_results) == 0
 
-    def test_calculate_confidence_basic(self):
+    def test_calculate_confidence_basic(self) -> None:
         """Test basic confidence calculation."""
         # Basic result
         result = {"title": "Test Paper"}
         confidence = self.streamer._calculate_confidence(result)
         assert confidence == 0.5  # Base score
 
-    def test_calculate_confidence_with_pdf(self):
+    def test_calculate_confidence_with_pdf(self) -> None:
         """Test confidence boost for papers with PDFs."""
         result = {"title": "Test Paper", "pdf_url": "https://example.com/paper.pdf"}
         confidence = self.streamer._calculate_confidence(result)
         assert confidence == 0.7  # Base + PDF boost
 
-    def test_calculate_confidence_with_doi(self):
+    def test_calculate_confidence_with_doi(self) -> None:
         """Test confidence boost for papers with DOI."""
         result = {"title": "Test Paper", "doi": "10.1234/example.doi"}
         confidence = self.streamer._calculate_confidence(result)
         assert confidence == 0.6  # Base + DOI boost
 
-    def test_calculate_confidence_with_citations(self):
+    def test_calculate_confidence_with_citations(self) -> None:
         """Test confidence boost based on citation count."""
         # High citations
         result = {"title": "Test Paper", "citation_count": 150}
@@ -146,13 +149,13 @@ class TestResultStreamer:
         confidence = self.streamer._calculate_confidence(result)
         assert confidence == 0.6  # Base + medium citation boost
 
-    def test_calculate_confidence_with_recent_year(self):
+    def test_calculate_confidence_with_recent_year(self) -> None:
         """Test confidence boost for recent papers."""
         result = {"title": "Test Paper", "year": 2024}  # Recent year
         confidence = self.streamer._calculate_confidence(result)
         assert confidence == 0.6  # Base + recent year boost
 
-    def test_calculate_confidence_max_score(self):
+    def test_calculate_confidence_max_score(self) -> None:
         """Test that confidence score is capped at 1.0."""
         result = {
             "title": "Test Paper",
@@ -165,7 +168,7 @@ class TestResultStreamer:
         confidence = self.streamer._calculate_confidence(result)
         assert confidence == 1.0  # Should be capped
 
-    def test_should_deliver_early_results_by_count(self):
+    def test_should_deliver_early_results_by_count(self) -> None:
         """Test early delivery trigger by result count."""
         # Add enough results to trigger early delivery
         self.streamer.source_results = {
@@ -177,14 +180,14 @@ class TestResultStreamer:
 
         assert self.streamer._should_deliver_early_results() is True
 
-    def test_should_deliver_early_results_by_time(self):
+    def test_should_deliver_early_results_by_time(self) -> None:
         """Test early delivery trigger by elapsed time."""
         # Set start time to past to simulate elapsed time
         self.streamer.start_time = time.time() - 5.0  # 5 seconds ago
 
         assert self.streamer._should_deliver_early_results() is True
 
-    def test_should_deliver_early_results_by_sources(self):
+    def test_should_deliver_early_results_by_sources(self) -> None:
         """Test early delivery trigger by completed sources."""
         # Add completed sources
         self.streamer.completed_sources.add("source1")
@@ -192,7 +195,7 @@ class TestResultStreamer:
 
         assert self.streamer._should_deliver_early_results() is True
 
-    def test_get_best_results_so_far(self):
+    def test_get_best_results_so_far(self) -> None:
         """Test getting best results for early delivery."""
         # Add results with different confidence scores
         high_conf_result = StreamedResult(
@@ -210,13 +213,13 @@ class TestResultStreamer:
             "source2": [low_conf_result],
         }
 
-        delivered_results = set()
+        delivered_results: set[tuple[str, int]] = set()
         best_results = self.streamer._get_best_results_so_far(delivered_results)
 
         assert len(best_results) == 2
         assert best_results[0].confidence_score >= best_results[1].confidence_score
 
-    def test_get_final_results_deduplication(self):
+    def test_get_final_results_deduplication(self) -> None:
         """Test final results with deduplication."""
         # Add duplicate results by DOI
         result1 = StreamedResult(
@@ -230,14 +233,14 @@ class TestResultStreamer:
 
         self.streamer.source_results = {"source1": [result1], "source2": [result2]}
 
-        delivered_results = set()
+        delivered_results: set[tuple[str, int]] = set()
         final_results = self.streamer._get_final_results(delivered_results)
 
         # Should only have one result after deduplication
         assert len(final_results) == 1
         assert final_results[0].is_final is True
 
-    def test_get_final_results_by_title(self):
+    def test_get_final_results_by_title(self) -> None:
         """Test deduplication by title when no DOI."""
         result1 = StreamedResult(
             "source1", {"title": "Unique Paper Title"}, time.time()
@@ -250,13 +253,13 @@ class TestResultStreamer:
 
         self.streamer.source_results = {"source1": [result1], "source2": [result2]}
 
-        delivered_results = set()
+        delivered_results: set[tuple[str, int]] = set()
         final_results = self.streamer._get_final_results(delivered_results)
 
         # Should only have one result after title-based deduplication
         assert len(final_results) == 1
 
-    def test_get_streaming_stats(self):
+    def test_get_streaming_stats(self) -> None:
         """Test streaming statistics generation."""
         self.streamer.start_time = time.time() - 5.0  # 5 seconds ago
         self.streamer.first_result_time = self.streamer.start_time + 2.0
@@ -272,14 +275,14 @@ class TestResultStreamer:
         assert stats["first_result_latency"] == pytest.approx(2.0, rel=1e-1)
 
     @pytest.mark.asyncio
-    async def test_stream_search_results_basic(self):
+    async def test_stream_search_results_basic(self) -> None:
         """Test basic streaming functionality."""
 
-        async def mock_search_1():
+        async def mock_search_1() -> list[dict[str, Any]]:
             await asyncio.sleep(0.1)
             return [{"title": "Result 1"}]
 
-        async def mock_search_2():
+        async def mock_search_2() -> list[dict[str, Any]]:
             await asyncio.sleep(0.2)
             return [{"title": "Result 2"}]
 
@@ -304,14 +307,14 @@ class TestResultStreamer:
         assert len(final_update.results) == 2
 
     @pytest.mark.asyncio
-    async def test_stream_search_results_with_failure(self):
+    async def test_stream_search_results_with_failure(self) -> None:
         """Test streaming with some source failures."""
 
-        async def mock_search_success():
+        async def mock_search_success() -> list[dict[str, Any]]:
             await asyncio.sleep(0.1)
             return [{"title": "Success Result"}]
 
-        async def mock_search_failure():
+        async def mock_search_failure() -> list[dict[str, Any]]:
             raise Exception("Search failed")
 
         search_tasks = [mock_search_success, mock_search_failure]
@@ -334,7 +337,7 @@ class TestResultStreamer:
         assert len(final_updates[0].results) == 1
 
     @pytest.mark.asyncio
-    async def test_stream_search_results_early_delivery(self):
+    async def test_stream_search_results_early_delivery(self) -> None:
         """Test early result delivery functionality."""
         # Configure for immediate early delivery
         early_streamer = ResultStreamer(
@@ -343,11 +346,11 @@ class TestResultStreamer:
             max_wait_time=1.0,
         )
 
-        async def fast_search():
+        async def fast_search() -> list[dict[str, Any]]:
             await asyncio.sleep(0.05)
             return [{"title": "Fast Result"}]
 
-        async def slow_search():
+        async def slow_search() -> list[dict[str, Any]]:
             await asyncio.sleep(0.5)
             return [{"title": "Slow Result"}]
 
@@ -369,13 +372,13 @@ class TestResultStreamer:
         assert len(final_updates) == 1
 
     @pytest.mark.asyncio
-    async def test_stream_search_results_with_processor(self):
+    async def test_stream_search_results_with_processor(self) -> None:
         """Test streaming with result processor."""
 
-        async def mock_search():
+        async def mock_search() -> list[dict[str, Any]]:
             return [{"title": "Original Title"}]
 
-        async def result_processor(streamed_result):
+        async def result_processor(streamed_result: StreamedResult) -> StreamedResult:
             # Modify the result
             streamed_result.data["title"] = (
                 "Processed: " + streamed_result.data["title"]
@@ -397,13 +400,13 @@ class TestResultStreamer:
         assert "Processed:" in final_updates[0].results[0].data["title"]
 
     @pytest.mark.asyncio
-    async def test_stream_search_results_processor_failure(self):
+    async def test_stream_search_results_processor_failure(self) -> None:
         """Test handling of result processor failures."""
 
-        async def mock_search():
+        async def mock_search() -> list[dict[str, Any]]:
             return [{"title": "Test Title"}]
 
-        async def failing_processor(streamed_result):
+        async def failing_processor(streamed_result: StreamedResult) -> StreamedResult:
             raise Exception("Processor failed")
 
         search_tasks = [mock_search]
@@ -424,12 +427,12 @@ class TestResultStreamer:
 class TestGlobalResultStreamer:
     """Test suite for global result streamer instance."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         # Reset global state for test isolation
         result_streamer.reset_streaming_state()
 
-    def test_global_instance_exists(self):
+    def test_global_instance_exists(self) -> None:
         """Test that global instance exists and is properly configured."""
         assert result_streamer is not None
         assert isinstance(result_streamer, ResultStreamer)
@@ -440,10 +443,10 @@ class TestGlobalResultStreamer:
         assert result_streamer.max_wait_time == 30.0
 
     @pytest.mark.asyncio
-    async def test_global_instance_usage(self):
+    async def test_global_instance_usage(self) -> None:
         """Test using the global instance for streaming."""
 
-        async def mock_search():
+        async def mock_search() -> list[dict[str, Any]]:
             await asyncio.sleep(0.01)
             return [{"title": "Global test result"}]
 
@@ -463,16 +466,16 @@ class TestGlobalResultStreamer:
 class TestCreateStreamingSearch:
     """Test suite for create_streaming_search function."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         # Reset global state for test isolation
         result_streamer.reset_streaming_state()
 
     @pytest.mark.asyncio
-    async def test_create_streaming_search_basic(self):
+    async def test_create_streaming_search_basic(self) -> None:
         """Test basic streaming search creation."""
 
-        async def mock_search_func(query, limit):
+        async def mock_search_func(query: str, limit: int) -> list[dict[str, Any]]:
             await asyncio.sleep(0.05)
             return [{"title": f"Result for {query}"}]
 
@@ -493,10 +496,10 @@ class TestCreateStreamingSearch:
         assert len(final_updates) == 1
 
     @pytest.mark.asyncio
-    async def test_create_streaming_search_filtered_sources(self):
+    async def test_create_streaming_search_filtered_sources(self) -> None:
         """Test streaming search with filtered sources."""
 
-        async def mock_search_func(query, limit):
+        async def mock_search_func(query: str, limit: int) -> list[dict[str, Any]]:
             return [{"title": f"Result for {query}"}]
 
         search_functions = {
@@ -518,10 +521,10 @@ class TestCreateStreamingSearch:
         assert len(final_updates[0].results) == 1
 
     @pytest.mark.asyncio
-    async def test_create_streaming_search_result_processing(self):
+    async def test_create_streaming_search_result_processing(self) -> None:
         """Test that results are processed with streaming metadata."""
 
-        async def mock_search_func(query, limit):
+        async def mock_search_func(query: str, limit: int) -> list[dict[str, Any]]:
             return [{"title": "Test Result"}]
 
         search_functions = {"test_source": mock_search_func}
@@ -544,7 +547,7 @@ class TestCreateStreamingSearch:
         assert "confidence" in result.data["_streaming_metadata"]
 
     @pytest.mark.asyncio
-    async def test_create_streaming_search_no_available_sources(self):
+    async def test_create_streaming_search_no_available_sources(self) -> None:
         """Test streaming search with no available sources."""
         search_functions = {"unavailable_source": lambda q, limit: []}
         api_status = {"unavailable_source": False}
@@ -564,7 +567,7 @@ class TestCreateStreamingSearch:
 class TestResultStreamingEdgeCases:
     """Test suite for edge cases and error conditions."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         # Reset global state for test isolation
         result_streamer.reset_streaming_state()
@@ -575,7 +578,7 @@ class TestResultStreamingEdgeCases:
         )
 
     @pytest.mark.asyncio
-    async def test_empty_search_tasks(self):
+    async def test_empty_search_tasks(self) -> None:
         """Test streaming with empty task list."""
         updates = []
         async for update in self.streamer.stream_search_results([], []):
@@ -587,10 +590,10 @@ class TestResultStreamingEdgeCases:
         assert len(final_updates[0].results) == 0
 
     @pytest.mark.asyncio
-    async def test_all_sources_fail(self):
+    async def test_all_sources_fail(self) -> None:
         """Test streaming when all sources fail."""
 
-        async def failing_search():
+        async def failing_search() -> list[dict[str, Any]]:
             raise Exception("All searches fail")
 
         search_tasks = [failing_search, failing_search]
@@ -612,10 +615,10 @@ class TestResultStreamingEdgeCases:
         assert len(final_updates[0].results) == 0
 
     @pytest.mark.asyncio
-    async def test_task_cancellation(self):
+    async def test_task_cancellation(self) -> None:
         """Test proper task cancellation on completion."""
 
-        async def slow_search():
+        async def slow_search() -> list[dict[str, Any]]:
             await asyncio.sleep(10)  # Very slow
             return []
 
@@ -631,7 +634,7 @@ class TestResultStreamingEdgeCases:
         # Task should be cleaned up properly (no hanging coroutines)
         await asyncio.sleep(0.1)  # Allow cleanup
 
-    def test_confidence_edge_cases(self):
+    def test_confidence_edge_cases(self) -> None:
         """Test confidence calculation with edge cases."""
         # Empty result
         confidence = self.streamer._calculate_confidence({})
@@ -648,11 +651,11 @@ class TestResultStreamingEdgeCases:
         assert confidence == 0.5
 
         # None values
-        result = {"year": None, "citation_count": None}
+        result: dict[str, Any] = {"year": None, "citation_count": None}
         confidence = self.streamer._calculate_confidence(result)
         assert confidence == 0.5
 
-    def test_stats_with_no_timing(self):
+    def test_stats_with_no_timing(self) -> None:
         """Test statistics calculation with no timing data."""
         stats = self.streamer.get_streaming_stats()
 

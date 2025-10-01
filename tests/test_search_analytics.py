@@ -20,7 +20,7 @@ from paperez_mcp.utils.search_analytics import (
 class TestSearchSession:
     """Test suite for SearchSession dataclass."""
 
-    def test_search_session_creation(self):
+    def test_search_session_creation(self) -> None:
         """Test creation of SearchSession."""
         session = SearchSession(
             session_id="test-123",
@@ -45,7 +45,7 @@ class TestSearchSession:
 class TestSourcePerformanceSnapshot:
     """Test suite for SourcePerformanceSnapshot dataclass."""
 
-    def test_source_snapshot_creation(self):
+    def test_source_snapshot_creation(self) -> None:
         """Test creation of SourcePerformanceSnapshot."""
         snapshot = SourcePerformanceSnapshot(
             source_name="arxiv",
@@ -69,7 +69,7 @@ class TestSourcePerformanceSnapshot:
 class TestSystemPerformanceSnapshot:
     """Test suite for SystemPerformanceSnapshot dataclass."""
 
-    def test_system_snapshot_creation(self):
+    def test_system_snapshot_creation(self) -> None:
         """Test creation of SystemPerformanceSnapshot."""
         snapshot = SystemPerformanceSnapshot(
             timestamp=time.time(),
@@ -93,11 +93,11 @@ class TestSystemPerformanceSnapshot:
 class TestSearchAnalyticsCollector:
     """Test suite for SearchAnalyticsCollector class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.collector = SearchAnalyticsCollector(max_history_size=1000)
 
-    def test_collector_initialization(self):
+    def test_collector_initialization(self) -> None:
         """Test analytics collector initialization."""
         assert self.collector.max_history_size == 1000
         assert len(self.collector.search_history) == 0
@@ -106,7 +106,7 @@ class TestSearchAnalyticsCollector:
         assert self.collector.concurrent_searches == 0
         assert self.collector.peak_concurrent_searches == 0
 
-    def test_record_search(self):
+    def test_record_search(self) -> None:
         """Test recording search sessions."""
         self.collector.record_search(
             session_id="test-1",
@@ -133,7 +133,7 @@ class TestSearchAnalyticsCollector:
         assert len(self.collector.result_quality_scores) == 1
         assert self.collector.result_quality_scores[0] == 0.8
 
-    def test_record_source_performance(self):
+    def test_record_source_performance(self) -> None:
         """Test recording source performance data."""
         source = "arxiv"
 
@@ -155,7 +155,7 @@ class TestSearchAnalyticsCollector:
         assert metrics["failure_count"] == 1
         assert len(metrics["response_times"]) == 2
 
-    def test_cache_event_recording(self):
+    def test_cache_event_recording(self) -> None:
         """Test recording cache events."""
         self.collector.record_cache_event("hits")
         self.collector.record_cache_event("hits")
@@ -164,7 +164,7 @@ class TestSearchAnalyticsCollector:
         assert self.collector.cache_statistics["hits"] == 2
         assert self.collector.cache_statistics["misses"] == 1
 
-    def test_concurrent_search_tracking(self):
+    def test_concurrent_search_tracking(self) -> None:
         """Test concurrent search tracking."""
         # Start concurrent searches
         self.collector.start_concurrent_search()
@@ -181,7 +181,7 @@ class TestSearchAnalyticsCollector:
         assert self.collector.concurrent_searches == 1
         assert self.collector.peak_concurrent_searches == 3  # Peak should remain
 
-    def test_source_performance_snapshot(self):
+    def test_source_performance_snapshot(self) -> None:
         """Test source performance snapshot generation."""
         source = "test_source"
 
@@ -198,7 +198,7 @@ class TestSearchAnalyticsCollector:
         assert snapshot.success_rate == 2 / 3  # 2 successes out of 3
         assert snapshot.error_rate == 1 / 3  # 1 failure out of 3
 
-    def test_source_performance_snapshot_empty(self):
+    def test_source_performance_snapshot_empty(self) -> None:
         """Test source performance snapshot with no data."""
         snapshot = self.collector.get_source_performance_snapshot("nonexistent")
 
@@ -207,7 +207,7 @@ class TestSearchAnalyticsCollector:
         assert snapshot.success_rate == 0.0
         assert snapshot.total_requests == 0
 
-    def test_system_performance_snapshot(self):
+    def test_system_performance_snapshot(self) -> None:
         """Test system performance snapshot generation."""
         # Add some search history
         for i in range(5):
@@ -231,7 +231,7 @@ class TestSearchAnalyticsCollector:
         assert snapshot.avg_search_time > 0
         assert snapshot.cache_hit_rate == 2 / 3  # 2 hits, 1 miss
 
-    def test_system_performance_snapshot_empty(self):
+    def test_system_performance_snapshot_empty(self) -> None:
         """Test system performance snapshot with no data."""
         snapshot = self.collector.get_system_performance_snapshot()
 
@@ -240,7 +240,7 @@ class TestSearchAnalyticsCollector:
         assert snapshot.cache_hit_rate == 0.0
         assert snapshot.concurrent_searches_peak == 0
 
-    def test_performance_alerts_slow_search(self):
+    def test_performance_alerts_slow_search(self) -> None:
         """Test performance alerts for slow searches."""
         # Add slow searches
         for i in range(10):
@@ -259,7 +259,7 @@ class TestSearchAnalyticsCollector:
         assert len(slow_alerts) > 0
         assert slow_alerts[0]["severity"] == "warning"
 
-    def test_performance_alerts_low_cache_hit_rate(self):
+    def test_performance_alerts_low_cache_hit_rate(self) -> None:
         """Test performance alerts for low cache hit rate."""
         # Add cache misses
         for _ in range(10):
@@ -274,7 +274,7 @@ class TestSearchAnalyticsCollector:
         cache_alerts = [a for a in alerts if a["type"] == "low_cache_hit_rate"]
         assert len(cache_alerts) > 0
 
-    def test_performance_alerts_low_source_success_rate(self):
+    def test_performance_alerts_low_source_success_rate(self) -> None:
         """Test performance alerts for low source success rate."""
         source = "unreliable_source"
 
@@ -293,7 +293,7 @@ class TestSearchAnalyticsCollector:
         assert len(success_alerts) > 0
         assert success_alerts[0]["source"] == source
 
-    def test_query_analytics(self):
+    def test_query_analytics(self) -> None:
         """Test query analytics generation."""
         # Add various queries
         queries = [
@@ -319,7 +319,7 @@ class TestSearchAnalyticsCollector:
         assert analytics["top_queries"][0][1] == 2  # Frequency
         assert analytics["avg_results_per_query"] > 0
 
-    def test_query_analytics_empty(self):
+    def test_query_analytics_empty(self) -> None:
         """Test query analytics with no data."""
         analytics = self.collector.get_query_analytics()
 
@@ -327,7 +327,7 @@ class TestSearchAnalyticsCollector:
         assert len(analytics["top_queries"]) == 0
         assert analytics["avg_results_per_query"] == 0.0
 
-    def test_domain_detection(self):
+    def test_domain_detection(self) -> None:
         """Test academic domain detection."""
         # Test medical domain
         medical_domain = self.collector._detect_domain("covid treatment protocols")
@@ -345,7 +345,7 @@ class TestSearchAnalyticsCollector:
         unknown_domain = self.collector._detect_domain("random unrelated topic")
         assert unknown_domain is None
 
-    def test_performance_recommendations(self):
+    def test_performance_recommendations(self) -> None:
         """Test performance recommendations generation."""
         # Create scenario with low cache hit rate
         for _ in range(20):
@@ -377,7 +377,7 @@ class TestSearchAnalyticsCollector:
         concurrency_recs = [r for r in recommendations if r["type"] == "concurrency"]
         assert len(concurrency_recs) > 0
 
-    def test_temporal_patterns(self):
+    def test_temporal_patterns(self) -> None:
         """Test temporal pattern tracking."""
         # Mock datetime to control hour
         with patch("paperez_mcp.utils.search_analytics.datetime") as mock_datetime:
@@ -396,7 +396,7 @@ class TestSearchAnalyticsCollector:
             assert 14 in self.collector.temporal_patterns
             assert self.collector.temporal_patterns[14] == 1
 
-    def test_count_recent_requests(self):
+    def test_count_recent_requests(self) -> None:
         """Test counting recent requests to a source."""
         current_time = time.time()
 
@@ -430,7 +430,7 @@ class TestSearchAnalyticsCollector:
         recent_count = self.collector._count_recent_requests("test_source", 3600)
         assert recent_count == 1  # Only the recent one
 
-    def test_source_performance_tiers(self):
+    def test_source_performance_tiers(self) -> None:
         """Test identification of top performing and bottleneck sources."""
         # Add good performing source
         good_source = "fast_reliable"
@@ -457,7 +457,7 @@ class TestSearchAnalyticsCollector:
         # Poor source should be in bottlenecks
         assert poor_source in bottleneck_sources
 
-    def test_export_analytics(self):
+    def test_export_analytics(self) -> None:
         """Test analytics data export."""
         # Add some data
         self.collector.record_search(
@@ -489,7 +489,7 @@ class TestSearchAnalyticsCollector:
         assert "raw_data" in export_data_with_raw
         assert "search_history" in export_data_with_raw["raw_data"]
 
-    def test_history_size_limit(self):
+    def test_history_size_limit(self) -> None:
         """Test that search history respects size limit."""
         small_collector = SearchAnalyticsCollector(max_history_size=5)
 
@@ -514,12 +514,12 @@ class TestSearchAnalyticsCollector:
 class TestGlobalAnalyticsInstance:
     """Test suite for global analytics instance."""
 
-    def test_global_analytics_exists(self):
+    def test_global_analytics_exists(self) -> None:
         """Test that global analytics instance exists."""
         assert search_analytics is not None
         assert isinstance(search_analytics, SearchAnalyticsCollector)
 
-    def test_record_search_performance_function(self):
+    def test_record_search_performance_function(self) -> None:
         """Test convenience function for recording performance."""
         # Clear any existing data
         search_analytics.search_history.clear()
@@ -549,7 +549,7 @@ class TestGlobalAnalyticsInstance:
         assert our_session.total_time == 2.0
         assert our_session.cache_hit is True
 
-    def test_get_performance_dashboard_function(self):
+    def test_get_performance_dashboard_function(self) -> None:
         """Test performance dashboard function."""
         dashboard = get_performance_dashboard()
 
@@ -564,11 +564,11 @@ class TestGlobalAnalyticsInstance:
 class TestSearchAnalyticsIntegration:
     """Integration tests for search analytics with realistic scenarios."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.collector = SearchAnalyticsCollector()
 
-    def test_realistic_search_pattern(self):
+    def test_realistic_search_pattern(self) -> None:
         """Test analytics with realistic search patterns."""
         # Simulate a day of searches with various patterns
         search_patterns = [
@@ -613,7 +613,7 @@ class TestSearchAnalyticsIntegration:
         assert arxiv_snapshot.total_requests > 0
         assert arxiv_snapshot.success_rate > 0
 
-    def test_performance_degradation_detection(self):
+    def test_performance_degradation_detection(self) -> None:
         """Test detection of performance degradation over time."""
         source = "degrading_source"
 
@@ -635,7 +635,7 @@ class TestSearchAnalyticsIntegration:
         ]
         assert len(source_recs) > 0
 
-    def test_cache_effectiveness_analysis(self):
+    def test_cache_effectiveness_analysis(self) -> None:
         """Test analysis of cache effectiveness."""
         # Simulate searches with varying cache performance
         cache_scenarios = [

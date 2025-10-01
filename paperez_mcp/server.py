@@ -57,7 +57,7 @@ def _ensure_pymupdf4llm() -> Any:
     global _PYMUPDF4LLM_AVAILABLE
     if _PYMUPDF4LLM_AVAILABLE is None:
         try:
-            import pymupdf4llm
+            import pymupdf4llm  # type: ignore
 
             _PYMUPDF4LLM_AVAILABLE = True
             return pymupdf4llm

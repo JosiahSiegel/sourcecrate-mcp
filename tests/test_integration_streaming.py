@@ -27,7 +27,7 @@ from paperez_mcp.utils.result_streaming import result_streamer
 class TestStreamingSearchIntegration:
     """Integration tests for the complete streaming search workflow."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures with realistic mock sources."""
         # Reset global state for test isolation
         search_analytics.reset_analytics_state()
@@ -74,7 +74,7 @@ class TestStreamingSearchIntegration:
         return papers
 
     @pytest.mark.asyncio
-    async def test_end_to_end_streaming_workflow(self):
+    async def test_end_to_end_streaming_workflow(self) -> None:
         """Test complete streaming workflow from query to final results."""
         query = "machine learning"
         limit = 5
@@ -150,7 +150,7 @@ class TestStreamingSearchIntegration:
         ), f"Expected fast_source first, got {first_completed}"
 
     @pytest.mark.asyncio
-    async def test_streaming_with_source_failures(self):
+    async def test_streaming_with_source_failures(self) -> None:
         """Test streaming behavior when some sources fail."""
         query = "neural networks"
         limit = 3
@@ -203,7 +203,7 @@ class TestStreamingSearchIntegration:
         assert "failing_source" in error_sources
 
     @pytest.mark.asyncio
-    async def test_streaming_performance_optimization(self):
+    async def test_streaming_performance_optimization(self) -> None:
         """Test streaming performance with adaptive concurrency."""
         query = "artificial intelligence"
         limit = 4
@@ -254,7 +254,7 @@ class TestStreamingSearchIntegration:
             assert "sources_completed" in streaming_stats
 
     @pytest.mark.asyncio
-    async def test_streaming_with_duplicate_detection(self):
+    async def test_streaming_with_duplicate_detection(self) -> None:
         """Test streaming with realistic paper deduplication."""
         query = "quantum computing"
         limit = 3
@@ -327,7 +327,7 @@ class TestStreamingSearchIntegration:
         ), "All papers should have unique DOIs after deduplication"
 
     @pytest.mark.asyncio
-    async def test_streaming_progress_tracking(self):
+    async def test_streaming_progress_tracking(self) -> None:
         """Test detailed progress tracking during streaming."""
         query = "deep learning"
         limit = 2
@@ -383,7 +383,7 @@ class TestStreamingSearchIntegration:
         ), "Fastest source should complete first"
 
     @pytest.mark.asyncio
-    async def test_streaming_circuit_breaker_integration(self):
+    async def test_streaming_circuit_breaker_integration(self) -> None:
         """Test streaming integration with circuit breaker pattern."""
         query = "computer vision"
         limit = 2
@@ -433,14 +433,14 @@ class TestStreamingSearchIntegration:
 class TestStreamingWithMockMCPServer:
     """Test streaming functionality in the context of MCP server operations."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures with global state reset."""
         # Reset global state for test isolation
         search_analytics.reset_analytics_state()
         result_streamer.reset_streaming_state()
 
     @pytest.mark.asyncio
-    async def test_browse_papers_streaming_simulation(self):
+    async def test_browse_papers_streaming_simulation(self) -> None:
         """Simulate the browse_papers_streaming MCP tool workflow."""
         # Mock the search functions that would be imported
         mock_search_funcs = {}
@@ -551,7 +551,7 @@ class TestStreamingWithMockMCPServer:
             assert "_streaming_final" in result
 
     @pytest.mark.asyncio
-    async def test_streaming_category_filtering(self):
+    async def test_streaming_category_filtering(self) -> None:
         """Test streaming with force_category filtering like the MCP tool."""
 
         # Mock search functions for different categories
@@ -604,7 +604,7 @@ class TestStreamingWithMockMCPServer:
         ), "Should only have arXiv results"
 
     @pytest.mark.asyncio
-    async def test_streaming_error_handling_robustness(self):
+    async def test_streaming_error_handling_robustness(self) -> None:
         """Test comprehensive error handling in streaming workflow."""
 
         # Simulate various types of failures
@@ -668,14 +668,14 @@ class TestStreamingWithMockMCPServer:
 class TestStreamingPerformanceIntegration:
     """Integration tests focusing on streaming performance characteristics."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures with global state reset."""
         # Reset global state for test isolation
         search_analytics.reset_analytics_state()
         result_streamer.reset_streaming_state()
 
     @pytest.mark.asyncio
-    async def test_streaming_early_delivery_timing(self):
+    async def test_streaming_early_delivery_timing(self) -> None:
         """Test that early delivery happens within expected timeframes."""
 
         async def instant_source(query: str, limit: int) -> list[dict[str, Any]]:
@@ -734,7 +734,7 @@ class TestStreamingPerformanceIntegration:
         ), "Final delivery should wait for delayed source"
 
     @pytest.mark.asyncio
-    async def test_streaming_concurrent_performance_scaling(self):
+    async def test_streaming_concurrent_performance_scaling(self) -> None:
         """Test streaming performance scales with concurrent sources."""
         # Test with increasing numbers of concurrent sources
         for source_count in [2, 4, 8]:
@@ -782,7 +782,7 @@ class TestStreamingPerformanceIntegration:
             ), f"Should get {source_count} results, got {len(final_results)}"
 
     @pytest.mark.asyncio
-    async def test_streaming_memory_efficiency(self):
+    async def test_streaming_memory_efficiency(self) -> None:
         """Test that streaming doesn't accumulate excessive memory."""
 
         # Test with larger result sets to check memory handling

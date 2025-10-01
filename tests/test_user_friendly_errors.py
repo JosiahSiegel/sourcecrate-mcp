@@ -19,11 +19,11 @@ from paperez_mcp.utils.user_friendly_errors import (
 class TestUserFriendlyErrorHandler:
     """Test suite for UserFriendlyErrorHandler class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.handler = UserFriendlyErrorHandler()
 
-    def test_handler_initialization(self):
+    def test_handler_initialization(self) -> None:
         """Test error handler initialization."""
         assert self.handler.error_patterns is not None
         assert self.handler.suggestion_templates is not None
@@ -34,7 +34,7 @@ class TestUserFriendlyErrorHandler:
         assert "file_errors" in self.handler.error_patterns
         assert "pdf_errors" in self.handler.error_patterns
 
-    def test_categorize_network_errors(self):
+    def test_categorize_network_errors(self) -> None:
         """Test categorization of network-related errors."""
         network_errors = [
             "Connection timeout occurred",
@@ -49,7 +49,7 @@ class TestUserFriendlyErrorHandler:
             assert category == "network"
             assert severity == "medium"
 
-    def test_categorize_file_errors(self):
+    def test_categorize_file_errors(self) -> None:
         """Test categorization of file system errors."""
         file_errors = [
             "File not found",
@@ -64,7 +64,7 @@ class TestUserFriendlyErrorHandler:
             assert category == "file_system"
             assert severity == "medium"
 
-    def test_categorize_pdf_errors(self):
+    def test_categorize_pdf_errors(self) -> None:
         """Test categorization of PDF processing errors."""
         pdf_errors = [
             "PDF corrupt or invalid",
@@ -78,7 +78,7 @@ class TestUserFriendlyErrorHandler:
             assert category == "pdf_processing"
             assert severity == "medium"
 
-    def test_categorize_api_errors(self):
+    def test_categorize_api_errors(self) -> None:
         """Test categorization of API-related errors."""
         api_errors = [
             "API key invalid or expired",
@@ -92,7 +92,7 @@ class TestUserFriendlyErrorHandler:
             assert category == "api_access"
             assert severity == "high"
 
-    def test_categorize_unknown_errors(self):
+    def test_categorize_unknown_errors(self) -> None:
         """Test categorization of unknown errors."""
         unknown_error = "Some completely random error message"
         category, severity = self.handler.categorize_error(unknown_error)
@@ -100,7 +100,7 @@ class TestUserFriendlyErrorHandler:
         assert category == "unknown"
         assert severity == "medium"
 
-    def test_enhance_network_error(self):
+    def test_enhance_network_error(self) -> None:
         """Test enhancement of network errors."""
         error_message = "Connection timeout occurred"
         enhanced = self.handler.enhance_error(
@@ -115,7 +115,7 @@ class TestUserFriendlyErrorHandler:
         assert len(enhanced.suggested_actions) > 0
         assert "Check your internet connection" in enhanced.suggested_actions[0]
 
-    def test_enhance_file_error(self):
+    def test_enhance_file_error(self) -> None:
         """Test enhancement of file system errors."""
         error_message = "File not found: /path/to/file.pdf"
         enhanced = self.handler.enhance_error(
@@ -126,7 +126,7 @@ class TestUserFriendlyErrorHandler:
         assert enhanced.error_code.startswith("FILE_")
         assert any("file path" in action for action in enhanced.suggested_actions)
 
-    def test_enhance_pdf_error(self):
+    def test_enhance_pdf_error(self) -> None:
         """Test enhancement of PDF processing errors."""
         error_message = "PDF is encrypted and requires password"
         enhanced = self.handler.enhance_error(
@@ -139,7 +139,7 @@ class TestUserFriendlyErrorHandler:
             "password-protected" in action for action in enhanced.suggested_actions
         )
 
-    def test_contextual_suggestions_for_file_paths(self):
+    def test_contextual_suggestions_for_file_paths(self) -> None:
         """Test contextual suggestions based on file paths."""
         error_message = "File not found"
         enhanced = self.handler.enhance_error(
@@ -154,7 +154,7 @@ class TestUserFriendlyErrorHandler:
         ]
         assert len(contextual_suggestions) > 0
 
-    def test_contextual_suggestions_for_urls(self):
+    def test_contextual_suggestions_for_urls(self) -> None:
         """Test contextual suggestions for HTTP URLs."""
         error_message = "Network error"
         enhanced = self.handler.enhance_error(
@@ -167,7 +167,7 @@ class TestUserFriendlyErrorHandler:
         url_suggestions = [s for s in enhanced.suggested_actions if "downloading" in s]
         assert len(url_suggestions) > 0
 
-    def test_format_error_response(self):
+    def test_format_error_response(self) -> None:
         """Test error response formatting."""
         enhanced = self.handler.enhance_error(
             "Test error", operation="test operation", context={"test": "context"}
@@ -182,7 +182,7 @@ class TestUserFriendlyErrorHandler:
         assert "suggestions" in response["error"]
         assert response["user_friendly"] is True
 
-    def test_error_code_generation(self):
+    def test_error_code_generation(self) -> None:
         """Test error code generation."""
         # Test different categories
         test_cases = [
@@ -196,7 +196,7 @@ class TestUserFriendlyErrorHandler:
             code = self.handler._generate_error_code(category, operation)
             assert code.startswith(expected_prefix[:3])  # Check category prefix
 
-    def test_technical_details_formatting(self):
+    def test_technical_details_formatting(self) -> None:
         """Test technical details formatting."""
         error = "Test error"
         context = {
@@ -216,11 +216,11 @@ class TestUserFriendlyErrorHandler:
 class TestSearchErrorEnhancer:
     """Test suite for SearchErrorEnhancer class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.enhancer = SearchErrorEnhancer()
 
-    def test_domain_detection(self):
+    def test_domain_detection(self) -> None:
         """Test academic domain detection from queries."""
         test_cases = [
             ("machine learning algorithms", "computer_science"),
@@ -235,7 +235,7 @@ class TestSearchErrorEnhancer:
             detected = self.enhancer._detect_domain(query)
             assert detected == expected_domain
 
-    def test_domain_suggestions(self):
+    def test_domain_suggestions(self) -> None:
         """Test domain-specific suggestions."""
         cs_suggestions = self.enhancer._get_domain_suggestions("computer_science")
         assert len(cs_suggestions) > 0
@@ -245,7 +245,7 @@ class TestSearchErrorEnhancer:
         assert len(medical_suggestions) > 0
         assert any("medical" in s for s in medical_suggestions)
 
-    def test_category_suggestions(self):
+    def test_category_suggestions(self) -> None:
         """Test category suggestions based on domain."""
         medical_categories = self.enhancer._suggest_categories(
             "medical", "cancer treatment"
@@ -257,7 +257,7 @@ class TestSearchErrorEnhancer:
         )
         assert "preprints" in cs_categories or "recent" in cs_categories
 
-    def test_enhance_no_results_short_query(self):
+    def test_enhance_no_results_short_query(self) -> None:
         """Test enhancement of no results for short queries."""
         enhanced = self.enhancer.enhance_no_results_error(
             "AI", {"sources_attempted": ["arxiv", "pubmed"]}
@@ -268,7 +268,7 @@ class TestSearchErrorEnhancer:
         assert any("more specific terms" in s for s in enhanced["suggestions"])
         assert len(enhanced["query_refinements"]) > 0
 
-    def test_enhance_no_results_long_query(self):
+    def test_enhance_no_results_long_query(self) -> None:
         """Test enhancement of no results for overly long queries."""
         long_query = "machine learning deep neural networks artificial intelligence computer vision"
         enhanced = self.enhancer.enhance_no_results_error(
@@ -278,7 +278,7 @@ class TestSearchErrorEnhancer:
         assert any("simplifying" in s for s in enhanced["suggestions"])
         assert len(enhanced["query_refinements"]) > 0
 
-    def test_enhance_no_results_with_domain(self):
+    def test_enhance_no_results_with_domain(self) -> None:
         """Test enhancement with domain detection."""
         enhanced = self.enhancer.enhance_no_results_error(
             "quantum computing algorithms", {"sources_attempted": ["arxiv", "crossref"]}
@@ -288,7 +288,7 @@ class TestSearchErrorEnhancer:
         assert len(enhanced["suggested_categories"]) > 0
         assert "preprints" in enhanced["suggested_categories"]
 
-    def test_search_tips_included(self):
+    def test_search_tips_included(self) -> None:
         """Test that search tips are always included."""
         enhanced = self.enhancer.enhance_no_results_error(
             "test query", {"sources_attempted": ["test"]}
@@ -302,17 +302,17 @@ class TestSearchErrorEnhancer:
 class TestGlobalErrorInstances:
     """Test suite for global error handler instances."""
 
-    def test_global_error_handler_exists(self):
+    def test_global_error_handler_exists(self) -> None:
         """Test that global error handler instance exists."""
         assert error_handler is not None
         assert isinstance(error_handler, UserFriendlyErrorHandler)
 
-    def test_global_search_enhancer_exists(self):
+    def test_global_search_enhancer_exists(self) -> None:
         """Test that global search error enhancer exists."""
         assert search_error_enhancer is not None
         assert isinstance(search_error_enhancer, SearchErrorEnhancer)
 
-    def test_enhance_error_convenience_function(self):
+    def test_enhance_error_convenience_function(self) -> None:
         """Test convenience function for error enhancement."""
         result = enhance_error("Test error message", operation="test operation")
 
@@ -321,7 +321,7 @@ class TestGlobalErrorInstances:
         assert "error" in result
         assert result["user_friendly"] is True
 
-    def test_enhance_search_error_convenience_function(self):
+    def test_enhance_search_error_convenience_function(self) -> None:
         """Test convenience function for search error enhancement."""
         result = enhance_search_error(
             "machine learning", {"sources_attempted": ["arxiv"]}
@@ -336,7 +336,7 @@ class TestGlobalErrorInstances:
 class TestErrorHandlingIntegration:
     """Integration tests for error handling with various scenarios."""
 
-    def test_error_enhancement_with_full_context(self):
+    def test_error_enhancement_with_full_context(self) -> None:
         """Test error enhancement with comprehensive context."""
         context = {
             "timestamp": time.time(),
@@ -355,7 +355,7 @@ class TestErrorHandlingIntegration:
         assert enhanced["error"]["context"]["api_status"] is not None
         assert "pubmed" in str(enhanced["error"]["suggestions"])
 
-    def test_pdf_error_with_file_context(self):
+    def test_pdf_error_with_file_context(self) -> None:
         """Test PDF error enhancement with file context."""
         enhanced = enhance_error(
             "PyMuPDF: PDF is corrupted",
@@ -366,7 +366,7 @@ class TestErrorHandlingIntegration:
         assert enhanced["error"]["code"].startswith("PDF_")
         assert any("corrupted" in action for action in enhanced["error"]["suggestions"])
 
-    def test_api_error_with_rate_limiting(self):
+    def test_api_error_with_rate_limiting(self) -> None:
         """Test API error enhancement for rate limiting."""
         enhanced = enhance_error(
             "Rate limit exceeded - 429",
@@ -379,7 +379,7 @@ class TestErrorHandlingIntegration:
             "rate limit" in action for action in enhanced["error"]["suggestions"]
         )
 
-    def test_search_error_with_medical_domain(self):
+    def test_search_error_with_medical_domain(self) -> None:
         """Test search error enhancement for medical domain."""
         result = enhance_search_error(
             "covid vaccine effectiveness",
@@ -390,7 +390,7 @@ class TestErrorHandlingIntegration:
         assert "medical" in result["suggested_categories"]
         assert any("clinical" in s for s in result["suggestions"])
 
-    def test_configuration_error_enhancement(self):
+    def test_configuration_error_enhancement(self) -> None:
         """Test configuration error enhancement."""
         enhanced = enhance_error(
             "Configuration file not found: config.yaml",
@@ -403,7 +403,7 @@ class TestErrorHandlingIntegration:
             "configuration" in action for action in enhanced["error"]["suggestions"]
         )
 
-    def test_error_severity_assessment(self):
+    def test_error_severity_assessment(self) -> None:
         """Test error severity assessment for different types."""
         # High severity: API access
         api_error = enhance_error("Authentication failed", "API access")
@@ -418,7 +418,7 @@ class TestErrorHandlingIntegration:
         # Note: This might be categorized as search_query with low severity
         # or unknown with medium severity depending on pattern matching
 
-    def test_suggestion_limit_enforcement(self):
+    def test_suggestion_limit_enforcement(self) -> None:
         """Test that suggestions are limited to reasonable numbers."""
         enhanced = enhance_error(
             "Multiple issues occurred",

@@ -9,7 +9,7 @@ Uses bm25s library for high-performance BM25 implementation (500x faster than ra
 from dataclasses import dataclass
 from typing import Any
 
-import bm25s
+import bm25s  # type: ignore
 
 from ..config import get_current_config
 

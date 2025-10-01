@@ -5,6 +5,7 @@ Tests caching, result prioritization, and concurrent optimization.
 
 import asyncio
 import time
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -24,13 +25,13 @@ from paperez_mcp.utils.search_performance_optimizer import (
 class TestIntelligentResultCache:
     """Test suite for IntelligentResultCache class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.cache = IntelligentResultCache(
             max_size=100, default_ttl=60.0, quality_threshold=0.6
         )
 
-    def test_cache_initialization(self):
+    def test_cache_initialization(self) -> None:
         """Test cache initialization with parameters."""
         assert self.cache.max_size == 100
         assert self.cache.default_ttl == 60.0
@@ -39,7 +40,7 @@ class TestIntelligentResultCache:
         assert self.cache.hits == 0
         assert self.cache.misses == 0
 
-    def test_query_hash_generation(self):
+    def test_query_hash_generation(self) -> None:
         """Test query hash generation."""
         hash1 = self.cache._generate_query_hash("machine learning", "arxiv")
         hash2 = self.cache._generate_query_hash("Machine Learning", "arxiv")
@@ -51,7 +52,7 @@ class TestIntelligentResultCache:
         # Different source should produce different hash
         assert hash1 != hash3
 
-    def test_query_similarity_calculation(self):
+    def test_query_similarity_calculation(self) -> None:
         """Test query similarity calculation."""
         sim1 = self.cache._calculate_query_similarity(
             "machine learning", "machine learning"
@@ -68,7 +69,7 @@ class TestIntelligentResultCache:
         )
         assert sim3 < sim2
 
-    def test_result_quality_estimation(self):
+    def test_result_quality_estimation(self) -> None:
         """Test result quality estimation."""
         # High quality results
         high_quality_results = [
@@ -92,7 +93,7 @@ class TestIntelligentResultCache:
         empty_score = self.cache._estimate_result_quality([])
         assert empty_score == 0.0
 
-    def test_cache_put_and_get(self):
+    def test_cache_put_and_get(self) -> None:
         """Test basic cache put and get operations."""
         query = "machine learning"
         source = "arxiv"
@@ -117,14 +118,14 @@ class TestIntelligentResultCache:
         assert self.cache.hits == 1
         assert self.cache.misses == 0
 
-    def test_cache_miss(self):
+    def test_cache_miss(self) -> None:
         """Test cache miss scenario."""
         result = self.cache.get("nonexistent query", "arxiv")
         assert result is None
         assert self.cache.hits == 0
         assert self.cache.misses == 1
 
-    def test_cache_ttl_expiration(self):
+    def test_cache_ttl_expiration(self) -> None:
         """Test cache TTL expiration."""
         # Use very short TTL for testing
         short_cache = IntelligentResultCache(default_ttl=0.1)
@@ -147,7 +148,7 @@ class TestIntelligentResultCache:
         expired = short_cache.get(query, source)
         assert expired is None
 
-    def test_cache_quality_threshold(self):
+    def test_cache_quality_threshold(self) -> None:
         """Test that low quality results are not cached."""
         low_quality_results = [{"title": "Poor Paper"}]  # No PDF, DOI, etc.
 
@@ -157,7 +158,7 @@ class TestIntelligentResultCache:
         result = self.cache.get("test query", "test_source")
         assert result is None
 
-    def test_cache_similarity_lookup(self):
+    def test_cache_similarity_lookup(self) -> None:
         """Test similarity-based cache lookup."""
         # Cache results for one query
         original_results = [
@@ -173,7 +174,7 @@ class TestIntelligentResultCache:
         similar_results = self.cache.get("neural network", "arxiv")
         assert similar_results is not None  # Should find similar cached results
 
-    def test_cache_eviction_lru(self):
+    def test_cache_eviction_lru(self) -> None:
         """Test LRU cache eviction."""
         small_cache = IntelligentResultCache(max_size=2)
 
@@ -191,7 +192,7 @@ class TestIntelligentResultCache:
         assert small_cache.get("query 1", "source") is not None
         assert small_cache.get("new query", "source") is not None
 
-    def test_cache_statistics(self):
+    def test_cache_statistics(self) -> None:
         """Test cache statistics reporting."""
         # Add some cache activity
         results = [{"title": "Test", "pdf_url": "test.pdf"}]
@@ -210,17 +211,17 @@ class TestIntelligentResultCache:
 class TestResultPrioritizer:
     """Test suite for ResultPrioritizer class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.prioritizer = ResultPrioritizer()
 
-    def test_prioritizer_initialization(self):
+    def test_prioritizer_initialization(self) -> None:
         """Test prioritizer initialization."""
         assert len(self.prioritizer.source_weights) > 0
         assert len(self.prioritizer.criteria_weights) > 0
         assert "arxiv" in self.prioritizer.source_weights
 
-    def test_relevance_calculation(self):
+    def test_relevance_calculation(self) -> None:
         """Test relevance score calculation."""
         result = {
             "title": "Machine Learning Algorithms for Data Science",
@@ -241,7 +242,7 @@ class TestResultPrioritizer:
         )
         assert irrelevance < relevance
 
-    def test_recency_score_calculation(self):
+    def test_recency_score_calculation(self) -> None:
         """Test recency score calculation."""
         # Recent paper
         recent_result = {"year": 2024}
@@ -258,7 +259,7 @@ class TestResultPrioritizer:
         no_year_score = self.prioritizer._calculate_recency_score(no_year_result)
         assert no_year_score == 0.0
 
-    def test_citation_score_calculation(self):
+    def test_citation_score_calculation(self) -> None:
         """Test citation score calculation."""
         # High citation count
         high_cited = {"citation_count": 1000}
@@ -275,7 +276,7 @@ class TestResultPrioritizer:
         no_score = self.prioritizer._calculate_citation_score(no_citations)
         assert no_score == 0.0
 
-    def test_source_score_calculation(self):
+    def test_source_score_calculation(self) -> None:
         """Test source reliability scoring."""
         arxiv_result = {"source": "arxiv"}
         arxiv_score = self.prioritizer._calculate_source_score(arxiv_result)
@@ -285,7 +286,7 @@ class TestResultPrioritizer:
         unknown_score = self.prioritizer._calculate_source_score(unknown_result)
         assert unknown_score == 0.5  # Default score
 
-    def test_pdf_score_calculation(self):
+    def test_pdf_score_calculation(self) -> None:
         """Test PDF availability scoring."""
         with_pdf = {"pdf_url": "https://example.com/paper.pdf"}
         pdf_score = self.prioritizer._calculate_pdf_score(with_pdf)
@@ -299,7 +300,7 @@ class TestResultPrioritizer:
         oa_score = self.prioritizer._calculate_pdf_score(with_open_access)
         assert oa_score == 1.0
 
-    def test_priority_calculation(self):
+    def test_priority_calculation(self) -> None:
         """Test overall priority score calculation."""
         high_priority_result = {
             "title": "Machine Learning Advances",
@@ -315,7 +316,7 @@ class TestResultPrioritizer:
         )
         assert score > 0.7  # Should have high priority
 
-    def test_user_preference_application(self):
+    def test_user_preference_application(self) -> None:
         """Test user preference adjustments."""
         result = {
             "title": "Open Access Paper",
@@ -337,7 +338,7 @@ class TestResultPrioritizer:
 
         assert adjusted_score > base_score  # Should be boosted
 
-    def test_result_prioritization(self):
+    def test_result_prioritization(self) -> None:
         """Test full result prioritization."""
         results = [
             {
@@ -374,17 +375,17 @@ class TestResultPrioritizer:
 class TestConcurrentSearchOptimizer:
     """Test suite for ConcurrentSearchOptimizer class."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test fixtures."""
         self.optimizer = ConcurrentSearchOptimizer(max_concurrent=5)
 
-    def test_optimizer_initialization(self):
+    def test_optimizer_initialization(self) -> None:
         """Test optimizer initialization."""
         assert self.optimizer.max_concurrent == 5
         assert len(self.optimizer.source_performance) == 0
         assert len(self.optimizer.active_searches) == 0
 
-    def test_task_categorization(self):
+    def test_task_categorization(self) -> None:
         """Test task categorization by expected performance."""
         tasks = [
             ("semantic_scholar", "func1", "args1"),
@@ -403,7 +404,7 @@ class TestConcurrentSearchOptimizer:
         assert "crossref" in fast_sources
         assert "pubmed" in slow_sources
 
-    def test_dynamic_timeout_calculation(self):
+    def test_dynamic_timeout_calculation(self) -> None:
         """Test dynamic timeout calculation."""
         # No performance data - should use base timeout
         timeout = self.optimizer._calculate_dynamic_timeout("new_source")
@@ -414,7 +415,7 @@ class TestConcurrentSearchOptimizer:
         timeout_with_data = self.optimizer._calculate_dynamic_timeout("test_source")
         assert timeout_with_data != 30.0  # Should be adjusted
 
-    def test_performance_stats_update(self):
+    def test_performance_stats_update(self) -> None:
         """Test performance statistics updating."""
         source = "test_source"
 
@@ -435,10 +436,10 @@ class TestConcurrentSearchOptimizer:
         assert stats["request_count"] == 2
 
     @pytest.mark.asyncio
-    async def test_single_task_execution(self):
+    async def test_single_task_execution(self) -> None:
         """Test execution of a single search task."""
 
-        async def mock_search_func(query, limit):
+        async def mock_search_func(query: str, limit: int) -> list[dict[str, Any]]:
             await asyncio.sleep(0.1)
             return [{"title": f"Result for {query}"}]
 
@@ -452,10 +453,10 @@ class TestConcurrentSearchOptimizer:
         assert results[0]["title"] == "Result for test query"
 
     @pytest.mark.asyncio
-    async def test_single_task_execution_failure(self):
+    async def test_single_task_execution_failure(self) -> None:
         """Test handling of task execution failure."""
 
-        async def failing_search_func(query, limit):
+        async def failing_search_func(query: str, limit: int) -> list[dict[str, Any]]:
             raise Exception("Search failed")
 
         task = ("failing_source", failing_search_func, ("test query", 5))
@@ -467,14 +468,14 @@ class TestConcurrentSearchOptimizer:
         assert len(results) == 0
 
     @pytest.mark.asyncio
-    async def test_batch_execution(self):
+    async def test_batch_execution(self) -> None:
         """Test batch task execution."""
 
-        async def mock_search_1(query, limit):
+        async def mock_search_1(query: str, limit: int) -> list[dict[str, Any]]:
             await asyncio.sleep(0.05)
             return [{"title": f"Result 1 for {query}"}]
 
-        async def mock_search_2(query, limit):
+        async def mock_search_2(query: str, limit: int) -> list[dict[str, Any]]:
             await asyncio.sleep(0.05)
             return [{"title": f"Result 2 for {query}"}]
 
@@ -490,14 +491,14 @@ class TestConcurrentSearchOptimizer:
         assert len(successful_results) == 2
 
     @pytest.mark.asyncio
-    async def test_optimize_concurrent_search(self):
+    async def test_optimize_concurrent_search(self) -> None:
         """Test full concurrent search optimization."""
 
-        async def fast_search(query, limit):
+        async def fast_search(query: str, limit: int) -> list[dict[str, Any]]:
             await asyncio.sleep(0.05)
             return [{"title": f"Fast result for {query}"}]
 
-        async def slow_search(query, limit):
+        async def slow_search(query: str, limit: int) -> list[dict[str, Any]]:
             await asyncio.sleep(0.2)
             return [{"title": f"Slow result for {query}"}]
 
@@ -519,10 +520,10 @@ class TestOptimizeSearchPerformance:
     """Test suite for the main optimization function."""
 
     @pytest.mark.asyncio
-    async def test_optimize_search_performance(self):
+    async def test_optimize_search_performance(self) -> None:
         """Test the main search optimization function."""
 
-        async def mock_arxiv_search(query, limit):
+        async def mock_arxiv_search(query: str, limit: int) -> list[dict[str, Any]]:
             await asyncio.sleep(0.1)
             return [
                 {
@@ -533,7 +534,7 @@ class TestOptimizeSearchPerformance:
                 }
             ]
 
-        async def mock_pubmed_search(query, limit):
+        async def mock_pubmed_search(query: str, limit: int) -> list[dict[str, Any]]:
             await asyncio.sleep(0.1)
             return [
                 {
@@ -559,7 +560,7 @@ class TestOptimizeSearchPerformance:
         assert len(metrics.source_response_times) > 0
 
     @pytest.mark.asyncio
-    async def test_optimize_with_cache_hit(self):
+    async def test_optimize_with_cache_hit(self) -> None:
         """Test optimization with cache hits."""
         # Clear cache first
         test_cache = IntelligentResultCache(max_size=10)
@@ -568,7 +569,7 @@ class TestOptimizeSearchPerformance:
         cached_results = [{"title": "Cached Result", "pdf_url": "test.pdf"}]
         test_cache.put("test query", "arxiv", cached_results)
 
-        async def mock_search(query, limit):
+        async def mock_search(query: str, limit: int) -> list[dict[str, Any]]:
             return [{"title": "New Result"}]
 
         search_functions = {"arxiv": mock_search}
@@ -588,10 +589,10 @@ class TestOptimizeSearchPerformance:
         assert metrics.cache_hit_rate > 0
 
     @pytest.mark.asyncio
-    async def test_optimize_with_user_preferences(self):
+    async def test_optimize_with_user_preferences(self) -> None:
         """Test optimization with user preferences."""
 
-        async def mock_search(query, limit):
+        async def mock_search(query: str, limit: int) -> list[dict[str, Any]]:
             return [
                 {"title": "Regular Paper", "year": 2020, "source": "crossref"},
                 {
@@ -618,7 +619,7 @@ class TestOptimizeSearchPerformance:
 class TestGlobalOptimizationInstances:
     """Test suite for global optimization instances."""
 
-    def test_global_instances_exist(self):
+    def test_global_instances_exist(self) -> None:
         """Test that global optimization instances exist."""
         assert intelligent_cache is not None
         assert result_prioritizer is not None
@@ -628,7 +629,7 @@ class TestGlobalOptimizationInstances:
         assert isinstance(result_prioritizer, ResultPrioritizer)
         assert isinstance(concurrent_optimizer, ConcurrentSearchOptimizer)
 
-    def test_global_cache_functionality(self):
+    def test_global_cache_functionality(self) -> None:
         """Test global cache basic functionality."""
         # Test basic operations
         results = [{"title": "Global Test", "pdf_url": "test.pdf"}]
@@ -638,7 +639,7 @@ class TestGlobalOptimizationInstances:
         assert cached is not None
         assert len(cached) == 1
 
-    def test_global_prioritizer_functionality(self):
+    def test_global_prioritizer_functionality(self) -> None:
         """Test global prioritizer basic functionality."""
         results = [
             {"title": "Test Paper 1", "year": 2024},
@@ -653,7 +654,7 @@ class TestGlobalOptimizationInstances:
 class TestPerformanceMetrics:
     """Test suite for PerformanceMetrics dataclass."""
 
-    def test_performance_metrics_creation(self):
+    def test_performance_metrics_creation(self) -> None:
         """Test creation of PerformanceMetrics."""
         metrics = PerformanceMetrics(
             total_search_time=2.5,

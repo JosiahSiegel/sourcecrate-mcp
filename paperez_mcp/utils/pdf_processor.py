@@ -8,10 +8,10 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-import fitz  # PyMuPDF
+import fitz  # type: ignore  # PyMuPDF
 import requests
 from bs4 import BeautifulSoup
-from diskcache import Cache
+from diskcache import Cache  # type: ignore
 
 # Create cache instance directly
 cache = Cache("/tmp/paperez-mcp-cache", size_limit=1e9)  # 1GB cache
