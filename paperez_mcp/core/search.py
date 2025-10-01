@@ -39,13 +39,12 @@ async def browse_papers_core(
         - sources_used: List of sources that returned results
         - query: Original search query
     """
-    # Import here to avoid circular dependencies during server startup
-    # This allows the server to import core functions without loading everything
+    # Import server to access the decorated function
     from paperez_mcp import server
 
-    # Call the existing browse_papers implementation
-    # Returns a list with single dict, extract it
-    result_list = await server.browse_papers(query, limit, force_category, debug)  # type: ignore[operator]  # FastMCP decorated function is callable
+    # Access the underlying function from the FunctionTool wrapper
+    # FastMCP wraps functions in FunctionTool, but we can access .fn to get the original
+    result_list = await server.browse_papers.fn(query, limit, force_category, debug)
 
     if result_list and len(result_list) > 0:
         return cast(dict[str, Any], result_list[0])
@@ -89,8 +88,8 @@ async def browse_papers_streaming_core(
     # Import here to avoid circular dependencies
     from paperez_mcp import server
 
-    # Call the existing browse_papers_streaming implementation
-    result_list = await server.browse_papers_streaming(  # type: ignore[operator]  # FastMCP decorated function is callable
+    # Access the underlying function from the FunctionTool wrapper
+    result_list = await server.browse_papers_streaming.fn(
         query, limit, force_category, debug
     )
 

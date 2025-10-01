@@ -40,7 +40,8 @@ async def convert_pdf_to_text_core(
     # Import here to avoid circular dependencies
     from paperez_mcp import server
 
-    result = await server.convert_pdf_to_text(file_path, output_path, title, authors)  # type: ignore[operator]  # FastMCP decorated function is callable
+    # Access the underlying function from the FunctionTool wrapper
+    result = await server.convert_pdf_to_text.fn(file_path, output_path, title, authors)
     return cast(dict[str, Any], result)
 
 
@@ -72,7 +73,8 @@ async def convert_pdf_to_markdown_core(
     # Import here to avoid circular dependencies
     from paperez_mcp import server
 
-    result = await server.convert_pdf_to_markdown(file_path, title, authors, output_path)  # type: ignore[operator]  # FastMCP decorated function is callable
+    # Access the underlying function from the FunctionTool wrapper
+    result = await server.convert_pdf_to_markdown.fn(file_path, title, authors, output_path)
     return cast(dict[str, Any], result)
 
 
@@ -101,5 +103,6 @@ async def batch_convert_pdfs_core(
     # Import here to avoid circular dependencies
     from paperez_mcp import server
 
-    result = await server.batch_convert_pdfs(directory, output_dir)  # type: ignore[operator]  # FastMCP decorated function is callable
+    # Access the underlying function from the FunctionTool wrapper
+    result = await server.batch_convert_pdfs.fn(directory, output_dir)
     return cast(dict[str, Any], result)

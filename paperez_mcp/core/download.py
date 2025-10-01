@@ -45,8 +45,8 @@ async def download_papers_core(
     # Import here to avoid circular dependencies
     from paperez_mcp import server
 
-    # Call the existing download_papers implementation
-    result_list = await server.download_papers(  # type: ignore[operator]  # FastMCP decorated function is callable
+    # Access the underlying function from the FunctionTool wrapper
+    result_list = await server.download_papers.fn(
         query, limit, output_dir, force_category, convert_to_markdown, debug
     )
 

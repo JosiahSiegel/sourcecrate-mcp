@@ -37,7 +37,8 @@ async def get_status_core(force_reload: bool = False) -> dict[str, Any]:
     # Import here to avoid circular dependencies
     from paperez_mcp import server
 
-    result = await server.get_status(force_reload)  # type: ignore[operator]  # FastMCP decorated function is callable
+    # Access the underlying function from the FunctionTool wrapper
+    result = await server.get_status.fn(force_reload)
     return cast(dict[str, Any], result)
 
 
@@ -59,5 +60,6 @@ async def get_help_core() -> dict[str, Any]:
     # Import here to avoid circular dependencies
     from paperez_mcp import server
 
-    result = await server.get_help()  # type: ignore[operator]  # FastMCP decorated function is callable
+    # Access the underlying function from the FunctionTool wrapper
+    result = await server.get_help.fn()
     return cast(dict[str, Any], result)
