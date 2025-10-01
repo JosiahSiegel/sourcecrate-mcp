@@ -551,77 +551,33 @@ async def browse_papers(
 
     # Import performance optimization
     from paperez_mcp.utils.search_analytics import record_search_performance
-    from paperez_mcp.utils.search_performance_optimizer import (
-        optimize_search_performance,
-    )
 
     start_time = time.time()
     session_id = f"browse_{int(time.time() * 1000)}"
 
-    # Try optimized search first
-    try:
-        optimized_results, performance_metrics = await optimize_search_performance(
-            search_funcs,
-            query,
-            limit,
-            get_api_status(),
-            user_preferences={
-                "prefer_recent": True,
-                "force_category": force_category,
-            },  # Prefer recent papers for browsing, respect force_category
-        )
+    # Use smart_downloadable_search for consistency with download_papers
+    # This ensures both functions return the same papers for the same query
+    papers, search_log = await utils["smart_downloadable_search"](
+        query,
+        limit,
+        search_funcs,
+        utils,
+        get_api_status(),
+        force_category,
+        metadata_only=True,
+    )
 
-        if optimized_results:
-            # Record performance analytics
-            search_time = time.time() - start_time
-            record_search_performance(
-                session_id=session_id,
-                query=query,
-                total_time=search_time,
-                sources_used=list(performance_metrics.source_response_times.keys()),
-                results_found=len(optimized_results),
-                cache_hit=performance_metrics.cache_hit_rate > 0,
-                quality_score=performance_metrics.result_quality_score,
-            )
-
-            # Create search log for compatibility
-            search_log = {
-                "query": query,
-                "sources_searched": list(
-                    performance_metrics.source_response_times.keys()
-                ),
-                "total_found": len(optimized_results),
-                "performance_optimized": True,
-                "cache_hit_rate": performance_metrics.cache_hit_rate,
-                "total_search_time": search_time,
-            }
-
-            papers = optimized_results
-        else:
-            # Fallback to traditional search
-            papers, search_log = await utils["smart_downloadable_search"](
-                query,
-                limit,
-                search_funcs,
-                utils,
-                get_api_status(),
-                force_category,
-                metadata_only=True,
-            )
-    except Exception as e:
-        logger.warning(
-            f"Performance optimization failed, using traditional search: {e}"
-        )
-        # Fallback to traditional search
-        papers, search_log = await utils["smart_downloadable_search"](
-            query,
-            limit,
-            search_funcs,
-            utils,
-            get_api_status(),
-            force_category,
-            metadata_only=True,
-        )
+    # Record performance analytics
+    search_time = time.time() - start_time
+    record_search_performance(
+        session_id=session_id,
+        query=query,
+        total_time=search_time,
+        sources_used=search_log.get("sources_searched", []),
+        results_found=len(papers),
+        cache_hit=False,  # No cache in smart_downloadable_search
+        quality_score=0.0,  # Not tracked in smart_downloadable_search
+    )
 
     # Validate PDF URLs to ensure papers are actually downloadable
     validation_start_time = time.time()
@@ -721,7 +677,7 @@ async def browse_papers(
             original_category = paper.get("_original_category")
 
     # Deduplicate browse_results by DOI or title to prevent duplicates
-    # This handles cases where optimize_search_performance doesn't deduplicate
+    # smart_downloadable_search already deduplicates but we do it again for safety
     seen_papers = set()
     deduplicated_results = []
     duplicate_count = 0
