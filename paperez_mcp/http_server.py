@@ -30,7 +30,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 # Import core business logic
@@ -186,6 +186,9 @@ async def search_papers_streaming(request: SearchRequest) -> dict[str, Any]:
 
     Returns results incrementally as each source completes, providing
     faster initial response times and real-time progress updates.
+
+    Note: This returns a single aggregated response. For true progressive
+    streaming in browsers, use GET /api/v1/search/stream instead.
     """
     try:
         logger.info(
@@ -201,6 +204,148 @@ async def search_papers_streaming(request: SearchRequest) -> dict[str, Any]:
     except Exception as e:
         logger.error(f"Streaming search failed: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/api/v1/search/stream")
+async def search_papers_sse(
+    query: str,
+    limit: int = 10,
+    force_category: str | None = None,
+    debug: bool = False,
+) -> StreamingResponse:
+    """
+    Search academic papers with true Server-Sent Events (SSE) streaming.
+
+    This endpoint provides real-time progressive updates as each source completes,
+    delivering results incrementally instead of waiting for all sources.
+
+    **Benefits:**
+    - Papers appear progressively as sources complete (2-5 seconds for first results)
+    - Real-time progress updates showing which sources are being searched
+    - Live result count and source completion status
+    - Better perceived performance vs waiting for all sources
+
+    **Event types:**
+    - `search_start`: Search initiated with query details
+    - `source_start`: A source has started searching
+    - `results`: New papers found from a source
+    - `source_complete`: A source finished (with count)
+    - `progress`: Overall progress update
+    - `complete`: Search finished with final stats
+    - `error`: Error occurred (continues searching other sources)
+
+    **Usage:**
+    ```javascript
+    const eventSource = new EventSource(`/api/v1/search/stream?query=machine+learning&limit=10`);
+    eventSource.addEventListener('results', (e) => {
+        const data = JSON.parse(e.data);
+        // Add data.papers to UI
+    });
+    eventSource.addEventListener('complete', (e) => {
+        eventSource.close();
+    });
+    ```
+
+    Args:
+        query: Search query (keywords, DOI, author, title)
+        limit: Maximum number of results (default: 10)
+        force_category: Force specific source category (optional)
+        debug: Include diagnostic information (default: False)
+
+    Returns:
+        StreamingResponse with text/event-stream content type
+    """
+
+    async def event_generator():
+        """Generate Server-Sent Events for progressive search results."""
+        import json
+        import time
+
+        try:
+            # Send search start event
+            yield f"event: search_start\ndata: {json.dumps({'query': query, 'limit': limit, 'timestamp': time.time()})}\n\n"
+
+            # Get search functions and API status
+            from paperez_mcp.server import _lazy_import_search_functions, get_api_status
+            from paperez_mcp.utils.result_streaming import create_streaming_search
+
+            search_funcs = _lazy_import_search_functions()
+            if not search_funcs:
+                yield f"event: error\ndata: {json.dumps({'error': 'No search functions available'})}\n\n"
+                return
+
+            api_status = get_api_status()
+
+            # Filter sources by category if specified
+            if force_category:
+                from paperez_mcp.config import get_current_config
+
+                config = get_current_config()
+                category_config = config.get("categories", {}).get(force_category, {})
+                if category_config:
+                    allowed_sources = set(category_config.get("sources", []))
+                    search_funcs = {
+                        k: v for k, v in search_funcs.items() if k in allowed_sources
+                    }
+
+            # Track results
+            all_results = []
+            sources_completed = 0
+            total_sources = len(search_funcs)
+
+            # Stream results as they arrive
+            async for update in create_streaming_search(
+                search_functions=search_funcs,
+                query=query,
+                limit=limit,
+                api_status=api_status,
+            ):
+                update_type = update.type
+
+                if update_type == "result":
+                    # Single result received
+                    if update.result:
+                        all_results.append(update.result.data)
+                        yield f"event: results\ndata: {json.dumps({'source': update.result.source, 'papers': [update.result.data], 'total_so_far': len(all_results)})}\n\n"
+
+                elif update_type == "source_complete":
+                    # Source finished
+                    sources_completed += 1
+                    yield f"event: source_complete\ndata: {json.dumps({'source': update.source, 'completed': sources_completed, 'total': total_sources})}\n\n"
+
+                    # Send progress update
+                    if total_sources > 0:
+                        progress_pct = (sources_completed / total_sources) * 100
+                        yield f"event: progress\ndata: {json.dumps({'completed': sources_completed, 'total': total_sources, 'percentage': progress_pct, 'results_count': len(all_results)})}\n\n"
+
+                elif update_type == "error":
+                    # Source error (non-fatal, continue with other sources)
+                    error_msg = update.error or "Unknown error"
+                    yield f"event: error\ndata: {json.dumps({'source': update.source, 'error': error_msg, 'fatal': False})}\n\n"
+
+                elif update_type == "final":
+                    # All sources complete
+                    break
+
+            # Send completion event
+            yield f"event: complete\ndata: {json.dumps({'total_results': len(all_results), 'sources_searched': total_sources, 'query': query, 'timestamp': time.time()})}\n\n"
+
+        except Exception as e:
+            logger.error(f"SSE streaming error: {e}")
+            import traceback
+
+            traceback.print_exc()
+            yield f"event: error\ndata: {json.dumps({'error': str(e), 'fatal': True})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )
 
 
 @app.post("/api/v1/download")
