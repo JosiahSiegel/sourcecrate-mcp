@@ -424,15 +424,32 @@ async def smart_downloadable_search(
 
     all_candidates.sort(key=pdf_priority_score, reverse=True)
 
-    # Remove duplicates by DOI/title
-    seen_papers = set()
+    # Remove duplicates by DOI and title (checks both independently)
+    # This catches preprint/published versions with different DOIs but same titles
+    seen_dois = set()
+    seen_titles = set()
     unique_candidates = []
     for paper in all_candidates:
-        # Create identifier from DOI or title
-        identifier = paper.get("doi") or paper.get("title", "").lower().strip()
-        if identifier and identifier not in seen_papers:
-            seen_papers.add(identifier)
-            unique_candidates.append(paper)
+        # Check DOI duplication (normalize DOI format)
+        doi = (paper.get("doi") or "").strip()
+        # Normalize DOI: remove https://doi.org/ prefix for comparison
+        doi_normalized = doi.lower().replace("https://doi.org/", "").replace("http://doi.org/", "")
+        if doi_normalized and doi_normalized in seen_dois:
+            continue
+
+        # Check title duplication
+        title = (paper.get("title") or "").strip().lower()
+        title_normalized = " ".join(title.split())  # Normalize whitespace
+        if title_normalized and title_normalized in seen_titles:
+            continue
+
+        # Add to seen sets (use normalized formats)
+        if doi_normalized:
+            seen_dois.add(doi_normalized)
+        if title_normalized:
+            seen_titles.add(title_normalized)
+
+        unique_candidates.append(paper)
 
     search_log["unique_candidates"] = len(unique_candidates)
     logger.info(f"📄 After deduplication: {len(unique_candidates)} unique papers")

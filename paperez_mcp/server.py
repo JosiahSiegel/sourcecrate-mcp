@@ -738,20 +738,37 @@ async def browse_papers(
             fallback_used = True
             original_category = paper.get("_original_category")
 
-    # Deduplicate browse_results by DOI or title to prevent duplicates
+    # Deduplicate browse_results by DOI and title (checks both independently)
     # smart_downloadable_search already deduplicates but we do it again for safety
-    seen_papers = set()
+    # This catches preprint/published versions with different DOIs but same titles
+    seen_dois = set()
+    seen_titles = set()
     deduplicated_results = []
     duplicate_count = 0
 
     for paper in browse_results:
-        # Create identifier from DOI or title
-        identifier = paper.get("doi") or paper.get("title", "").lower().strip()
-        if identifier and identifier not in seen_papers:
-            seen_papers.add(identifier)
-            deduplicated_results.append(paper)
-        else:
+        # Check DOI duplication (normalize DOI format)
+        doi = (paper.get("doi") or "").strip()
+        # Normalize DOI: remove https://doi.org/ prefix for comparison
+        doi_normalized = doi.lower().replace("https://doi.org/", "").replace("http://doi.org/", "")
+        if doi_normalized and doi_normalized in seen_dois:
             duplicate_count += 1
+            continue
+
+        # Check title duplication
+        title = (paper.get("title") or "").strip().lower()
+        title_normalized = " ".join(title.split())  # Normalize whitespace
+        if title_normalized and title_normalized in seen_titles:
+            duplicate_count += 1
+            continue
+
+        # Add to seen sets (use normalized formats)
+        if doi_normalized:
+            seen_dois.add(doi_normalized)
+        if title_normalized:
+            seen_titles.add(title_normalized)
+
+        deduplicated_results.append(paper)
 
     if duplicate_count > 0:
         logger.info(
