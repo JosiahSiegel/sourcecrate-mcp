@@ -689,30 +689,28 @@ async def browse_papers(
         pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
 
         if pdf_url:
-            # Check if URL was validated successfully
+            # Include ALL papers with PDF URLs regardless of validation status
+            # HEAD validation often fails due to anti-scraping even when GET works
+            browse_paper = {
+                k: v
+                for k, v in paper.items()
+                if k
+                not in [
+                    "download_success",
+                    "local_markdown",
+                    "markdown_characters",
+                    "_fallback_used",
+                    "_original_category",
+                ]
+            }
+            # Add downloadability indicators
+            browse_paper["is_downloadable"] = True
+            # Include validation status as informational (not filtering)
             is_valid = validated_urls.get(pdf_url, False)
-
-            if is_valid:
-                # Include only papers with validated PDFs
-                browse_paper = {
-                    k: v
-                    for k, v in paper.items()
-                    if k
-                    not in [
-                        "download_success",
-                        "local_markdown",
-                        "markdown_characters",
-                        "_fallback_used",
-                        "_original_category",
-                    ]
-                }
-                # Add downloadability indicators
-                browse_paper["is_downloadable"] = True
-                browse_paper["pdf_validated"] = True
-                browse_results.append(browse_paper)
-            else:
-                # Count papers with invalid PDF URLs
+            browse_paper["pdf_validated"] = is_valid
+            if not is_valid:
                 invalid_pdf_count += 1
+            browse_results.append(browse_paper)
         else:
             # Count papers without PDF URLs that were filtered out
             non_downloadable_count += 1
@@ -751,11 +749,14 @@ async def browse_papers(
     source_performance = _calculate_source_performance(browse_results, get_api_status())
 
     # Log filtering statistics
-    total_filtered = non_downloadable_count + invalid_pdf_count
-    if total_filtered > 0:
+    total_filtered = non_downloadable_count  # Only count papers without PDF URLs
+    if non_downloadable_count > 0:
         logger.info(
-            f"📊 Filtered {total_filtered} papers: {non_downloadable_count} without PDF URLs, "
-            f"{invalid_pdf_count} with invalid URLs (showing {len(browse_results)} validated papers)"
+            f"📊 Filtered {non_downloadable_count} papers without PDF URLs (showing {len(browse_results)} papers with PDFs)"
+        )
+    if invalid_pdf_count > 0:
+        logger.info(
+            f"⚠️  {invalid_pdf_count} papers have PDFs that failed HEAD validation (may still be downloadable via GET)"
         )
 
     result = {
@@ -776,17 +777,17 @@ async def browse_papers(
             "valid_urls": valid_count,
             "invalid_urls": invalid_count,
             "validation_time_seconds": round(validation_time, 2),
-            "note": "PDF URLs validated via HEAD requests to ensure downloadability",
+            "note": "PDF URLs validated via HEAD requests (informational only - papers shown regardless of validation result)",
         }
 
     # Add filtering statistics if papers were filtered
     if total_filtered > 0:
         result["filtering_stats"] = {
             "total_candidates": len(papers),
-            "validated_downloadable": len(browse_results),
+            "papers_with_pdfs": len(browse_results),
             "filtered_no_pdf": non_downloadable_count,
-            "filtered_invalid_pdf": invalid_pdf_count,
-            "note": "Only showing papers with validated, accessible PDF downloads",
+            "papers_with_unvalidated_pdfs": invalid_pdf_count,
+            "note": "Only papers without PDF URLs are filtered. Papers with unvalidated PDFs are included (HEAD may fail while GET succeeds).",
         }
 
     # Add fallback notification if used
