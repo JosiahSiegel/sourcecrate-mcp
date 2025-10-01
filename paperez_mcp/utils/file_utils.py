@@ -238,6 +238,8 @@ async def download_pdf(
         unpaywall_download_attempted = False
         unpaywall_download_status = None
         unpaywall_download_error = None
+        unpaywall_alternatives_count = 0
+        unpaywall_urls_tried = []
 
         # Try Unpaywall fallback if DOI is available
         if doi and (
@@ -263,30 +265,67 @@ async def download_pdf(
                 unpaywall_api_response = "found_oa"
 
             if oa_info and oa_info.get("is_oa"):
-                best_location = oa_info["best_oa_location"]
-                oa_pdf_url = best_location.get("url_for_pdf")
+                # Get ALL open access locations (not just best)
+                all_oa_locations = oa_info.get("oa_locations", [])
+                unpaywall_alternatives_count = len(all_oa_locations)
 
-                # Capture Unpaywall metadata
-                unpaywall_oa_url = oa_pdf_url
-                unpaywall_oa_version = best_location.get("version")
-                unpaywall_oa_license = best_location.get("license")
+                logger.info(
+                    f"🔄 Unpaywall found {unpaywall_alternatives_count} open access locations, trying each..."
+                )
 
-                if oa_pdf_url:
-                    logger.info(f"✅ Found open access PDF via Unpaywall: {oa_pdf_url}")
+                # Try each location with enhanced headers
+                for idx, location in enumerate(all_oa_locations):
+                    oa_pdf_url = location.get("url_for_pdf")
+                    oa_version = location.get("version")
+                    oa_license = location.get("license")
 
-                    # Try downloading from open access URL
+                    if not oa_pdf_url:
+                        continue
+
+                    # Capture first location metadata for diagnostics
+                    if idx == 0:
+                        unpaywall_oa_url = oa_pdf_url
+                        unpaywall_oa_version = oa_version
+                        unpaywall_oa_license = oa_license
+
+                    unpaywall_urls_tried.append(oa_pdf_url)
                     unpaywall_download_attempted = True
+
+                    logger.info(
+                        f"  Trying Unpaywall location {idx+1}/{unpaywall_alternatives_count}: {oa_pdf_url}"
+                    )
+
+                    # Enhanced browser-like headers (more realistic than basic httpx)
+                    enhanced_headers = {
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                        "Accept": "application/pdf,application/x-pdf,*/*",
+                        "Accept-Language": "en-US,en;q=0.9",
+                        "Accept-Encoding": "gzip, deflate, br",
+                        "Referer": paper_url if paper_url else pdf_url,
+                        "Connection": "keep-alive",
+                        "Upgrade-Insecure-Requests": "1",
+                        "Sec-Fetch-Dest": "document",
+                        "Sec-Fetch-Mode": "navigate",
+                        "Sec-Fetch-Site": "none",
+                        "Cache-Control": "max-age=0",
+                    }
 
                     try:
                         async with httpx.AsyncClient(
                             timeout=60.0, follow_redirects=True
                         ) as client:
-                            response = await client.get(oa_pdf_url)
+                            response = await client.get(
+                                oa_pdf_url, headers=enhanced_headers
+                            )
                             unpaywall_download_status = response.status_code
 
                             if response.status_code == 200:
                                 with open(pdf_path, "wb") as f:
                                     f.write(response.content)
+
+                                logger.info(
+                                    f"✅ Success! Downloaded from Unpaywall location {idx+1}"
+                                )
 
                                 return {
                                     "success": True,
@@ -294,16 +333,35 @@ async def download_pdf(
                                     "file_size": len(response.content),
                                     "filename": filename,
                                     "source": "unpaywall",
-                                    "oa_version": best_location.get("version"),
-                                    "oa_license": best_location.get("license"),
+                                    "oa_version": oa_version,
+                                    "oa_license": oa_license,
+                                    "unpaywall_location_index": idx + 1,
+                                    "unpaywall_alternatives_tried": len(
+                                        unpaywall_urls_tried
+                                    ),
                                 }
                             else:
                                 unpaywall_download_error = (
                                     f"HTTP {response.status_code}"
                                 )
+                                logger.info(
+                                    f"  ❌ Location {idx+1} failed: HTTP {response.status_code}"
+                                )
+
                     except Exception as e:
                         unpaywall_download_error = str(e)
-                        logger.warning(f"❌ Unpaywall download also failed: {e}")
+                        logger.warning(f"  ❌ Location {idx+1} failed: {e}")
+
+                    # Add small delay before trying next URL (avoid rate limiting)
+                    if idx < len(all_oa_locations) - 1:
+                        import asyncio
+
+                        await asyncio.sleep(0.5)
+
+                # All Unpaywall locations failed
+                logger.info(
+                    f"❌ All {unpaywall_alternatives_count} Unpaywall locations failed"
+                )
 
         # Log if Unpaywall was tried but didn't find open access version
         if unpaywall_tried and doi:
@@ -313,7 +371,13 @@ async def download_pdf(
 
         # All strategies failed - provide helpful error
         error_msg = f"Failed to download PDF after {max_retries} attempts: {last_error}"
-        suggestions = suggest_alternatives(pdf_url, doi)
+
+        # Collect Unpaywall URLs for manual download suggestions
+        unpaywall_urls_for_suggestions = (
+            unpaywall_urls_tried if unpaywall_urls_tried else []
+        )
+
+        suggestions = suggest_alternatives(pdf_url, doi, unpaywall_urls_for_suggestions)
 
         return {
             "success": False,
@@ -331,6 +395,9 @@ async def download_pdf(
             "unpaywall_download_attempted": unpaywall_download_attempted,
             "unpaywall_download_status": unpaywall_download_status,
             "unpaywall_download_error": unpaywall_download_error,
+            # Multi-URL retry diagnostics
+            "unpaywall_alternatives_count": unpaywall_alternatives_count,
+            "unpaywall_urls_tried": unpaywall_urls_tried,
         }
 
     except Exception as e:

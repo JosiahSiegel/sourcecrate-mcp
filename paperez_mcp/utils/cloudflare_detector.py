@@ -92,30 +92,39 @@ def get_cloudflare_info(response: httpx.Response) -> dict[str, Any]:
     }
 
 
-def suggest_alternatives(url: str, doi: str | None = None) -> list[str]:
+def suggest_alternatives(
+    url: str, doi: str | None = None, unpaywall_urls: list[str] | None = None
+) -> list[str]:
     """
     Suggest alternative methods to access a Cloudflare-protected resource.
 
     Args:
         url: Original URL that failed
         doi: DOI of the paper (if available)
+        unpaywall_urls: List of Unpaywall open access URLs that were tried (if available)
 
     Returns:
         List of suggestion strings for user
     """
     suggestions = []
 
+    # If Unpaywall URLs are available, prioritize them for manual browser download
+    if unpaywall_urls:
+        suggestions.append(
+            "📄 Try these open access versions manually in your browser:"
+        )
+        for idx, oa_url in enumerate(unpaywall_urls[:3], start=1):  # Top 3
+            suggestions.append(f"   {idx}. {oa_url}")
+        suggestions.append("")  # Blank line for readability
+
     if doi:
         suggestions.append(
-            f"1. Try Unpaywall for open access version: https://api.unpaywall.org/v2/{doi}?email=YOUR_EMAIL"
-        )
-        suggestions.append(
-            f"2. Search Google Scholar for alternate sources: https://scholar.google.com/scholar?q={doi}"
+            f"1. Search Google Scholar for more sources: https://scholar.google.com/scholar?q={doi}"
         )
 
-    suggestions.append(f"3. Try downloading manually from: {url}")
+    suggestions.append(f"2. Try downloading manually from original URL: {url}")
     suggestions.append(
-        "4. Check if your institution provides access through a proxy/VPN"
+        "3. Check if your institution provides access through a proxy/VPN"
     )
     suggestions.append(
         "5. Enable browser automation in config (if available) to bypass bot detection"

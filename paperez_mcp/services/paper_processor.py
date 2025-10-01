@@ -214,6 +214,14 @@ async def process_papers(
                     paper["unpaywall_download_error"] = download_result.get(
                         "unpaywall_download_error", None
                     )
+
+                    # Capture multi-URL retry diagnostics
+                    paper["unpaywall_alternatives_count"] = download_result.get(
+                        "unpaywall_alternatives_count", 0
+                    )
+                    paper["unpaywall_urls_tried"] = download_result.get(
+                        "unpaywall_urls_tried", []
+                    )
             except Exception as e:
                 paper["download_success"] = False
                 paper["download_status"] = "failed"
