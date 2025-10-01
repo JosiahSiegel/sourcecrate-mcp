@@ -520,7 +520,9 @@ async def smart_downloadable_search(
             logger.warning(f"❌ {source_name} search failed: {e}")
 
     # Cascade through additional sources for comprehensive coverage
-    # BUT: When force_category is set, respect user's explicit source restriction
+    # Special handling for force_category:
+    # - If category sources found results: respect explicit restriction, skip cascade
+    # - If category sources found 0 results: cascade to all sources for comprehensive coverage
     used_fallback = False
     if additional_sources_to_search and not force_category:
         logger.info(
@@ -528,10 +530,17 @@ async def smart_downloadable_search(
             f"(relevance-based cascade) to ensure comprehensive coverage..."
         )
         used_fallback = True
+    elif additional_sources_to_search and force_category and len(all_candidates) == 0:
+        # Category sources returned 0 results - cascade to all sources
+        logger.warning(
+            f"⚠️  Category '{force_category}' returned 0 results from {len(priority_sources_to_search)} sources. "
+            f"Cascading to {len(additional_sources_to_search)} additional sources for comprehensive coverage..."
+        )
+        used_fallback = True
     elif additional_sources_to_search and force_category:
         logger.info(
             f"⏭️  Skipping {len(additional_sources_to_search)} non-category sources "
-            f"(force_category='{force_category}' - respecting explicit category restriction)"
+            f"(force_category='{force_category}' found {len(all_candidates)} results - respecting explicit category restriction)"
         )
 
     # Phase 2: Search all additional sources exhaustively (only if cascading)
