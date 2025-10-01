@@ -339,9 +339,23 @@ async def smart_downloadable_search(
     # Fallback mechanism using shared utility
     from paperez_mcp.utils.search_helpers import apply_source_fallback
 
+    # When force_category is set, fallback should ONLY use category sources
+    # Otherwise, fallback can use all available sources
+    fallback_pool = available_sources
+    if force_category and priority_sources_list:
+        # Restrict fallback to category sources only
+        fallback_pool = [
+            (name, desc)
+            for name, desc in available_sources
+            if name in priority_sources_list
+        ]
+        logger.debug(
+            f"🎯 Force category: restricting fallback pool to {len(fallback_pool)} category sources"
+        )
+
     sources_to_search = apply_source_fallback(
         sources_to_search,
-        available_sources,
+        fallback_pool,
         fallback_count=3,
         reason="BM25/intent filtering excluded all sources",
     )
