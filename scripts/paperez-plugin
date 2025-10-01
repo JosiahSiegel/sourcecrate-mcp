@@ -15,13 +15,12 @@ Examples:
 """
 
 import sys
-import os
 from pathlib import Path
+
+from paperez_mcp.plugins.simple import create_plugin, list_plugins, register_plugin
 
 # Add paperez_mcp to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from paperez_mcp.plugins.simple import create_plugin, register_plugin, list_plugins
 
 
 def create_example(source_name: str) -> str:
@@ -77,7 +76,6 @@ async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[s
         self.logger.error(f"ResearchGate search failed: {e}")
         return []
 """,
-
         "ieee_xplore": """
 # IEEE Xplore Plugin Example - API integration
 async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[str, Any]]:
@@ -129,7 +127,6 @@ async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[s
         self.logger.error(f"IEEE Xplore search failed: {e}")
         return []
 """,
-
         "institutional": """
 # Institutional Repository Plugin Example - Generic repository support
 async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[str, Any]]:
@@ -201,7 +198,7 @@ def _parse_repository_response(self, response_text: str, repo_type: str) -> List
         self.logger.error(f"Failed to parse repository response: {e}")
 
     return results
-"""
+""",
     }
 
     if source_name not in examples:
@@ -213,29 +210,33 @@ def _parse_repository_response(self, response_text: str, repo_type: str) -> List
     plugin_path = create_plugin(source_name)
 
     # Replace the TODO section with the example
-    with open(plugin_path, 'r') as f:
+    with open(plugin_path) as f:
         content = f.read()
 
     # Replace the placeholder implementation
-    placeholder_start = "        # TODO: Replace this with your actual API implementation"
+    placeholder_start = (
+        "        # TODO: Replace this with your actual API implementation"
+    )
     placeholder_end = "            return []"
 
     start_idx = content.find(placeholder_start)
     if start_idx != -1:
         end_idx = content.find(placeholder_end, start_idx) + len(placeholder_end)
-        new_content = content[:start_idx] + examples[source_name].strip() + content[end_idx:]
+        new_content = (
+            content[:start_idx] + examples[source_name].strip() + content[end_idx:]
+        )
 
-        with open(plugin_path, 'w') as f:
+        with open(plugin_path, "w") as f:
             f.write(new_content)
 
-        print(f"")
+        print("")
         print(f"✅ Created working example: {plugin_path}")
         print(f"   This example includes a complete implementation for {source_name}")
 
     return plugin_path
 
 
-def main():
+def main() -> None:
     if len(sys.argv) < 2:
         print(__doc__)
         sys.exit(1)

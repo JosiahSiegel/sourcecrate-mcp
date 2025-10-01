@@ -7,12 +7,12 @@ This ensures identical validation across environments.
 import sys
 
 
-def test_pdf_processing_imports():
+def test_pdf_processing_imports() -> bool:
     """Test that all PDF processing imports work correctly."""
     print("🔍 Testing PDF processing imports...")
 
     try:
-        import pymupdf4llm
+        import pymupdf4llm  # noqa: F401
 
         print("  ✓ pymupdf4llm available")
     except ImportError as e:
@@ -20,7 +20,7 @@ def test_pdf_processing_imports():
         return False
 
     try:
-        import fitz  # PyMuPDF is imported as fitz
+        import fitz  # PyMuPDF is imported as fitz  # noqa: F401
 
         print("  ✓ PyMuPDF (fitz) available")
     except ImportError as e:
@@ -31,13 +31,14 @@ def test_pdf_processing_imports():
     return True
 
 
-def test_pdf_processor_functions():
+def test_pdf_processor_functions() -> bool:
     """Test that PDF processor functions are available."""
     print("🔍 Testing PDF processor functions...")
 
     try:
         from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
 
+        _ = extract_pdf_text_from_local_file  # Verify it's callable
         print("  ✓ extract_pdf_text_from_local_file imported")
     except ImportError as e:
         print(f"  ❌ Failed to import PDF processor functions: {e}")
@@ -47,7 +48,7 @@ def test_pdf_processor_functions():
     return True
 
 
-def main():
+def main() -> int:
     """Run PDF processing validation."""
     print("🧪 Running PDF processing validation...")
     print("=" * 60)

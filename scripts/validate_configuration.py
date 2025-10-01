@@ -7,7 +7,7 @@ This ensures identical validation across environments.
 import sys
 
 
-def test_configuration_loading():
+def test_configuration_loading() -> bool:
     """Test configuration system loading."""
     print("🔍 Testing configuration loading...")
 
@@ -40,7 +40,7 @@ def test_configuration_loading():
         return False
 
 
-def test_search_functionality():
+def test_search_functionality() -> bool:
     """Test basic search functionality components."""
     print("🔍 Testing search functionality components...")
 
@@ -67,7 +67,7 @@ def test_search_functionality():
         return False
 
 
-def main():
+def main() -> int:
     """Run configuration validation."""
     print("🧪 Running configuration validation...")
     print("=" * 60)

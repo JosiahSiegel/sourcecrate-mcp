@@ -10,7 +10,7 @@ import sys
 from io import StringIO
 
 
-def setup_log_capture():
+def setup_log_capture() -> tuple[StringIO, logging.StreamHandler, list[str]]:
     """Set up log capture to detect real errors"""
     log_capture = StringIO()
     log_handler = logging.StreamHandler(log_capture)
@@ -30,7 +30,9 @@ def setup_log_capture():
     return log_capture, log_handler, loggers_to_monitor
 
 
-def analyze_captured_logs(log_capture, operation_name):
+def analyze_captured_logs(
+    log_capture: StringIO, operation_name: str
+) -> tuple[list[str], list[str]]:
     """Analyze captured logs for real errors that should fail validation"""
     log_content = log_capture.getvalue()
 
@@ -68,7 +70,7 @@ def analyze_captured_logs(log_capture, operation_name):
     return real_errors, warnings
 
 
-async def test_mcp_server_startup():
+async def test_mcp_server_startup() -> bool:
     """Test MCP server startup and tool registration."""
     print("🔍 Testing MCP server startup...")
 
@@ -108,7 +110,7 @@ async def test_mcp_server_startup():
         return False
 
 
-async def test_mcp_tools_functionality():
+async def test_mcp_tools_functionality() -> bool:
     """Test basic MCP tool functionality with rigorous error detection."""
     print("🔍 Testing MCP tools functionality...")
 
@@ -245,7 +247,7 @@ async def test_mcp_tools_functionality():
             logger.removeHandler(log_handler)
 
 
-async def main():
+async def main() -> int:
     """Run MCP server validation."""
     print("🧪 Running MCP server validation...")
     print("=" * 60)
