@@ -223,9 +223,20 @@ async def download_pdf(
                     f"🛡️  Cloudflare protection detected: {cf_info['likely_reason']}"
                 )
 
+        # Debug: Log condition evaluation for Unpaywall fallback
+        logger.info(
+            f"🔍 Unpaywall condition check - DOI: {doi}, is_cloudflare: {is_cloudflare}, "
+            f"last_error: {last_error}, last_response_status: {last_response.status_code if last_response else None}"
+        )
+
         # Try Unpaywall fallback if DOI is available
         unpaywall_tried = False
-        if doi and (is_cloudflare or "403" in str(last_error)):
+        if doi and (
+            is_cloudflare
+            or "403" in str(last_error)
+            or "404" in str(last_error)
+            or (last_response and last_response.status_code in [403, 404])
+        ):
             logger.info(f"🔄 Trying Unpaywall fallback for DOI: {doi}")
             from paperez_mcp.utils.unpaywall_client import get_unpaywall_client
 
@@ -263,6 +274,12 @@ async def download_pdf(
                                 }
                     except Exception as e:
                         logger.warning(f"❌ Unpaywall download also failed: {e}")
+
+        # Log if Unpaywall was tried but didn't find open access version
+        if unpaywall_tried and doi:
+            logger.info(
+                f"ℹ️  Unpaywall fallback completed for DOI: {doi} (no open access version found or download failed)"
+            )
 
         # All strategies failed - provide helpful error
         error_msg = f"Failed to download PDF after {max_retries} attempts: {last_error}"
