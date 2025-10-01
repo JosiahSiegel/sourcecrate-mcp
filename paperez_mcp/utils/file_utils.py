@@ -19,15 +19,22 @@ async def download_pdf(
     output_dir: str = ".paperez",
     title: str | None = None,
     paper_url: str | None = None,
+    doi: str | None = None,
 ) -> dict[str, Any]:
     """
     Download a PDF from URL to local directory with enhanced headers and retry logic.
+
+    Implements intelligent fallback chain:
+    1. Try direct HTTP download with multiple header strategies
+    2. If blocked by Cloudflare/403 → try Unpaywall for open access version
+    3. If still fails → provide helpful error with manual alternatives
 
     Args:
         pdf_url: URL of the PDF to download
         output_dir: Directory to save the PDF
         title: Optional paper title for readable filename
         paper_url: Optional main paper URL for referrer header
+        doi: Optional DOI for Unpaywall fallback
 
     Returns:
         Dictionary with download results
@@ -152,6 +159,7 @@ async def download_pdf(
         ]
 
         last_error = None
+        last_response = None
 
         for attempt in range(max_retries):
             # Remove None values from headers
@@ -164,6 +172,7 @@ async def download_pdf(
                     timeout=60.0, follow_redirects=True, headers=current_headers
                 ) as client:
                     response = await client.get(pdf_url)
+                    last_response = response  # Save for Cloudflare detection
 
                     if response.status_code == 200:
                         with open(pdf_path, "wb") as f:
@@ -194,12 +203,81 @@ async def download_pdf(
                     await asyncio.sleep(2**attempt)
                 continue
 
-        # All retries failed
+        # All direct download retries failed - try fallback strategies
+        logger.warning(
+            f"❌ Direct download failed after {max_retries} attempts: {last_error}"
+        )
+
+        # Check if failure is due to Cloudflare/access control
+        from paperez_mcp.utils.cloudflare_detector import (
+            get_cloudflare_info,
+            suggest_alternatives,
+        )
+
+        is_cloudflare = False
+        if last_response:
+            cf_info = get_cloudflare_info(last_response)
+            is_cloudflare = cf_info["is_cloudflare"]
+            if is_cloudflare:
+                logger.info(
+                    f"🛡️  Cloudflare protection detected: {cf_info['likely_reason']}"
+                )
+
+        # Try Unpaywall fallback if DOI is available
+        unpaywall_tried = False
+        if doi and (is_cloudflare or "403" in str(last_error)):
+            logger.info(f"🔄 Trying Unpaywall fallback for DOI: {doi}")
+            from paperez_mcp.utils.unpaywall_client import get_unpaywall_client
+
+            unpaywall_client = get_unpaywall_client()
+            oa_info = await unpaywall_client.find_open_access_pdf(doi)
+
+            unpaywall_tried = True
+
+            if oa_info and oa_info.get("is_oa"):
+                best_location = oa_info["best_oa_location"]
+                oa_pdf_url = best_location.get("url_for_pdf")
+
+                if oa_pdf_url:
+                    logger.info(
+                        f"✅ Found open access PDF via Unpaywall: {oa_pdf_url}"
+                    )
+
+                    # Try downloading from open access URL
+                    try:
+                        async with httpx.AsyncClient(
+                            timeout=60.0, follow_redirects=True
+                        ) as client:
+                            response = await client.get(oa_pdf_url)
+
+                            if response.status_code == 200:
+                                with open(pdf_path, "wb") as f:
+                                    f.write(response.content)
+
+                                return {
+                                    "success": True,
+                                    "pdf_path": pdf_path,
+                                    "file_size": len(response.content),
+                                    "filename": filename,
+                                    "source": "unpaywall",
+                                    "oa_version": best_location.get("version"),
+                                    "oa_license": best_location.get("license"),
+                                }
+                    except Exception as e:
+                        logger.warning(f"❌ Unpaywall download also failed: {e}")
+
+        # All strategies failed - provide helpful error
+        error_msg = f"Failed to download PDF after {max_retries} attempts: {last_error}"
+        suggestions = suggest_alternatives(pdf_url, doi)
+
         return {
             "success": False,
-            "error": f"Failed to download PDF after {max_retries} attempts: {last_error}",
+            "error": error_msg,
             "pdf_url": pdf_url,
             "final_attempt": max_retries,
+            "cloudflare_detected": is_cloudflare,
+            "unpaywall_tried": unpaywall_tried,
+            "suggestions": suggestions,
         }
 
     except Exception as e:
