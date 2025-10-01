@@ -20,7 +20,6 @@ from paperez_mcp.utils.result_streaming import (
 )
 
 # Import global instances for cleanup
-from paperez_mcp.utils.enhanced_error_recovery import global_error_recovery
 from paperez_mcp.utils.search_analytics import search_analytics
 from paperez_mcp.utils.result_streaming import result_streamer
 
@@ -31,7 +30,6 @@ class TestStreamingSearchIntegration:
     def setup_method(self):
         """Set up test fixtures with realistic mock sources."""
         # Reset global state for test isolation
-        global_error_recovery.reset_all_error_states()
         search_analytics.reset_analytics_state()
         result_streamer.reset_streaming_state()
 
@@ -438,7 +436,6 @@ class TestStreamingWithMockMCPServer:
     def setup_method(self):
         """Set up test fixtures with global state reset."""
         # Reset global state for test isolation
-        global_error_recovery.reset_all_error_states()
         search_analytics.reset_analytics_state()
         result_streamer.reset_streaming_state()
 
@@ -674,7 +671,6 @@ class TestStreamingPerformanceIntegration:
     def setup_method(self):
         """Set up test fixtures with global state reset."""
         # Reset global state for test isolation
-        global_error_recovery.reset_all_error_states()
         search_analytics.reset_analytics_state()
         result_streamer.reset_streaming_state()
 
