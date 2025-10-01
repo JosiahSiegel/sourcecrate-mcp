@@ -110,9 +110,10 @@ async def process_papers(
                 # Download PDF to file with paper title for readable filename
                 paper_title = paper.get("title")
                 paper_url = paper.get("url")  # Main paper URL for referrer header
+                paper_doi = paper.get("doi")  # DOI for Unpaywall fallback
                 logger.info(f"Downloading PDF with title: '{paper_title}'")
                 download_result = await utils["download_pdf"](
-                    pdf_url, output_dir, paper_title, paper_url
+                    pdf_url, output_dir, paper_title, paper_url, paper_doi
                 )
                 if download_result.get("success"):
                     logger.info(f"PDF downloaded to: {download_result.get('pdf_path')}")

@@ -239,9 +239,7 @@ async def download_pdf(
                 oa_pdf_url = best_location.get("url_for_pdf")
 
                 if oa_pdf_url:
-                    logger.info(
-                        f"✅ Found open access PDF via Unpaywall: {oa_pdf_url}"
-                    )
+                    logger.info(f"✅ Found open access PDF via Unpaywall: {oa_pdf_url}")
 
                     # Try downloading from open access URL
                     try:
