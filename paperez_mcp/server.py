@@ -329,7 +329,39 @@ async def browse_papers(
     query: str, limit: int = 10, force_category: str | None = None
 ) -> list[dict[str, Any]]:
     """
-    🔍 BROWSE: Find and explore papers (metadata/abstracts only)
+    🔍 BROWSE: Find research papers, academic documents, and scholarly publications (metadata/abstracts only)
+
+    📚 HANDLES REQUESTS FOR: "papers", "docs", "documentation", "research", "publications", "studies", "articles"
+
+    🔍 TERMINOLOGY: "DOCS" vs "DOCUMENTATION"
+    This tool handles RESEARCH PAPERS and ACADEMIC DOCUMENTS:
+    ✅ "get docs on titanic disaster" → Research papers (USE THIS TOOL)
+    ✅ "find docs on climate change" → Academic papers (USE THIS TOOL)
+    ✅ "documentation on neural networks research" → Papers (USE THIS TOOL)
+
+    ❌ "get docs on pandas library" → API documentation (use context7 or official docs)
+    ❌ "docs on how to use React" → Library documentation (use context7)
+
+    💡 DISAMBIGUATION RULE:
+    - Research topic/historical event/scientific concept → USE paperez-mcp
+    - Software library/framework/API → Use context7 or official documentation
+
+    ✅ USE THIS TOOL WHEN USER ASKS:
+    - "get docs on [research topic]"
+    - "find documentation on [historical event]"
+    - "papers about [concept]"
+    - "research on [topic]"
+    - "studies on [phenomenon]"
+    - "academic literature on [subject]"
+    - "scholarly articles about [topic]"
+    - "publications on [field]"
+
+    ❌ DON'T USE FOR:
+    - "API docs for [library]"
+    - "how to use [framework]"
+    - "documentation for [software]"
+    - "reference guide for [tool]"
+    - Primary source texts (use archives/Gutenberg instead)
 
     ⚠️ CRITICAL - QUERY OPTIMIZATION REQUIRED FOR AI CALLERS:
     Academic databases use simple keyword matching. Follow these rules for best results:
@@ -376,6 +408,32 @@ async def browse_papers(
     Search academic papers across multiple databases with intelligent fallback.
     Searches CrossRef, Semantic Scholar, arXiv, PubMed, and Google Scholar.
     Supports DOI queries, author queries, and keyword searches.
+
+    ⚠️ AMBIGUOUS QUERIES - DISAMBIGUATION GUIDE:
+
+    Common ambiguous terms that could mean EITHER library docs OR research papers:
+
+    **Historical Events/People:**
+    - "titanic" → Could be: dataset docs OR historical research
+      ✅ Research papers: "titanic disaster history", "titanic sinking research"
+      ❌ Dataset docs: "titanic dataset documentation", "load_dataset titanic"
+
+    - "JFK" → Could be: data OR historical research
+      ✅ Research papers: "JFK assassination research", "Kennedy presidency"
+
+    **Scientific Terms:**
+    - "neural networks" → Could be: library API OR academic research
+      ✅ Research papers: "neural network architectures research", "CNN papers"
+      ❌ Library docs: "PyTorch neural network API", "TensorFlow documentation"
+
+    **General Topics:**
+    - "climate change" → Almost always research papers (USE THIS TOOL)
+    - "machine learning" → Could be either, check context:
+      ✅ Research: "machine learning theory", "ML algorithms research"
+      ❌ Library: "scikit-learn API", "ML library documentation"
+
+    💡 WHEN IN DOUBT: If the query mentions a research topic, historical event,
+    scientific concept, or asks for "papers about X", USE THIS TOOL.
 
     📋 SCOPE & LIMITATIONS:
     This tool searches for ACADEMIC RESEARCH PAPERS:
@@ -802,7 +860,39 @@ async def browse_papers_streaming(
     query: str, limit: int = 10, force_category: str | None = None
 ) -> list[dict[str, Any]]:
     """
-    🌊 STREAMING BROWSE: Find papers with real-time results as sources complete
+    🌊 STREAMING BROWSE: Find research papers, academic documents, and scholarly publications with real-time results as sources complete
+
+    📚 HANDLES REQUESTS FOR: "papers", "docs", "documentation", "research", "publications", "studies", "articles"
+
+    🔍 TERMINOLOGY: "DOCS" vs "DOCUMENTATION"
+    This tool handles RESEARCH PAPERS and ACADEMIC DOCUMENTS:
+    ✅ "get docs on titanic disaster" → Research papers (USE THIS TOOL)
+    ✅ "find docs on climate change" → Academic papers (USE THIS TOOL)
+    ✅ "documentation on neural networks research" → Papers (USE THIS TOOL)
+
+    ❌ "get docs on pandas library" → API documentation (use context7 or official docs)
+    ❌ "docs on how to use React" → Library documentation (use context7)
+
+    💡 DISAMBIGUATION RULE:
+    - Research topic/historical event/scientific concept → USE paperez-mcp
+    - Software library/framework/API → Use context7 or official documentation
+
+    ✅ USE THIS TOOL WHEN USER ASKS:
+    - "get docs on [research topic]"
+    - "find documentation on [historical event]"
+    - "papers about [concept]"
+    - "research on [topic]"
+    - "studies on [phenomenon]"
+    - "academic literature on [subject]"
+    - "scholarly articles about [topic]"
+    - "publications on [field]"
+
+    ❌ DON'T USE FOR:
+    - "API docs for [library]"
+    - "how to use [framework]"
+    - "documentation for [software]"
+    - "reference guide for [tool]"
+    - Primary source texts (use archives/Gutenberg instead)
 
     ⚠️ CRITICAL - QUERY OPTIMIZATION REQUIRED FOR AI CALLERS:
     Academic databases use simple keyword matching. Follow these rules for best results:
@@ -851,6 +941,32 @@ async def browse_papers_streaming(
     - Intelligent source prioritization based on query analysis
     - Metadata-only results (titles, authors, abstracts, DOIs)
     - Advanced deduplication and relevance scoring
+
+    ⚠️ AMBIGUOUS QUERIES - DISAMBIGUATION GUIDE:
+
+    Common ambiguous terms that could mean EITHER library docs OR research papers:
+
+    **Historical Events/People:**
+    - "titanic" → Could be: dataset docs OR historical research
+      ✅ Research papers: "titanic disaster history", "titanic sinking research"
+      ❌ Dataset docs: "titanic dataset documentation", "load_dataset titanic"
+
+    - "JFK" → Could be: data OR historical research
+      ✅ Research papers: "JFK assassination research", "Kennedy presidency"
+
+    **Scientific Terms:**
+    - "neural networks" → Could be: library API OR academic research
+      ✅ Research papers: "neural network architectures research", "CNN papers"
+      ❌ Library docs: "PyTorch neural network API", "TensorFlow documentation"
+
+    **General Topics:**
+    - "climate change" → Almost always research papers (USE THIS TOOL)
+    - "machine learning" → Could be either, check context:
+      ✅ Research: "machine learning theory", "ML algorithms research"
+      ❌ Library: "scikit-learn API", "ML library documentation"
+
+    💡 WHEN IN DOUBT: If the query mentions a research topic, historical event,
+    scientific concept, or asks for "papers about X", USE THIS TOOL.
 
     📋 SCOPE & LIMITATIONS:
     This tool searches for ACADEMIC RESEARCH PAPERS:
@@ -1187,7 +1303,39 @@ async def download_papers(
     convert_to_markdown: bool = True,
 ) -> list[dict[str, Any]]:
     """
-    📄 GET FULL PAPERS: Download academic papers as files (PDF or Markdown)
+    📄 GET FULL PAPERS: Download research papers, academic documents, and scholarly publications as files (PDF or Markdown)
+
+    📚 HANDLES REQUESTS FOR: "get papers", "download docs", "save documentation", "get research", "download publications", "save studies", "get articles"
+
+    🔍 TERMINOLOGY: "DOCS" vs "DOCUMENTATION"
+    This tool handles RESEARCH PAPERS and ACADEMIC DOCUMENTS:
+    ✅ "get docs on titanic disaster" → Research papers (USE THIS TOOL)
+    ✅ "download docs on climate change" → Academic papers (USE THIS TOOL)
+    ✅ "save documentation on neural networks research" → Papers (USE THIS TOOL)
+
+    ❌ "get docs on pandas library" → API documentation (use context7 or official docs)
+    ❌ "docs on how to use React" → Library documentation (use context7)
+
+    💡 DISAMBIGUATION RULE:
+    - Research topic/historical event/scientific concept → USE paperez-mcp
+    - Software library/framework/API → Use context7 or official documentation
+
+    ✅ USE THIS TOOL WHEN USER ASKS:
+    - "get docs on [research topic]"
+    - "download documentation on [historical event]"
+    - "save papers about [concept]"
+    - "get research on [topic]"
+    - "download studies on [phenomenon]"
+    - "save academic literature on [subject]"
+    - "get scholarly articles about [topic]"
+    - "download publications on [field]"
+
+    ❌ DON'T USE FOR:
+    - "API docs for [library]"
+    - "how to use [framework]"
+    - "documentation for [software]"
+    - "reference guide for [tool]"
+    - Primary source texts (use archives/Gutenberg instead)
 
     ⚠️ CRITICAL - QUERY OPTIMIZATION REQUIRED FOR AI CALLERS:
     Academic databases use simple keyword matching. Follow these rules for best results:
@@ -1226,6 +1374,32 @@ async def download_papers(
     It downloads PDFs with readable filenames and optionally converts them to markdown files.
 
     Use this when users say "get papers", "download papers", or "save papers".
+
+    ⚠️ AMBIGUOUS QUERIES - DISAMBIGUATION GUIDE:
+
+    Common ambiguous terms that could mean EITHER library docs OR research papers:
+
+    **Historical Events/People:**
+    - "titanic" → Could be: dataset docs OR historical research
+      ✅ Research papers: "titanic disaster history", "titanic sinking research"
+      ❌ Dataset docs: "titanic dataset documentation", "load_dataset titanic"
+
+    - "JFK" → Could be: data OR historical research
+      ✅ Research papers: "JFK assassination research", "Kennedy presidency"
+
+    **Scientific Terms:**
+    - "neural networks" → Could be: library API OR academic research
+      ✅ Research papers: "neural network architectures research", "CNN papers"
+      ❌ Library docs: "PyTorch neural network API", "TensorFlow documentation"
+
+    **General Topics:**
+    - "climate change" → Almost always research papers (USE THIS TOOL)
+    - "machine learning" → Could be either, check context:
+      ✅ Research: "machine learning theory", "ML algorithms research"
+      ❌ Library: "scikit-learn API", "ML library documentation"
+
+    💡 WHEN IN DOUBT: If the query mentions a research topic, historical event,
+    scientific concept, or asks for "papers about X", USE THIS TOOL.
 
     📋 SCOPE & LIMITATIONS:
     This tool searches for ACADEMIC RESEARCH PAPERS:
