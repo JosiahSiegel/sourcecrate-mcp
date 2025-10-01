@@ -1521,6 +1521,13 @@ async def download_papers(
             result["results"], get_api_status()
         )
 
+    # Strip abstracts from download_papers to reduce token usage
+    # Abstracts are useful for browse_papers but not needed for download results
+    if "results" in result and isinstance(result["results"], list):
+        for paper in result["results"]:
+            if "abstract" in paper:
+                del paper["abstract"]
+
     return [result]
 
 

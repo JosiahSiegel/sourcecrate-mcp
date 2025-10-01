@@ -280,6 +280,11 @@ async def download_pdf(
                     oa_license = location.get("license")
 
                     if not oa_pdf_url:
+                        # Log why this alternative is being skipped
+                        logger.info(
+                            f"  ⏭️  Skipping Unpaywall location {idx+1}: No url_for_pdf "
+                            f"(has url: {location.get('url', 'N/A')}, version: {oa_version})"
+                        )
                         continue
 
                     # Capture first location metadata for diagnostics
