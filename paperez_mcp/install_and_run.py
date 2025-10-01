@@ -232,7 +232,6 @@ def install_dependencies(venv_path: Path) -> None:
         "aiohttp>=3.8.0",
         "requests>=2.28.0",
         "beautifulsoup4>=4.12.0",
-        "lxml>=4.9.0",
         "arxiv>=2.0.0",
         "pymed>=0.8.9",
         "semanticscholar>=0.8.0",
@@ -241,7 +240,9 @@ def install_dependencies(venv_path: Path) -> None:
         "asyncio-throttle>=1.0.2",
         "fake-useragent>=1.4.0",
         "free-proxy>=1.1.1",
-        "pdfplumber>=0.10.0",
+        "rank-bm25>=0.2.2",
+        "rapidfuzz>=3.0.0",
+        "watchdog>=3.0.0",
     ]
 
     log("Installing core dependencies manually...")

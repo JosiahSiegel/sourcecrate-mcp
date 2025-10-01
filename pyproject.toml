@@ -29,8 +29,6 @@ dependencies = [
     "requests>=2.28.0",
     "PyMuPDF>=1.23.0",
     "pymupdf4llm>=0.0.17",
-    "pdfplumber>=0.10.0",
-    "lxml>=4.9.0",
     "beautifulsoup4>=4.12.0",
     "asyncio-throttle>=1.0.2",
     "fake-useragent>=1.4.0",
@@ -41,7 +39,7 @@ dependencies = [
     "diskcache>=5.6.0",
     "free-proxy>=1.1.1",
     "rapidfuzz>=3.0.0",
-    "bm25s>=0.2.0",  # 500x faster than rank-bm25, core includes PyStemmer + numba
+    "rank-bm25>=0.2.2",  # Lightweight BM25 implementation (numpy only, no scipy)
     "watchdog>=3.0.0"  # Enable hot-reloading for config files
 ]
 
