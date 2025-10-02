@@ -69,9 +69,37 @@ async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
             results = []
 
             for article in pubmed.query(query, max_results=limit):
+                # Format authors properly from pymed objects
+                authors = []
+                if article.authors:
+                    for author in article.authors:
+                        if isinstance(author, dict):
+                            # Extract firstname and lastname from dict
+                            firstname = author.get('firstname', '')
+                            lastname = author.get('lastname', '')
+                            if firstname and lastname:
+                                authors.append(f"{firstname} {lastname}")
+                            elif lastname:
+                                authors.append(lastname)
+                            elif firstname:
+                                authors.append(firstname)
+                        elif hasattr(author, 'firstname') and hasattr(author, 'lastname'):
+                            # Extract from object attributes
+                            firstname = getattr(author, 'firstname', '')
+                            lastname = getattr(author, 'lastname', '')
+                            if firstname and lastname:
+                                authors.append(f"{firstname} {lastname}")
+                            elif lastname:
+                                authors.append(lastname)
+                            elif firstname:
+                                authors.append(firstname)
+                        else:
+                            # Fallback to string representation
+                            authors.append(str(author))
+
                 result = {
                     "title": article.title,
-                    "authors": [str(author) for author in (article.authors or [])],
+                    "authors": authors,
                     "abstract": article.abstract,
                     "journal": getattr(article, "journal", None),
                     "year": (
