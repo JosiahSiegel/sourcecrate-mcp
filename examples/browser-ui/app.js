@@ -133,7 +133,13 @@ function buildPaperCard(paper, index, showBadge = true) {
 
     // Build access links - always show at least one link
     let accessLinks = '';
-    const pdfUrl = makeAbsoluteUrl(paper.pdf_url, paper.source) || makeAbsoluteUrl(paper.open_access_pdf, paper.source);
+    let pdfUrl = makeAbsoluteUrl(paper.pdf_url, paper.source) || makeAbsoluteUrl(paper.open_access_pdf, paper.source);
+
+    // Filter out DOI URLs - they redirect to publisher pages (HTML), not direct PDFs
+    if (pdfUrl && (pdfUrl.includes('doi.org/') || pdfUrl.startsWith('https://doi.apa.org/'))) {
+        pdfUrl = null; // Don't show as downloadable PDF
+    }
+
     if (pdfUrl) {
         // Generate a safe filename from the paper title
         const sanitizeFilename = (title) => {
@@ -165,7 +171,8 @@ function buildPaperCard(paper, index, showBadge = true) {
     }
 
     // Determine if paper has direct download (for badge)
-    const hasDirectDownload = paper.pdf_url || paper.open_access_pdf;
+    // Only count as direct download if we have a valid PDF URL (not DOI)
+    const hasDirectDownload = pdfUrl !== null;
     const downloadBadge = showBadge
         ? (hasDirectDownload
             ? '<span class="download-badge">📥 Direct Download</span>'
