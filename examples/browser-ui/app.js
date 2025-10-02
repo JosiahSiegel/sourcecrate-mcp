@@ -245,19 +245,40 @@ function renderStreamingResults() {
         return;
     }
 
+    // Apply filters to results
+    let filteredResults = streamingResults;
+
+    // Filter by PDF availability
+    if (pdfOnlyFilter) {
+        filteredResults = filteredResults.filter(paper =>
+            isValidPdfUrl(paper.pdf_url) || isValidPdfUrl(paper.open_access_pdf)
+        );
+    }
+
+    // Filter by relevance threshold
+    filteredResults = filteredResults.filter(paper => {
+        if (paper.relevance_score === undefined || paper.relevance_score === null) {
+            return true; // Keep papers without relevance scores
+        }
+        const percentage = Math.round(paper.relevance_score * 100);
+        return percentage >= relevanceThreshold;
+    });
+
     // Sort by relevance score (descending) before rendering
-    streamingResults.sort((a, b) => {
+    filteredResults.sort((a, b) => {
         const scoreA = a.relevance_score !== undefined ? a.relevance_score : 0;
         const scoreB = b.relevance_score !== undefined ? b.relevance_score : 0;
         return scoreB - scoreA; // Descending order
     });
 
     let html = '';
+    const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
+    const relevanceInfo = relevanceThreshold > 0 ? `, min ${relevanceThreshold}% relevance` : '';
     html += `<div class="results-summary">
-        <p>Found <strong>${streamingResults.length}</strong> papers so far... (${sourcesCompleted}/${totalSources || '?'} sources completed)</p>
+        <p>Found <strong>${filteredResults.length}</strong> papers${pdfInfo}${relevanceInfo} (${sourcesCompleted}/${totalSources || '?'} sources completed)</p>
     </div>`;
 
-    streamingResults.forEach((paper, index) => {
+    filteredResults.forEach((paper, index) => {
         html += buildPaperCard(paper, index, true);
     });
 
@@ -321,34 +342,11 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 60) {
         const data = JSON.parse(e.data);
         console.log(`Received ${data.papers.length} papers from ${data.source}`);
 
-        // Apply filters: PDF-only and relevance threshold
-        let papersToAdd = data.papers;
+        // Add all papers (filtering happens in renderStreamingResults)
+        streamingResults.push(...data.papers);
 
-        // Filter by PDF availability
-        if (pdfOnlyFilter) {
-            papersToAdd = papersToAdd.filter(paper =>
-                isValidPdfUrl(paper.pdf_url) || isValidPdfUrl(paper.open_access_pdf)
-            );
-        }
-
-        // Filter by relevance threshold
-        papersToAdd = papersToAdd.filter(paper => {
-            if (paper.relevance_score === undefined || paper.relevance_score === null) {
-                return true; // Keep papers without relevance scores
-            }
-            const percentage = Math.round(paper.relevance_score * 100);
-            return percentage >= relevanceThreshold;
-        });
-
-        // Add new papers
-        streamingResults.push(...papersToAdd);
-
-        // Re-render with new results
+        // Re-render with new results (filters applied during render)
         renderStreamingResults();
-
-        const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
-        const relevanceInfo = relevanceThreshold > 0 ? `, min ${relevanceThreshold}% relevance` : '';
-        showStatus(`Found ${streamingResults.length} papers${pdfInfo}${relevanceInfo} so far (from ${data.source})...`, 'loading');
     });
 
     // Source completed
@@ -492,11 +490,28 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('PaperezMCP Browser UI initialized');
     console.log('API Server:', API_BASE_URL);
 
-    // Update relevance threshold display when slider changes
+    // Update relevance threshold display and re-filter when slider changes
     const relevanceSlider = document.getElementById('relevanceThreshold');
     const relevanceValue = document.getElementById('relevanceValue');
+    const pdfOnlyCheckbox = document.getElementById('pdfOnly');
 
     relevanceSlider.addEventListener('input', (e) => {
         relevanceValue.textContent = e.target.value;
+        relevanceThreshold = parseInt(e.target.value);
+
+        // Re-render results with new threshold if we have results
+        if (streamingResults.length > 0) {
+            renderStreamingResults();
+        }
+    });
+
+    // Re-filter when PDF-only checkbox changes
+    pdfOnlyCheckbox.addEventListener('change', (e) => {
+        pdfOnlyFilter = e.target.checked;
+
+        // Re-render results with new filter if we have results
+        if (streamingResults.length > 0) {
+            renderStreamingResults();
+        }
     });
 });
