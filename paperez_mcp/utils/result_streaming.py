@@ -532,6 +532,12 @@ async def create_streaming_search(
     Yields:
         StreamingUpdate objects with incremental results
     """
+    # Initialize relevance scorer for query-based ranking
+    from ..utils.relevance_scorer import RelevanceScorer
+
+    relevance_scorer = RelevanceScorer()
+    logger.info(f"🎯 Relevance scorer initialized for query: '{query}'")
+
     # Prepare search tasks for available sources
     search_tasks = []
     source_names = []
@@ -556,12 +562,20 @@ async def create_streaming_search(
         """Process individual results for streaming."""
         result = streamed_result.data
 
-        # Add source metadata
+        # Calculate relevance score based on query
+        relevance_score = relevance_scorer.score_paper_relevance(query, result)
+
+        # Add both streaming metadata and relevance score
         result["_streaming_metadata"] = {
             "source": streamed_result.source,
             "timestamp": streamed_result.timestamp,
             "confidence": streamed_result.confidence_score,
         }
+        result["relevance_score"] = relevance_score
+
+        # Update the streamed result's confidence with relevance score
+        # This allows sorting by relevance in early results
+        streamed_result.confidence_score = relevance_score
 
         return streamed_result
 
