@@ -268,9 +268,22 @@ async def search_papers_sse(
     """
 
     async def event_generator() -> AsyncIterator[str]:
-        """Generate Server-Sent Events for progressive search results."""
+        """
+        Generate Server-Sent Events for progressive search results.
+
+        Features:
+        - Connection timeout: 5 minute maximum duration
+        - Keepalive: Comments every 30 seconds to prevent timeout
+        - Cleanup: Resources freed on disconnect/completion
+        """
+        import asyncio
         import json
         import time
+
+        start_time = time.time()
+        last_keepalive = start_time
+        max_duration = 300  # 5 minutes
+        keepalive_interval = 30  # seconds
 
         try:
             # Send search start event
@@ -322,6 +335,20 @@ async def search_papers_sse(
                 limit=limit,
                 api_status=api_status,
             ):
+                # Check for connection timeout
+                elapsed = time.time() - start_time
+                if elapsed > max_duration:
+                    logger.warning(
+                        f"SSE connection timeout after {elapsed:.1f}s (max {max_duration}s)"
+                    )
+                    yield f"event: error\ndata: {json.dumps({'error': 'Connection timeout', 'elapsed': elapsed, 'fatal': True})}\n\n"
+                    break
+
+                # Send keepalive comment to prevent client timeout
+                if time.time() - last_keepalive > keepalive_interval:
+                    yield ": keepalive\n\n"
+                    last_keepalive = time.time()
+
                 update_type = update.type
 
                 if update_type == "result":
@@ -371,12 +398,28 @@ async def search_papers_sse(
             # Send completion event
             yield f"event: complete\ndata: {json.dumps({'total_results': len(all_results), 'sources_searched': total_sources, 'query': query, 'timestamp': time.time()})}\n\n"
 
+        except asyncio.CancelledError:
+            # Client disconnected - clean up gracefully
+            logger.info(
+                f"SSE client disconnected: query='{query}', elapsed={time.time() - start_time:.1f}s"
+            )
+            # Ensure streaming state is cleaned up
+            result_streamer.reset_streaming_state()
+            raise  # Re-raise to properly close the connection
+
         except Exception as e:
             logger.error(f"SSE streaming error: {e}")
             import traceback
 
             traceback.print_exc()
             yield f"event: error\ndata: {json.dumps({'error': str(e), 'fatal': True})}\n\n"
+
+        finally:
+            # Always clean up streaming state when connection closes
+            result_streamer.reset_streaming_state()
+            logger.debug(
+                f"SSE connection closed: query='{query}', duration={time.time() - start_time:.1f}s"
+            )
 
     return StreamingResponse(
         event_generator(),
