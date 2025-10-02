@@ -50,6 +50,7 @@ from paperez_mcp.core import (
 
 # Import reliability tracking
 from paperez_mcp.utils.download_reliability import (
+    get_domain,
     get_download_reliability,
     record_download_attempt,
 )
@@ -657,33 +658,51 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
 @app.get("/api/v1/download-reliability")
 async def check_download_reliability(url: str) -> dict[str, Any]:
     """
-    Check download reliability for a given URL based on historical data.
+    Get download reliability metadata (stateless, optimistic response).
+
+    ARCHITECTURE NOTE:
+    This endpoint no longer tracks server-side statistics. For scalability to 1M users,
+    clients should implement their own download tracking using localStorage or similar:
+
+    ```javascript
+    // Client-side tracking example:
+    const domain = new URL(pdfUrl).hostname;
+    const stats = JSON.parse(localStorage.getItem(`dl_${domain}`)) || {attempts: 0, successes: 0};
+
+    // After download attempt:
+    stats.attempts++;
+    if (success) stats.successes++;
+    stats.success_rate = stats.successes / stats.attempts;
+    localStorage.setItem(`dl_${domain}`, JSON.stringify(stats));
+
+    // Use stats.success_rate to show warnings in UI
+    ```
+
+    Args:
+        url: PDF URL to check
 
     Returns:
-        - status: "downloadable", "unreliable", or "browser_required"
-        - stats: Dictionary with attempts, successes, success_rate
+        - status: Always "downloadable" (optimistic, client should track)
+        - stats: Empty stats (no server-side tracking)
         - message: User-friendly description
+        - domain: Extracted domain for client-side tracking key
     """
     try:
         status, stats = get_download_reliability(url)
-
-        messages = {
-            "downloadable": "PDF should download successfully",
-            "unreliable": "Download may fail - publisher sometimes blocks automated access",
-            "browser_required": "Download likely to fail - use 'Open in Browser' instead",
-        }
+        domain = get_domain(url)
 
         return {
             "url": url,
+            "domain": domain,  # For client-side tracking key
             "status": status,
             "stats": stats,
-            "message": messages[status],
+            "message": "PDF should download successfully (client should track reliability)",
         }
     except Exception as e:
         logger.error(f"Error checking download reliability: {e}")
-        # Default to downloadable on error (optimistic)
         return {
             "url": url,
+            "domain": "unknown",
             "status": "downloadable",
             "stats": {"attempts": 0, "successes": 0, "success_rate": 0.0},
             "message": "PDF should download successfully",
