@@ -286,6 +286,32 @@ section h2 {
     opacity: 0.7;
 }
 
+.relevance-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.relevance-badge.high {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.relevance-badge.medium {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.relevance-badge.low {
+    background-color: var(--text-secondary);
+    color: white;
+    opacity: 0.7;
+}
+
 .paper-meta {
     display: flex;
     flex-wrap: wrap;
