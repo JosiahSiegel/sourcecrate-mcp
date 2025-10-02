@@ -145,18 +145,25 @@ Modify `styles.css` to customize colors, fonts, and layout.
 
 ## Production Deployment
 
-**🚀 Deploy for FREE:** See [DEPLOYMENT.md](../docs/DEPLOYMENT.md) for step-by-step guide to deploy on GitHub Pages + Render.com ($0/month).
+**🚀 Deploy for FREE:** See deployment guides for step-by-step instructions.
 
-Quick options:
-1. **GitHub Pages (UI) + Render.com (API)** - Recommended, 100% free
-2. **Render.com (all-in-one)** - Simpler setup, still free
-3. **Fly.io** - Alternative free hosting
+**Quick options:**
 
-For advanced production use:
-- **Add authentication** to protect your API
-- **Configure rate limiting** to prevent abuse
-- **Use custom domain** for professional branding
-- **Set up monitoring** with UptimeRobot
+1. **Render.com** - [Quick Start](../docs/DEPLOYMENT.md)
+   - Easiest setup, 100% free for hobby projects
+   - Auto-deploys from GitHub
+   - Cold starts after 15 min idle (by design)
+
+2. **Fly.io** - [Complete Guide](../docs/DEPLOYMENT_FLYIO.md)
+   - Recommended for production
+   - Better free tier (3 VMs), no forced spin-down
+   - Best for scaling to 100K+ users
+
+**For advanced production use:**
+- Add authentication to protect your API
+- Configure rate limiting to prevent abuse
+- Use custom domain for professional branding
+- Set up monitoring and alerts
 
 ## Next Steps
 

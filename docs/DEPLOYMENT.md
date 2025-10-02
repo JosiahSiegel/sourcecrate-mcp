@@ -219,31 +219,40 @@ Deploy both UI and API on the same Render service (simpler, same domain, no CORS
    ```
 3. Access UI at: `https://paperez-api.onrender.com/`
 
-### Option C: Fly.io (Alternative to Render)
+### Option C: Fly.io (Recommended for Production)
 
-**Pros:**
-- 3 free shared VMs (256MB RAM each)
-- Better performance than Render
-- No forced spin-down
+**🎯 See [DEPLOYMENT_FLYIO.md](./DEPLOYMENT_FLYIO.md) for complete Fly.io deployment guide.**
 
-**Cons:**
-- Requires Dockerfile (already provided)
-- More complex setup
-- Free tier limits may change
+**Why Fly.io?**
+- ✅ Better free tier: 3× 256MB VMs (vs Render's 1× 512MB)
+- ✅ No forced spin-down (runs 24/7)
+- ✅ Global edge network (30+ regions)
+- ✅ Built-in load balancing
+- ✅ Better performance and scaling
+- ✅ Lower cost for 100K users: $15-30/month
 
-**Setup:**
-1. Install Fly CLI: `curl -L https://fly.io/install.sh | sh`
-2. Sign up: `fly auth signup`
-3. Launch app:
-   ```bash
-   cd /path/to/paperez-mcp
-   fly launch
-   # Name: paperez-api
-   # Region: Choose closest to you
-   # Plan: Free
-   ```
-4. Deploy: `fly deploy`
-5. Get URL: `fly status`
+**Quick Start:**
+```bash
+# 1. Install Fly CLI
+brew install flyctl  # or curl -L https://fly.io/install.sh | sh
+
+# 2. Authenticate
+fly auth login
+
+# 3. Deploy
+fly launch
+fly deploy
+```
+
+**Full guide includes:**
+- Optimized multi-stage Dockerfile
+- Production fly.toml configuration
+- Scaling to 100K users
+- Multi-region deployment
+- Cost breakdowns
+- Monitoring and troubleshooting
+
+→ **[Read Complete Fly.io Guide](./DEPLOYMENT_FLYIO.md)**
 
 ---
 

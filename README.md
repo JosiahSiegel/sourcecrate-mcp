@@ -185,13 +185,23 @@ curl -X POST http://localhost:8000/api/v1/search \
 
 **🚀 Deploy for $0/month:** See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete step-by-step guide.
 
-**Recommended:** GitHub Pages (UI) + Render.com (API)
-- ✅ 100% free forever
-- ✅ Global CDN for UI
-- ✅ Auto-deploys from GitHub
-- ✅ 24/7 uptime with UptimeRobot
+**Option 1: Render.com (Easiest)**
+- ✅ 100% free for hobby projects
+- ✅ Simple setup, auto-deploys from GitHub
+- ⚠️ Cold starts after 15 min idle (by design)
+- 👉 [Quick Start Guide](docs/DEPLOYMENT.md)
 
-**Alternative:** Fly.io, Vercel, or all-in-one on Render
+**Option 2: Fly.io (Recommended for Production)**
+- ✅ Better free tier (3 VMs vs 1)
+- ✅ No forced spin-down (runs 24/7)
+- ✅ Global edge network, built-in load balancing
+- ✅ Best for 100K+ users ($15-30/month)
+- 👉 [Complete Fly.io Guide](docs/DEPLOYMENT_FLYIO.md)
+
+**Both options include:**
+- Free tier for hobby projects
+- Clear scaling path to production
+- ToS-compliant deployment
 
 ## 📋 Scope & Use Cases
 
