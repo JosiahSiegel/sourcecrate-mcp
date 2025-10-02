@@ -480,6 +480,9 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 60) {
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = '<p class="loading-message">🔍 Initiating search...</p>';
 
+    // Show results section
+    document.querySelector('.results-section').classList.add('active');
+
     const filterText = pdfOnly ? ' (Direct Download only)' : '';
     showStatus(`Searching for "${query}"${filterText}...`, 'loading');
 
@@ -638,6 +641,9 @@ async function checkStatus() {
         const data = await response.json();
 
         const statusDiv = document.getElementById('systemStatus');
+
+        // Show status section
+        document.querySelector('.status-section').classList.add('active');
 
         // Count available sources
         const apiStatus = data.api_status || {};
