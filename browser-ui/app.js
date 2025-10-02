@@ -187,9 +187,8 @@ function renderResults(data) {
     </div>`;
 
     data.results.forEach((paper, index) => {
-        const authors = Array.isArray(paper.authors)
-            ? paper.authors.join(', ')
-            : paper.authors || 'Unknown';
+        // Format author names
+        const authors = formatAuthors(paper.authors);
 
         // Strip HTML tags from abstract for consistent plain text display
         const cleanAbstract = stripHtmlTags(paper.abstract);
@@ -313,6 +312,37 @@ function formatJournal(journal) {
     return String(journal);
 }
 
+/**
+ * Format author names - handles strings, arrays, and author objects
+ */
+function formatAuthors(authors) {
+    if (!authors) return 'Unknown';
+
+    if (Array.isArray(authors)) {
+        const authorNames = authors.map(author => {
+            if (typeof author === 'object' && author !== null) {
+                // Handle author objects with various properties
+                if (author.firstname && author.lastname) {
+                    return `${author.firstname} ${author.lastname}`;
+                }
+                if (author.lastname) {
+                    return author.lastname;
+                }
+                if (author.name) {
+                    return author.name;
+                }
+                // Fallback to string representation
+                return String(author);
+            }
+            return String(author);
+        }).filter(name => name && !name.includes('[object Object]'));
+
+        return authorNames.length > 0 ? authorNames.join(', ') : 'Unknown';
+    }
+
+    return String(authors);
+}
+
 // Helper function to build paper card HTML with proper URL handling
 function buildPaperCard(paper, index, showBadge = true) {
     // Helper function to truncate long text fields
@@ -324,14 +354,10 @@ function buildPaperCard(paper, index, showBadge = true) {
 
     // Limit authors display to first 5, add "et al." if more
     let authors;
-    if (Array.isArray(paper.authors)) {
-        if (paper.authors.length > 5) {
-            authors = paper.authors.slice(0, 5).join(', ') + ' et al.';
-        } else {
-            authors = paper.authors.join(', ');
-        }
+    if (Array.isArray(paper.authors) && paper.authors.length > 5) {
+        authors = formatAuthors(paper.authors.slice(0, 5)) + ' et al.';
     } else {
-        authors = paper.authors || 'Unknown';
+        authors = formatAuthors(paper.authors);
     }
 
     // Format and truncate journal names
