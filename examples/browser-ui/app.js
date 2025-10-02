@@ -91,11 +91,40 @@ function renderStreamingResults() {
             ? paper.authors.join(', ')
             : paper.authors || 'Unknown';
 
+        // Determine if paper has direct download
+        const hasDirectDownload = paper.pdf_url || paper.open_access_pdf;
+        const downloadBadge = hasDirectDownload
+            ? '<span class="download-badge">📥 Direct Download</span>'
+            : '<span class="download-badge no-download">🔗 Link Only</span>';
+
+        // Build access links - always show at least one link
+        let accessLinks = '';
+        if (paper.pdf_url) {
+            accessLinks += `<a href="${paper.pdf_url}" target="_blank" class="btn btn-small btn-pdf">Download PDF</a>`;
+        } else if (paper.open_access_pdf) {
+            accessLinks += `<a href="${paper.open_access_pdf}" target="_blank" class="btn btn-small btn-pdf">Download PDF</a>`;
+        }
+
+        if (paper.url) {
+            accessLinks += `<a href="${paper.url}" target="_blank" class="btn btn-small">View Online</a>`;
+        } else if (paper.doi) {
+            accessLinks += `<a href="https://doi.org/${paper.doi}" target="_blank" class="btn btn-small">View via DOI</a>`;
+        }
+
+        // If still no links, create a search link
+        if (!accessLinks) {
+            const searchQuery = encodeURIComponent(paper.title);
+            accessLinks = `<a href="https://scholar.google.com/scholar?q=${searchQuery}" target="_blank" class="btn btn-small btn-secondary">Search Google Scholar</a>`;
+        }
+
         html += `
             <div class="paper-card paper-card-streaming">
                 <div class="paper-header">
                     <span class="paper-number">${index + 1}</span>
-                    <h3>${paper.title || 'Untitled'}</h3>
+                    <div class="paper-title-row">
+                        <h3>${paper.title || 'Untitled'}</h3>
+                        ${downloadBadge}
+                    </div>
                 </div>
                 <div class="paper-meta">
                     <span class="meta-item"><strong>Authors:</strong> ${authors}</span>
@@ -105,9 +134,7 @@ function renderStreamingResults() {
                 </div>
                 ${paper.abstract ? `<p class="paper-abstract">${paper.abstract}</p>` : ''}
                 <div class="paper-links">
-                    ${paper.url ? `<a href="${paper.url}" target="_blank" class="btn btn-small">View Paper</a>` : ''}
-                    ${paper.pdf_url ? `<a href="${paper.pdf_url}" target="_blank" class="btn btn-small btn-pdf">PDF</a>` : ''}
-                    ${paper.doi ? `<a href="https://doi.org/${paper.doi}" target="_blank" class="btn btn-small">DOI</a>` : ''}
+                    ${accessLinks}
                 </div>
             </div>
         `;
@@ -116,8 +143,11 @@ function renderStreamingResults() {
     resultsDiv.innerHTML = html;
 }
 
+// Global filter state
+let pdfOnlyFilter = false;
+
 // Handle SSE streaming search
-function searchWithSSE(query, limit) {
+function searchWithSSE(query, limit, pdfOnly = false) {
     // Close existing connection if any
     if (currentEventSource) {
         currentEventSource.close();
@@ -127,11 +157,13 @@ function searchWithSSE(query, limit) {
     streamingResults = [];
     sourcesCompleted = 0;
     totalSources = 0;
+    pdfOnlyFilter = pdfOnly;
 
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = '<p class="loading-message">🔍 Initiating search...</p>';
 
-    showStatus(`Searching for "${query}" with real-time streaming...`, 'loading');
+    const filterText = pdfOnly ? ' (Direct Download only)' : '';
+    showStatus(`Searching for "${query}"${filterText}...`, 'loading');
 
     const url = `${API_BASE_URL}/api/v1/search/stream?query=${encodeURIComponent(query)}&limit=${limit}`;
     const eventSource = new EventSource(url);
@@ -156,13 +188,19 @@ function searchWithSSE(query, limit) {
         const data = JSON.parse(e.data);
         console.log(`Received ${data.papers.length} papers from ${data.source}`);
 
+        // Filter papers if PDF-only mode is enabled
+        const papersToAdd = pdfOnlyFilter
+            ? data.papers.filter(paper => paper.pdf_url || paper.open_access_pdf)
+            : data.papers;
+
         // Add new papers
-        streamingResults.push(...data.papers);
+        streamingResults.push(...papersToAdd);
 
         // Re-render with new results
         renderStreamingResults();
 
-        showStatus(`Found ${streamingResults.length} papers so far (from ${data.source})...`, 'loading');
+        const filterInfo = pdfOnlyFilter ? ` with direct download` : '';
+        showStatus(`Found ${streamingResults.length} papers${filterInfo} so far (from ${data.source})...`, 'loading');
     });
 
     // Source completed
@@ -265,36 +303,10 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
 
     const query = document.getElementById('searchQuery').value;
     const limit = parseInt(document.getElementById('limit').value);
-    const streaming = document.getElementById('streaming').checked;
+    const pdfOnly = document.getElementById('pdfOnly').checked;
 
-    if (streaming) {
-        // Use SSE streaming
-        searchWithSSE(query, limit);
-    } else {
-        // Use regular POST endpoint
-        showStatus(`Searching for "${query}"...`, 'loading');
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/search`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ query, limit }),
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            renderResults(data);
-            showStatus(`Found ${data.total_found} papers`, 'success');
-        } catch (error) {
-            console.error('Search error:', error);
-            showStatus(`Error: ${error.message}. Make sure the HTTP server is running.`, 'error');
-        }
-    }
+    // Always use SSE streaming for better performance
+    searchWithSSE(query, limit, pdfOnly);
 });
 
 // Check system status

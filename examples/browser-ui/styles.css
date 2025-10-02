@@ -253,10 +253,37 @@ section h2 {
     margin-right: 1rem;
 }
 
+.paper-title-row {
+    flex: 1;
+    display: flex;
+    align-items: start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
 .paper-header h3 {
     font-size: 1.25rem;
     line-height: 1.4;
     color: var(--text-color);
+    flex: 1;
+    min-width: 0;
+}
+
+.download-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background-color: var(--success-color);
+    color: white;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.download-badge.no-download {
+    background-color: var(--text-secondary);
+    opacity: 0.7;
 }
 
 .paper-meta {
