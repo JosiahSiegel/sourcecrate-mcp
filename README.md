@@ -104,11 +104,15 @@ paperez-http
 A clean, modern web interface for the HTTP API is included:
 
 ```bash
-# Open browser-ui/index.html in your browser
-# Or serve with Python:
+# Option 1: Direct file open
+open browser-ui/index.html  # macOS
+xdg-open browser-ui/index.html  # Linux
+start browser-ui/index.html  # Windows
+
+# Option 2: Serve with local server (recommended)
 cd browser-ui
 python -m http.server 3000
-# Visit http://localhost:3000
+# Then visit http://localhost:3000
 ```
 
 ### Docker Deployment
