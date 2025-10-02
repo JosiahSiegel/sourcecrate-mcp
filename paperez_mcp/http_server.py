@@ -545,9 +545,25 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
 
         logger.info(f"Proxying download: {url} -> {filename}")
 
+        # Build browser-like headers to avoid 403 errors from publishers
+        from urllib.parse import urlparse
+
+        parsed_url = urlparse(url)
+        referer = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/pdf,application/x-pdf,*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Referer": referer,
+            "DNT": "1",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+        }
+
         # Fetch the PDF from the external source
         async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.get(url, follow_redirects=True)
+            response = await client.get(url, headers=headers, follow_redirects=True)
 
             if response.status_code != 200:
                 logger.warning(f"PDF fetch failed: {response.status_code} for {url}")
