@@ -546,9 +546,40 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
         logger.info(f"Proxying download: {url} -> {filename}")
 
         # Build browser-like headers to avoid 403 errors from publishers
-        from urllib.parse import urlparse
+        from urllib.parse import urlparse, urlunparse
 
+        # Normalize URL: Upgrade HTTP to HTTPS for known publishers
         parsed_url = urlparse(url)
+
+        # List of publishers that require HTTPS
+        https_required_domains = [
+            'thelancet.com',
+            'sciencedirect.com',
+            'springer.com',
+            'nature.com',
+            'wiley.com',
+            'mdpi.com',
+            'elsevier.com',
+            'nejm.org',
+            'bmj.com',
+            'tandfonline.com',
+            'sagepub.com',
+            'plos.org',
+            'frontiersin.org',
+        ]
+
+        # Upgrade HTTP to HTTPS if domain requires it
+        scheme = parsed_url.scheme
+        hostname = parsed_url.hostname or ''
+
+        if scheme == 'http':
+            for domain in https_required_domains:
+                if hostname.endswith(domain):
+                    logger.info(f"Upgrading HTTP to HTTPS for {hostname}")
+                    parsed_url = parsed_url._replace(scheme='https')
+                    url = urlunparse(parsed_url)
+                    break
+
         referer = f"{parsed_url.scheme}://{parsed_url.netloc}/"
 
         headers = {
