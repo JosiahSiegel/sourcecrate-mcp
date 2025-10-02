@@ -596,6 +596,20 @@ input[type="range"]::-moz-range-thumb:hover {
     max-height: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: pre-line; /* Preserve line breaks */
+}
+
+/* Style structured abstract section headers (e.g., "Objectives", "Methods") */
+.paper-abstract strong {
+    color: var(--text-color);
+    font-weight: 600;
+    display: block;
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.paper-abstract strong:first-child {
+    margin-top: 0;
 }
 
 .paper-links {

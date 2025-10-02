@@ -187,6 +187,9 @@ function renderResults(data) {
             ? paper.authors.join(', ')
             : paper.authors || 'Unknown';
 
+        // Format structured abstracts
+        const formattedAbstract = formatStructuredAbstract(paper.abstract);
+
         html += `
             <div class="paper-card">
                 <div class="paper-header">
@@ -199,7 +202,7 @@ function renderResults(data) {
                     ${paper.journal ? `<span class="meta-item"><strong>Journal:</strong> ${paper.journal}</span>` : ''}
                     <span class="meta-item"><strong>Source:</strong> ${paper.source || 'Unknown'}</span>
                 </div>
-                ${paper.abstract ? `<p class="paper-abstract">${paper.abstract}</p>` : ''}
+                ${formattedAbstract ? `<p class="paper-abstract">${formattedAbstract}</p>` : ''}
                 <div class="paper-links">
                     ${paper.url ? `<a href="${paper.url}" target="_blank" class="btn btn-small">View Paper</a>` : ''}
                     ${paper.pdf_url ? `<a href="${paper.pdf_url}" target="_blank" class="btn btn-small btn-pdf">PDF</a>` : ''}
@@ -272,6 +275,31 @@ function isValidPdfUrl(url) {
 // RENDERING UTILITIES
 // ============================================================================
 
+/**
+ * Format structured abstracts by highlighting section headers
+ * Detects common section labels like "Objectives", "Methods", "Results", etc.
+ */
+function formatStructuredAbstract(text) {
+    if (!text) return '';
+
+    // Common abstract section headers
+    const sectionHeaders = [
+        'Objective', 'Objectives', 'Purpose', 'Aims',
+        'Background', 'Introduction', 'Context',
+        'Methods', 'Methodology', 'Design', 'Materials and Methods',
+        'Results', 'Findings', 'Outcomes',
+        'Conclusions', 'Conclusion', 'Discussion', 'Implications',
+        'Significance', 'Summary'
+    ];
+
+    // Create regex pattern to match section headers at the start of lines or after periods
+    const pattern = new RegExp(`(^|\\. )(${sectionHeaders.join('|')})(?=:| )`, 'gi');
+
+    return text.replace(pattern, (match, prefix, header) => {
+        return `${prefix}<strong>${header}</strong>`;
+    });
+}
+
 // Helper function to build paper card HTML with proper URL handling
 function buildPaperCard(paper, index, showBadge = true) {
     // Helper function to truncate long text fields
@@ -296,8 +324,9 @@ function buildPaperCard(paper, index, showBadge = true) {
     // Truncate long journal names
     const journal = truncateText(paper.journal, 100);
 
-    // Truncate long abstracts
-    const abstract = truncateText(paper.abstract, 500);
+    // Truncate and format structured abstracts
+    const truncatedAbstract = truncateText(paper.abstract, 500);
+    const abstract = formatStructuredAbstract(truncatedAbstract);
 
     // Helper function to ensure URLs are absolute
     const makeAbsoluteUrl = (url, source) => {
