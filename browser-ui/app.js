@@ -636,15 +636,6 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
 // SYSTEM STATUS
 // ============================================================================
 
-/**
- * Format bytes to MB with 2 decimal places
- */
-function formatBytes(bytes) {
-    if (!bytes || bytes === 0) return '0 MB';
-    const mb = bytes / (1024 * 1024);
-    return `${mb.toFixed(2)} MB`;
-}
-
 // Check system status
 async function checkStatus() {
     showStatus('Checking system status...', 'loading');
@@ -670,11 +661,6 @@ async function checkStatus() {
                 <div class="status-item">
                     <strong>Available Sources:</strong> ${availableSources} / ${totalSources}
                 </div>
-                ${data.cache_stats && data.cache_stats.query_cache ? `
-                    <div class="status-item">
-                        <strong>Cache Size:</strong> ${formatBytes(data.cache_stats.query_cache.cache_size)}
-                    </div>
-                ` : ''}
             </div>
             <details>
                 <summary>API Status Details</summary>
