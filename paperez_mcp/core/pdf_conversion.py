@@ -74,7 +74,9 @@ async def convert_pdf_to_markdown_core(
     from paperez_mcp import server
 
     # Access the underlying function from the FunctionTool wrapper
-    result = await server.convert_pdf_to_markdown.fn(file_path, title, authors, output_path)
+    result = await server.convert_pdf_to_markdown.fn(
+        file_path, title, authors, output_path
+    )
     return cast(dict[str, Any], result)
 
 

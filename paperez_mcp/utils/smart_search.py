@@ -433,7 +433,9 @@ async def smart_downloadable_search(
         # Check DOI duplication (normalize DOI format)
         doi = (paper.get("doi") or "").strip()
         # Normalize DOI: remove https://doi.org/ prefix for comparison
-        doi_normalized = doi.lower().replace("https://doi.org/", "").replace("http://doi.org/", "")
+        doi_normalized = (
+            doi.lower().replace("https://doi.org/", "").replace("http://doi.org/", "")
+        )
         if doi_normalized and doi_normalized in seen_dois:
             continue
 

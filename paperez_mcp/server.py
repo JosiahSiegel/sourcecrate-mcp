@@ -750,7 +750,9 @@ async def browse_papers(
         # Check DOI duplication (normalize DOI format)
         doi = (paper.get("doi") or "").strip()
         # Normalize DOI: remove https://doi.org/ prefix for comparison
-        doi_normalized = doi.lower().replace("https://doi.org/", "").replace("http://doi.org/", "")
+        doi_normalized = (
+            doi.lower().replace("https://doi.org/", "").replace("http://doi.org/", "")
+        )
         if doi_normalized and doi_normalized in seen_dois:
             duplicate_count += 1
             continue
@@ -2408,7 +2410,8 @@ async def get_status(force_reload: bool = False) -> dict[str, Any]:
             "config_loaded": manager.is_initialized,
             "sources_registered": (
                 len(search_service.source_registry._sources) > 0
-                if hasattr(search_service, "_initialized") and search_service._initialized
+                if hasattr(search_service, "_initialized")
+                and search_service._initialized
                 else False
             ),
             "search_service_initialized": (

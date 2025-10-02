@@ -25,6 +25,7 @@ OpenAPI docs available at http://localhost:8000/docs
 """
 
 import logging
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
@@ -256,7 +257,7 @@ async def search_papers_sse(
         StreamingResponse with text/event-stream content type
     """
 
-    async def event_generator():
+    async def event_generator() -> AsyncIterator[str]:
         """Generate Server-Sent Events for progressive search results."""
         import json
         import time
@@ -267,7 +268,10 @@ async def search_papers_sse(
 
             # Get search functions and API status
             from paperez_mcp.server import _lazy_import_search_functions, get_api_status
-            from paperez_mcp.utils.result_streaming import create_streaming_search
+            from paperez_mcp.utils.result_streaming import (
+                create_streaming_search,
+                result_streamer,
+            )
 
             search_funcs = _lazy_import_search_functions()
             if not search_funcs:
@@ -281,9 +285,9 @@ async def search_papers_sse(
                 from paperez_mcp.config import get_current_config
 
                 config = get_current_config()
-                category_config = config.get("categories", {}).get(force_category, {})
+                category_config = config.categories.get(force_category)
                 if category_config:
-                    allowed_sources = set(category_config.get("sources", []))
+                    allowed_sources = set(category_config.sources)
                     search_funcs = {
                         k: v for k, v in search_funcs.items() if k in allowed_sources
                     }
@@ -292,6 +296,9 @@ async def search_papers_sse(
             all_results = []
             sources_completed = 0
             total_sources = len(search_funcs)
+            delivered_result_ids: set[int] = (
+                set()
+            )  # Track delivered results to avoid duplicates
 
             # Stream results as they arrive
             async for update in create_streaming_search(
@@ -303,15 +310,36 @@ async def search_papers_sse(
                 update_type = update.type
 
                 if update_type == "result":
-                    # Single result received
-                    if update.result:
-                        all_results.append(update.result.data)
-                        yield f"event: results\ndata: {json.dumps({'source': update.result.source, 'papers': [update.result.data], 'total_so_far': len(all_results)})}\n\n"
+                    # Early delivery - multiple results received
+                    if update.results:
+                        for result in update.results:
+                            all_results.append(result.data)
+                            yield f"event: results\ndata: {json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})}\n\n"
 
                 elif update_type == "source_complete":
-                    # Source finished
+                    # Source finished - send immediate results if available
                     sources_completed += 1
-                    yield f"event: source_complete\ndata: {json.dumps({'source': update.source, 'completed': sources_completed, 'total': total_sources})}\n\n"
+
+                    # Send results from this source immediately
+                    source_name = update.source
+                    if source_name and source_name in result_streamer.source_results:
+                        source_results = result_streamer.source_results[source_name]
+                        if source_results:
+                            for result in source_results:
+                                # Avoid duplicates
+                                result_id = id(result.data)
+                                if result_id not in delivered_result_ids:
+                                    all_results.append(result.data)
+                                    delivered_result_ids.add(result_id)
+                                    yield f"event: results\ndata: {json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})}\n\n"
+
+                    # Send source completion notification
+                    result_count = (
+                        len(result_streamer.source_results.get(source_name, []))
+                        if source_name
+                        else 0
+                    )
+                    yield f"event: source_complete\ndata: {json.dumps({'source': source_name, 'count': result_count, 'completed': sources_completed, 'total': total_sources})}\n\n"
 
                     # Send progress update
                     if total_sources > 0:
@@ -324,7 +352,14 @@ async def search_papers_sse(
                     yield f"event: error\ndata: {json.dumps({'source': update.source, 'error': error_msg, 'fatal': False})}\n\n"
 
                 elif update_type == "final":
-                    # All sources complete
+                    # All sources complete - send any remaining results
+                    if update.results:
+                        for result in update.results:
+                            result_id = id(result.data)
+                            if result_id not in delivered_result_ids:
+                                all_results.append(result.data)
+                                delivered_result_ids.add(result_id)
+                                yield f"event: results\ndata: {json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})}\n\n"
                     break
 
             # Send completion event
