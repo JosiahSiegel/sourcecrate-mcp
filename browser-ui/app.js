@@ -661,9 +661,9 @@ async function checkStatus() {
                 <div class="status-item">
                     <strong>Available Sources:</strong> ${availableSources} / ${totalSources}
                 </div>
-                ${data.cache_stats ? `
+                ${data.cache_stats && data.cache_stats.query_cache ? `
                     <div class="status-item">
-                        <strong>Cache Size:</strong> ${data.cache_stats.size || 'N/A'}
+                        <strong>Cache Size:</strong> ${data.cache_stats.query_cache.cache_size || 'N/A'}
                     </div>
                 ` : ''}
             </div>

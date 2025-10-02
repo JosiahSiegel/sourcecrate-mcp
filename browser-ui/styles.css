@@ -198,6 +198,15 @@ section h2 {
     font-family: Georgia, 'Times New Roman', serif;
 }
 
+/* Override browser autofill styling */
+.floating-input input:-webkit-autofill,
+.floating-input input:-webkit-autofill:hover,
+.floating-input input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--surface-color) inset;
+    -webkit-text-fill-color: var(--text-color);
+    transition: background-color 5000s ease-in-out 0s;
+}
+
 .floating-input label {
     position: absolute;
     left: 1rem;
@@ -251,6 +260,15 @@ section h2 {
 .form-group input[type="number"]:focus {
     outline: none;
     border-color: var(--accent-color);
+}
+
+/* Override browser autofill styling */
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--surface-color) inset;
+    -webkit-text-fill-color: var(--text-color);
+    transition: background-color 5000s ease-in-out 0s;
 }
 
 /* Classic Checkbox */
