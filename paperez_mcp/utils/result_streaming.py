@@ -235,7 +235,10 @@ class ResultStreamer:
                         )
 
                         # Progressive delivery: send new results after each source completes
-                        if self.enable_early_results and self._should_deliver_early_results():
+                        if (
+                            self.enable_early_results
+                            and self._should_deliver_early_results()
+                        ):
                             new_results = self._get_best_results_so_far(
                                 delivered_results
                             )

@@ -2336,7 +2336,9 @@ async def _get_comprehensive_config_info() -> dict[str, Any]:
 
 
 @mcp.tool
-async def get_status(force_reload: bool = False) -> dict[str, Any]:
+async def get_status(
+    force_reload: bool = False, active_health_check: bool = False
+) -> dict[str, Any]:
     """
     Get comprehensive system status including API health, source monitoring, and configuration details.
 
@@ -2348,6 +2350,10 @@ async def get_status(force_reload: bool = False) -> dict[str, Any]:
                      Useful when custom configs added after server startup.
                      When watchdog is unavailable, use this to manually reload configs.
                      Default: False
+        active_health_check: If True, perform real-time health checks on all sources (30+ seconds).
+                            By default (False), returns cached metrics for instant response.
+                            Only use True for deep diagnostic checks.
+                            Default: False
 
     Returns:
         Dictionary containing:
@@ -2401,13 +2407,15 @@ async def get_status(force_reload: bool = False) -> dict[str, Any]:
 
     # Get lazy initialization status
     try:
-        from paperez_mcp.config.singleton import get_config_manager
+        from paperez_mcp.config.singleton import (  # type: ignore[assignment]
+            get_config_manager,
+        )
 
         manager = get_config_manager()
         search_service = get_search_service()
         initialization_status = {
             "lazy_mode": True,
-            "config_loaded": manager.is_initialized,
+            "config_loaded": manager.is_initialized,  # type: ignore[attr-defined]
             "sources_registered": (
                 len(search_service.source_registry._sources) > 0
                 if hasattr(search_service, "_initialized")
@@ -2448,11 +2456,27 @@ async def get_status(force_reload: bool = False) -> dict[str, Any]:
         from paperez_mcp.utils.search_performance_optimizer import intelligent_cache
         from paperez_mcp.utils.source_health_monitor import health_monitor
 
-        # Perform active health check
-        health_check = await health_monitor.perform_health_check()
+        # Only perform expensive active health check if explicitly requested
+        health_check_results = {}
+        timestamp = ""
 
-        # Save metrics to cache for persistence
-        health_monitor.save_metrics_to_cache()
+        if active_health_check:
+            logger.info(
+                "⚠️ Performing active health check (this may take 30+ seconds)..."
+            )
+            # Perform active health check - makes real HTTP requests to all sources
+            health_check = await health_monitor.perform_health_check()
+            health_check_results = health_check["health_check_results"]
+            timestamp = health_check["overall_report"]["timestamp"]
+
+            # Save metrics to cache for persistence
+            health_monitor.save_metrics_to_cache()
+        else:
+            # Fast path: use cached metrics only (instant response)
+            logger.debug("Using cached health metrics (fast path)")
+            from datetime import datetime
+
+            timestamp = datetime.now().isoformat()
 
         # Get performance analytics
         performance_dashboard = get_performance_dashboard()
@@ -2465,12 +2489,13 @@ async def get_status(force_reload: bool = False) -> dict[str, Any]:
             {
                 "health_report": health_monitor.get_health_report(),
                 "recommendations": health_monitor.get_source_recommendations(),
-                "health_check_results": health_check["health_check_results"],
+                "health_check_results": health_check_results,
                 "monitoring_enabled": health_monitor.monitoring_enabled,
-                "timestamp": health_check["overall_report"]["timestamp"],
+                "timestamp": timestamp,
                 "performance_analytics": performance_dashboard,
                 "cache_performance": cache_stats,
                 "optimization_enabled": True,
+                "active_health_check_performed": active_health_check,
             }
         )
 

@@ -14,7 +14,9 @@ from typing import Any, cast
 logger = logging.getLogger(__name__)
 
 
-async def get_status_core(force_reload: bool = False) -> dict[str, Any]:
+async def get_status_core(
+    force_reload: bool = False, active_health_check: bool = False
+) -> dict[str, Any]:
     """
     Get comprehensive system status including API health and configuration details.
 
@@ -24,6 +26,8 @@ async def get_status_core(force_reload: bool = False) -> dict[str, Any]:
     Args:
         force_reload: If True, force reload configuration before checking status.
                      Useful when custom configs added after server startup.
+        active_health_check: If True, perform real-time health checks on all sources (30+ seconds).
+                            By default (False), returns cached metrics for instant response.
 
     Returns:
         Dict containing:
@@ -38,7 +42,7 @@ async def get_status_core(force_reload: bool = False) -> dict[str, Any]:
     from paperez_mcp import server
 
     # Access the underlying function from the FunctionTool wrapper
-    result = await server.get_status.fn(force_reload)
+    result = await server.get_status.fn(force_reload, active_health_check)
     return cast(dict[str, Any], result)
 
 

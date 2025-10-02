@@ -139,7 +139,7 @@ def get_download_reliability(
         # Unknown or usually works - stay optimistic
         status = "downloadable"
 
-    return status, stats
+    return status, stats  # type: ignore[return-value]
 
 
 def get_all_domain_stats() -> dict[str, dict]:

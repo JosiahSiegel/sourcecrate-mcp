@@ -187,9 +187,7 @@ class GenericHTTPClient(BaseAPIClient):
                     # Single field formats
                     else:
                         name = (
-                            author.get("full_name")
-                            or author.get("display_name")
-                            or ""
+                            author.get("full_name") or author.get("display_name") or ""
                         )
 
                     if name:
@@ -286,7 +284,9 @@ class GenericHTTPClient(BaseAPIClient):
                         if value and isinstance(value, str):
                             # Handle both "NCT01832077" and "/NCT01832077" formats
                             nct_id = value.strip("/")
-                            paper[standard_field] = f"https://clinicaltrials.gov/study/{nct_id}"
+                            paper[standard_field] = (
+                                f"https://clinicaltrials.gov/study/{nct_id}"
+                            )
                         else:
                             paper[standard_field] = value or ""
                     else:
@@ -394,7 +394,8 @@ class GenericHTTPClient(BaseAPIClient):
 
                         # Exclude if title matches metadata patterns AND has no authors
                         if not has_authors and any(
-                            title_lower == metadata or title_lower.startswith(metadata + " ")
+                            title_lower == metadata
+                            or title_lower.startswith(metadata + " ")
                             for metadata in metadata_titles
                         ):
                             self.logger.debug(

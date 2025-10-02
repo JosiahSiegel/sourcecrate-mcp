@@ -496,14 +496,23 @@ async def batch_convert_pdfs(request: BatchConvertRequest) -> dict[str, Any]:
 
 
 @app.get("/api/v1/status")
-async def get_status(force_reload: bool = False) -> dict[str, Any]:
+async def get_status(
+    force_reload: bool = False, active_health_check: bool = False
+) -> dict[str, Any]:
     """
     Get comprehensive system status.
 
     Returns API health, configuration details, cache stats, and performance metrics.
+
+    Args:
+        force_reload: Force reload configuration
+        active_health_check: Perform real-time health checks on all sources (30+ seconds).
+                            Default False returns instant cached metrics.
     """
     try:
-        result = await get_status_core(force_reload=force_reload)
+        result = await get_status_core(
+            force_reload=force_reload, active_health_check=active_health_check
+        )
         return result
     except Exception as e:
         logger.error(f"Status check failed: {e}")
@@ -575,9 +584,9 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
             }
 
         # Automatically upgrade HTTP to HTTPS (most publishers require it)
-        if parsed_url.scheme == 'http':
+        if parsed_url.scheme == "http":
             logger.info(f"Auto-upgrading HTTP to HTTPS for {parsed_url.hostname}")
-            parsed_url = parsed_url._replace(scheme='https')
+            parsed_url = parsed_url._replace(scheme="https")
             url = urlunparse(parsed_url)
 
         referer = f"{parsed_url.scheme}://{parsed_url.netloc}/"
@@ -589,15 +598,17 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
 
             # Strategy 2: If 403, try without query parameters (some publishers block versioned URLs)
             if response.status_code == 403 and parsed_url.query:
-                logger.info(f"Got 403, retrying without query parameters: {parsed_url.query}")
-                clean_url = urlunparse(parsed_url._replace(query='', fragment=''))
+                logger.info(
+                    f"Got 403, retrying without query parameters: {parsed_url.query}"
+                )
+                clean_url = urlunparse(parsed_url._replace(query="", fragment=""))
                 response = await client.get(clean_url, headers=headers)
                 if response.status_code == 200:
                     url = clean_url  # Update URL for logging
 
             # Strategy 3: If still 403, try with minimal headers (some sites block Sec-Fetch headers)
             if response.status_code == 403:
-                logger.info(f"Got 403, retrying with minimal headers")
+                logger.info("Got 403, retrying with minimal headers")
                 minimal_headers = {
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                     "Accept": "*/*",
