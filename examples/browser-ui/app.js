@@ -1,5 +1,17 @@
+// ============================================================================
 // PaperezMCP Browser UI - JavaScript Client
-// Communicates with PaperezMCP HTTP server
+// ============================================================================
+//
+// File Structure:
+// 1. STATE MANAGEMENT - Global state variables
+// 2. FILTERING AND SORTING UTILITIES - Reusable filter/sort functions
+// 3. RENDERING UTILITIES - Paper card building and display functions
+// 4. SSE STREAMING SEARCH - Server-sent events handling
+// 5. EVENT HANDLERS - Form submission handlers
+// 6. SYSTEM STATUS - Status check functionality
+// 7. INITIALIZATION - DOMContentLoaded setup and live filter listeners
+//
+// ============================================================================
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -67,11 +79,65 @@ function renderResults(data) {
     resultsDiv.innerHTML = html;
 }
 
-// Render progressive streaming results
+// ============================================================================
+// STATE MANAGEMENT
+// ============================================================================
 let currentEventSource = null;
 let streamingResults = [];
 let sourcesCompleted = 0;
 let totalSources = 0;
+let pdfOnlyFilter = false;
+let relevanceThreshold = 60; // Default 60%
+
+// ============================================================================
+// FILTERING AND SORTING UTILITIES
+// ============================================================================
+
+// Apply filters to results
+function applyFilters(results) {
+    let filtered = results;
+
+    // Filter by PDF availability
+    if (pdfOnlyFilter) {
+        filtered = filtered.filter(paper =>
+            isValidPdfUrl(paper.pdf_url) || isValidPdfUrl(paper.open_access_pdf)
+        );
+    }
+
+    // Filter by relevance threshold
+    filtered = filtered.filter(paper => {
+        if (paper.relevance_score === undefined || paper.relevance_score === null) {
+            return true; // Keep papers without relevance scores
+        }
+        const percentage = Math.round(paper.relevance_score * 100);
+        return percentage >= relevanceThreshold;
+    });
+
+    return filtered;
+}
+
+// Sort results by relevance score (descending)
+function sortByRelevance(results) {
+    return results.sort((a, b) => {
+        const scoreA = a.relevance_score !== undefined ? a.relevance_score : 0;
+        const scoreB = b.relevance_score !== undefined ? b.relevance_score : 0;
+        return scoreB - scoreA; // Descending order
+    });
+}
+
+// Helper function to check if a PDF URL is valid (not a DOI redirect)
+function isValidPdfUrl(url) {
+    if (!url) return false;
+    // Filter out DOI URLs - they redirect to publisher pages, not direct PDFs
+    if (url.includes('doi.org/') || url.startsWith('https://doi.apa.org/')) {
+        return false;
+    }
+    return true;
+}
+
+// ============================================================================
+// RENDERING UTILITIES
+// ============================================================================
 
 // Helper function to build paper card HTML with proper URL handling
 function buildPaperCard(paper, index, showBadge = true) {
@@ -245,36 +311,14 @@ function renderStreamingResults() {
         return;
     }
 
-    // Apply filters to results
-    let filteredResults = streamingResults;
+    // Apply filters and sort
+    let filteredResults = applyFilters(streamingResults);
+    filteredResults = sortByRelevance([...filteredResults]); // Clone to avoid mutating
 
-    // Filter by PDF availability
-    if (pdfOnlyFilter) {
-        filteredResults = filteredResults.filter(paper =>
-            isValidPdfUrl(paper.pdf_url) || isValidPdfUrl(paper.open_access_pdf)
-        );
-    }
-
-    // Filter by relevance threshold
-    filteredResults = filteredResults.filter(paper => {
-        if (paper.relevance_score === undefined || paper.relevance_score === null) {
-            return true; // Keep papers without relevance scores
-        }
-        const percentage = Math.round(paper.relevance_score * 100);
-        return percentage >= relevanceThreshold;
-    });
-
-    // Sort by relevance score (descending) before rendering
-    filteredResults.sort((a, b) => {
-        const scoreA = a.relevance_score !== undefined ? a.relevance_score : 0;
-        const scoreB = b.relevance_score !== undefined ? b.relevance_score : 0;
-        return scoreB - scoreA; // Descending order
-    });
-
-    let html = '';
+    // Build summary message
     const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
     const relevanceInfo = relevanceThreshold > 0 ? `, min ${relevanceThreshold}% relevance` : '';
-    html += `<div class="results-summary">
+    let html = `<div class="results-summary">
         <p>Found <strong>${filteredResults.length}</strong> papers${pdfInfo}${relevanceInfo} (${sourcesCompleted}/${totalSources || '?'} sources completed)</p>
     </div>`;
 
@@ -285,19 +329,9 @@ function renderStreamingResults() {
     resultsDiv.innerHTML = html;
 }
 
-// Global filter state
-let pdfOnlyFilter = false;
-let relevanceThreshold = 60; // Default 60%
-
-// Helper function to check if a PDF URL is valid (not a DOI redirect)
-function isValidPdfUrl(url) {
-    if (!url) return false;
-    // Filter out DOI URLs - they redirect to publisher pages, not direct PDFs
-    if (url.includes('doi.org/') || url.startsWith('https://doi.apa.org/')) {
-        return false;
-    }
-    return true;
-}
+// ============================================================================
+// SSE STREAMING SEARCH
+// ============================================================================
 
 // Handle SSE streaming search
 function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 60) {
@@ -384,25 +418,25 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 60) {
         eventSource.close();
         currentEventSource = null;
 
-        // Sort by relevance score (descending) before final render
-        streamingResults.sort((a, b) => {
-            const scoreA = a.relevance_score !== undefined ? a.relevance_score : 0;
-            const scoreB = b.relevance_score !== undefined ? b.relevance_score : 0;
-            return scoreB - scoreA; // Descending order
-        });
+        // Apply filters and sort for final render
+        let finalResults = applyFilters(streamingResults);
+        finalResults = sortByRelevance([...finalResults]);
 
         // Final render
         const resultsDiv = document.getElementById('results');
+        const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
+        const relevanceInfo = relevanceThreshold > 0 ? `, min ${relevanceThreshold}% relevance` : '';
+
         let html = `<div class="results-summary results-summary-complete">
-            <p>✅ Search complete! Found <strong>${data.total_results}</strong> papers from ${data.sources_searched} sources</p>
+            <p>✅ Search complete! Found <strong>${finalResults.length}</strong> papers${pdfInfo}${relevanceInfo} from ${data.sources_searched} sources</p>
         </div>`;
 
-        streamingResults.forEach((paper, index) => {
+        finalResults.forEach((paper, index) => {
             html += buildPaperCard(paper, index, false);
         });
 
         resultsDiv.innerHTML = html;
-        showStatus(`✅ Found ${data.total_results} papers from ${data.sources_searched} sources`, 'success');
+        showStatus(`✅ Found ${finalResults.length} papers from ${data.sources_searched} sources`, 'success');
     });
 
     // Error handling
@@ -439,6 +473,10 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 60) {
     };
 }
 
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
 // Handle search form submission
 document.getElementById('searchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -451,6 +489,10 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
     // Always use SSE streaming for better performance
     searchWithSSE(query, limit, pdfOnly, minRelevance);
 });
+
+// ============================================================================
+// SYSTEM STATUS
+// ============================================================================
 
 // Check system status
 async function checkStatus() {
@@ -497,16 +539,21 @@ async function checkStatus() {
     }
 }
 
-// Initialize
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+// Initialize UI and set up live filter event listeners
 document.addEventListener('DOMContentLoaded', () => {
     console.log('PaperezMCP Browser UI initialized');
     console.log('API Server:', API_BASE_URL);
 
-    // Update relevance threshold display and re-filter when slider changes
+    // Get filter UI elements
     const relevanceSlider = document.getElementById('relevanceThreshold');
     const relevanceValue = document.getElementById('relevanceValue');
     const pdfOnlyCheckbox = document.getElementById('pdfOnly');
 
+    // Live update: Relevance slider changes
     relevanceSlider.addEventListener('input', (e) => {
         relevanceValue.textContent = e.target.value;
         relevanceThreshold = parseInt(e.target.value);
@@ -517,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Re-filter when PDF-only checkbox changes
+    // Live update: PDF-only checkbox changes
     pdfOnlyCheckbox.addEventListener('change', (e) => {
         pdfOnlyFilter = e.target.checked;
 
