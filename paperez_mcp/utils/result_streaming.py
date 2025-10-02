@@ -212,7 +212,6 @@ class ResultStreamer:
         # Stream results as they become available
         try:
             delivered_results: set[tuple[str, int]] = set()
-            early_delivery_done = False
 
             while len(self.completed_sources) + len(self.error_sources) < total_sources:
                 try:
@@ -235,22 +234,18 @@ class ResultStreamer:
                             total_sources=total_sources,
                         )
 
-                        # Check if we should deliver early results
-                        if (
-                            self.enable_early_results
-                            and not early_delivery_done
-                            and self._should_deliver_early_results()
-                        ):
-                            early_results = self._get_best_results_so_far(
+                        # Progressive delivery: send new results after each source completes
+                        if self.enable_early_results and self._should_deliver_early_results():
+                            new_results = self._get_best_results_so_far(
                                 delivered_results
                             )
-                            if early_results:
+                            if new_results:
                                 yield StreamingUpdate(
                                     type="result",
-                                    results=early_results,
+                                    results=new_results,
                                     progress={
-                                        "type": "early_delivery",
-                                        "total_results": len(early_results),
+                                        "type": "progressive_delivery",
+                                        "total_results": len(new_results),
                                         "completed_sources": len(
                                             self.completed_sources
                                         ),
@@ -259,14 +254,13 @@ class ResultStreamer:
                                 )
 
                                 # Track delivered results to avoid duplicates
-                                for result in early_results:
+                                for result in new_results:
                                     delivered_results.add(
                                         (result.source, id(result.data))
                                     )
 
-                                early_delivery_done = True
                                 logger.info(
-                                    f"🚀 Early delivery: {len(early_results)} results after "
+                                    f"📤 Progressive delivery: {len(new_results)} new results after "
                                     f"{len(self.completed_sources)} sources completed"
                                 )
 
