@@ -178,12 +178,18 @@ class GenericHTTPClient(BaseAPIClient):
                     # Semantic Scholar format: {"name": "John Smith"}
                     elif "name" in author:
                         name = author.get("name", "").strip()
-                    # Other common formats
+                    # PubMed format: {"firstname": "John", "lastname": "Smith"}
+                    elif "firstname" in author and "lastname" in author:
+                        name = f"{author.get('firstname', '')} {author.get('lastname', '')}".strip()
+                    # Other common formats with underscores
+                    elif "first_name" in author and "last_name" in author:
+                        name = f"{author.get('first_name', '')} {author.get('last_name', '')}".strip()
+                    # Single field formats
                     else:
                         name = (
                             author.get("full_name")
                             or author.get("display_name")
-                            or f"{author.get('first_name', '')} {author.get('last_name', '')}".strip()
+                            or ""
                         )
 
                     if name:
