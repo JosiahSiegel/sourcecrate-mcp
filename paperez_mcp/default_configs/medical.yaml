@@ -134,7 +134,7 @@ sources:
         abstract: protocolSection.descriptionModule.briefSummary
         journal: source
         year: protocolSection.statusModule.primaryCompletionDateStruct.date
-        url: nctId
+        url: protocolSection.identificationModule.nctId
         citation_count: "0"
       rate_limit_delay: 0.2
 

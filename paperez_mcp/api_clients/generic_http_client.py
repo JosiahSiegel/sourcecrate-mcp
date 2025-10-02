@@ -275,6 +275,14 @@ class GenericHTTPClient(BaseAPIClient):
                             paper[standard_field] = f"{self.base_url}{value}"
                         else:
                             paper[standard_field] = value or ""
+                    elif self.source_name == "clinicaltrials":
+                        # ClinicalTrials: Convert NCT ID to study URL
+                        if value and isinstance(value, str):
+                            # Handle both "NCT01832077" and "/NCT01832077" formats
+                            nct_id = value.strip("/")
+                            paper[standard_field] = f"https://clinicaltrials.gov/study/{nct_id}"
+                        else:
+                            paper[standard_field] = value or ""
                     else:
                         paper[standard_field] = value or ""
                 else:
