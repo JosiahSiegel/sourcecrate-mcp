@@ -67,7 +67,28 @@ Ask Claude naturally:
 
 PaperezMCP now includes an HTTP/REST API server for browser-based and HTTP client access!
 
-### Quick Start
+### ✨ Zero-Setup Installation (Recommended)
+
+**Start the HTTP server instantly with uvx - no manual installation required!**
+
+#### Option 1: Direct from GitHub
+```bash
+uvx --from 'git+https://github.com/JosiahSiegel/paperez-mcp.git[http]' paperez-http
+# Server runs on http://localhost:8000
+```
+
+#### Option 2: From Cloned Repository
+```bash
+# 1. Clone the repository
+git clone https://github.com/JosiahSiegel/paperez-mcp.git
+cd paperez-mcp
+
+# 2. Run with uvx
+uvx --from '.[http]' paperez-http
+# Server runs on http://localhost:8000
+```
+
+### Alternative: Traditional Installation
 
 ```bash
 # Install with HTTP support
@@ -78,14 +99,14 @@ paperez-http
 # Server runs on http://localhost:8000
 ```
 
-### Browser UI Example
+### Browser UI
 
-Included example browser interface:
+A clean, modern web interface for the HTTP API is included:
 
 ```bash
-# Open examples/browser-ui/index.html in your browser
+# Open browser-ui/index.html in your browser
 # Or serve with Python:
-cd examples/browser-ui
+cd browser-ui
 python -m http.server 3000
 # Visit http://localhost:3000
 ```

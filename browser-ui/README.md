@@ -14,11 +14,22 @@ A simple, clean browser-based interface for PaperezMCP HTTP API.
 
 ### 1. Start the HTTP Server
 
-```bash
-# Install with HTTP support
-pip install -e ".[http]"
+#### Recommended: Zero-Installation with uvx
 
-# Start the server
+```bash
+# Direct from GitHub (no installation needed!)
+uvx --from 'git+https://github.com/JosiahSiegel/paperez-mcp.git[http]' paperez-http
+
+# Or from cloned repository
+cd /path/to/paperez-mcp
+uvx --from '.[http]' paperez-http
+```
+
+#### Alternative Methods
+
+```bash
+# Traditional pip install
+pip install -e ".[http]"
 paperez-http
 
 # Or using Python module
@@ -62,7 +73,7 @@ This UI demonstrates these HTTP API endpoints:
 - `POST /api/v1/search/streaming` - Streaming search
 - `GET /api/v1/status` - System status check
 
-See the [HTTP API documentation](../../docs/HTTP_API.md) for all available endpoints.
+See the [HTTP API documentation](../docs/HTTP_API.md) for all available endpoints.
 
 ## Development
 

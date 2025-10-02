@@ -36,7 +36,7 @@ services:
     ports:
       - "3000:80"
     volumes:
-      - ./examples/browser-ui:/usr/share/nginx/html:ro
+      - ./browser-ui:/usr/share/nginx/html:ro
     depends_on:
       - paperez-http
     restart: unless-stopped

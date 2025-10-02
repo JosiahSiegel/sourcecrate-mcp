@@ -2,6 +2,34 @@
 
 Complete REST API reference for PaperezMCP v1.1.0+
 
+## Quick Start
+
+### Start the Server (Zero-Installation)
+
+**Recommended: Use uvx for instant setup:**
+
+```bash
+# Direct from GitHub - no installation needed!
+uvx --from 'git+https://github.com/JosiahSiegel/paperez-mcp.git[http]' paperez-http
+```
+
+**Alternative methods:**
+
+```bash
+# From cloned repository
+cd /path/to/paperez-mcp
+uvx --from '.[http]' paperez-http
+
+# Traditional pip install
+pip install -e ".[http]"
+paperez-http
+
+# Using Python module
+python -m paperez_mcp.http_server
+```
+
+Server runs on `http://localhost:8000`
+
 ## Base URL
 
 ```
