@@ -229,7 +229,7 @@ let streamingResults = [];
 let sourcesCompleted = 0;
 let totalSources = 0;
 let pdfOnlyFilter = false;
-let relevanceThreshold = 60; // Default 60%
+let relevanceThreshold = 45; // Default 45%
 
 // ============================================================================
 // FILTERING AND SORTING UTILITIES
@@ -491,7 +491,7 @@ function renderStreamingResults() {
 // ============================================================================
 
 // Handle SSE streaming search
-function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 60) {
+function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 45) {
     // Close existing connection if any
     if (currentEventSource) {
         currentEventSource.close();
