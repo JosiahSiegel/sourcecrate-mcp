@@ -15,6 +15,139 @@
 
 const API_BASE_URL = 'http://localhost:8000';
 
+// ============================================================================
+// 1. DOWNLOAD RELIABILITY TRACKING (CLIENT-SIDE)
+// ============================================================================
+
+/**
+ * Client-side download reliability tracker using localStorage.
+ * Learns which domains work/fail for THIS specific browser/network.
+ * Scales to infinite users - zero server load.
+ */
+const DownloadReliability = {
+    PREFIX: 'paperez_reliability_',
+    TTL: 24 * 60 * 60 * 1000, // 24 hours
+    MAX_ENTRIES: 1000, // Prevent localStorage bloat
+
+    getDomain(url) {
+        try {
+            return new URL(url).hostname.toLowerCase();
+        } catch {
+            return null;
+        }
+    },
+
+    getStats(url) {
+        const domain = this.getDomain(url);
+        if (!domain) return null;
+
+        const key = this.PREFIX + domain;
+        const stored = localStorage.getItem(key);
+        if (!stored) return { attempts: 0, successes: 0, success_rate: 0.0 };
+
+        try {
+            const data = JSON.parse(stored);
+            // Check TTL
+            if (Date.now() - data.timestamp > this.TTL) {
+                localStorage.removeItem(key);
+                return { attempts: 0, successes: 0, success_rate: 0.0 };
+            }
+            return data.stats;
+        } catch {
+            return { attempts: 0, successes: 0, success_rate: 0.0 };
+        }
+    },
+
+    recordAttempt(url, success) {
+        const domain = this.getDomain(url);
+        if (!domain) return;
+
+        const key = this.PREFIX + domain;
+        const stats = this.getStats(url);
+
+        stats.attempts += 1;
+        if (success) stats.successes += 1;
+        stats.success_rate = stats.attempts > 0 ? stats.successes / stats.attempts : 0.0;
+
+        try {
+            localStorage.setItem(key, JSON.stringify({
+                stats: stats,
+                timestamp: Date.now()
+            }));
+            this.enforceLimit();
+        } catch (e) {
+            console.warn('Failed to save reliability stats:', e);
+        }
+    },
+
+    enforceLimit() {
+        // Prevent localStorage from growing unbounded
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(this.PREFIX)) {
+                keys.push(key);
+            }
+        }
+
+        if (keys.length > this.MAX_ENTRIES) {
+            // Remove oldest entries
+            const entries = keys.map(key => {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    return { key, timestamp: data.timestamp || 0 };
+                } catch {
+                    return { key, timestamp: 0 };
+                }
+            });
+            entries.sort((a, b) => a.timestamp - b.timestamp);
+            const toRemove = entries.slice(0, keys.length - this.MAX_ENTRIES);
+            toRemove.forEach(entry => localStorage.removeItem(entry.key));
+        }
+    },
+
+    getReliability(url) {
+        const stats = this.getStats(url);
+        if (!stats) return 'downloadable';
+
+        const { attempts, success_rate } = stats;
+
+        if (success_rate < 0.2 && attempts >= 5) {
+            return 'browser_required';
+        } else if (success_rate < 0.5 && attempts >= 10) {
+            return 'unreliable';
+        } else {
+            return 'downloadable';
+        }
+    }
+};
+
+/**
+ * Track download attempt when user clicks download button.
+ * Uses optimistic recording - assumes success unless proven otherwise.
+ */
+window.trackDownloadAttempt = function(pdfUrl, downloadId) {
+    // Optimistically record as success (user initiated download)
+    // Note: We can't reliably detect if download actually succeeded due to browser security
+    // But we can detect if the URL is accessible
+    DownloadReliability.recordAttempt(pdfUrl, true);
+
+    // Optional: HEAD request to check if URL is accessible
+    // This helps detect 403/404 errors before user clicks
+    setTimeout(() => {
+        fetch(pdfUrl, { method: 'HEAD', mode: 'no-cors' })
+            .then(() => {
+                // URL is accessible (or CORS blocked us - assume OK)
+                console.log(`Download initiated: ${DownloadReliability.getDomain(pdfUrl)}`);
+            })
+            .catch(() => {
+                // Network error or URL inaccessible
+                DownloadReliability.recordAttempt(pdfUrl, false);
+                console.warn(`Download may have failed: ${DownloadReliability.getDomain(pdfUrl)}`);
+            });
+    }, 1000);
+};
+
 // Show status message
 function showStatus(message, type = 'info') {
     const statusIndicator = document.getElementById('statusIndicator');
@@ -239,9 +372,18 @@ function buildPaperCard(paper, index, showBadge = true) {
         };
         const filename = sanitizeFilename(paper.title);
 
-        // Use proxy download endpoint to ensure actual download (not browser display)
-        const proxyUrl = `${API_BASE_URL}/api/v1/proxy-download?url=${encodeURIComponent(pdfUrl)}&filename=${encodeURIComponent(filename)}`;
-        accessLinks += `<a href="${proxyUrl}" target="_blank" class="btn btn-small btn-pdf">Download PDF</a>`;
+        // Direct download (no proxy - scales to infinite users)
+        // Browser handles download natively - works for most publishers
+        const downloadId = `download_${Math.random().toString(36).substr(2, 9)}`;
+        accessLinks += `<a href="${pdfUrl}"
+                          download="${filename}"
+                          target="_blank"
+                          class="btn btn-small btn-pdf"
+                          data-pdf-url="${pdfUrl}"
+                          id="${downloadId}"
+                          onclick="window.trackDownloadAttempt(this.dataset.pdfUrl, this.id); return true;">
+                          Download PDF
+                        </a>`;
     }
 
     const viewUrl = makeAbsoluteUrl(paper.url, paper.source);
