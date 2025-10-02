@@ -204,6 +204,13 @@ function renderStreamingResults() {
         return;
     }
 
+    // Sort by relevance score (descending) before rendering
+    streamingResults.sort((a, b) => {
+        const scoreA = a.relevance_score !== undefined ? a.relevance_score : 0;
+        const scoreB = b.relevance_score !== undefined ? b.relevance_score : 0;
+        return scoreB - scoreA; // Descending order
+    });
+
     let html = '';
     html += `<div class="results-summary">
         <p>Found <strong>${streamingResults.length}</strong> papers so far... (${sourcesCompleted}/${totalSources || '?'} sources completed)</p>
@@ -298,6 +305,13 @@ function searchWithSSE(query, limit, pdfOnly = false) {
 
         eventSource.close();
         currentEventSource = null;
+
+        // Sort by relevance score (descending) before final render
+        streamingResults.sort((a, b) => {
+            const scoreA = a.relevance_score !== undefined ? a.relevance_score : 0;
+            const scoreB = b.relevance_score !== undefined ? b.relevance_score : 0;
+            return scoreB - scoreA; // Descending order
+        });
 
         // Final render
         const resultsDiv = document.getElementById('results');
