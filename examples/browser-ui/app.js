@@ -106,18 +106,40 @@ function renderStreamingResults() {
                 return url;
             }
 
+            // Source-specific URL construction
+            const sourceLower = source?.toLowerCase();
+
+            // ERIC uses ?id= query parameter format
+            if (sourceLower === 'eric') {
+                const ericId = url.startsWith('/') ? url.substring(1) : url;
+                return `https://eric.ed.gov/?id=${ericId}`;
+            }
+
             // Handle relative URLs based on source
             const sourceBaseUrls = {
-                'eric': 'https://eric.ed.gov',
                 'pubmed': 'https://pubmed.ncbi.nlm.nih.gov',
                 'pubmed_central': 'https://www.ncbi.nlm.nih.gov/pmc',
+                'europe_pmc': 'https://europepmc.org/article/MED',
                 'arxiv': 'https://arxiv.org',
                 'crossref': 'https://doi.org',
-                // Add more as needed
+                'openalex': 'https://openalex.org',
+                'semantic_scholar': 'https://www.semanticscholar.org/paper',
+                'openlibrary': 'https://openlibrary.org',
+                'doaj': 'https://doaj.org/article',
+                'core': 'https://core.ac.uk/display',
+                'biorxiv': 'https://www.biorxiv.org/content',
+                'medrxiv': 'https://www.medrxiv.org/content',
+                'chemrxiv': 'https://chemrxiv.org/engage/chemrxiv/article-details',
+                'ssrn': 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=',
             };
 
-            const baseUrl = sourceBaseUrls[source?.toLowerCase()];
+            const baseUrl = sourceBaseUrls[sourceLower];
             if (baseUrl) {
+                // For SSRN, URL is just the ID
+                if (sourceLower === 'ssrn') {
+                    const ssrnId = url.replace(/[^0-9]/g, '');
+                    return `${baseUrl}${ssrnId}`;
+                }
                 return `${baseUrl}${url.startsWith('/') ? url : '/' + url}`;
             }
 
