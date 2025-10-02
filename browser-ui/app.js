@@ -194,6 +194,9 @@ function renderResults(data) {
         // Strip HTML tags from abstract for consistent plain text display
         const cleanAbstract = stripHtmlTags(paper.abstract);
 
+        // Format journal name
+        const journal = formatJournal(paper.journal);
+
         html += `
             <div class="paper-card">
                 <div class="paper-header">
@@ -202,7 +205,7 @@ function renderResults(data) {
                 <div class="paper-meta">
                     <span class="meta-item"><strong>Authors:</strong> ${authors}</span>
                     <span class="meta-item"><strong>Year:</strong> ${formatDate(paper.year)}</span>
-                    ${paper.journal ? `<span class="meta-item"><strong>Journal:</strong> ${paper.journal}</span>` : ''}
+                    ${journal ? `<span class="meta-item"><strong>Journal:</strong> ${journal}</span>` : ''}
                     <span class="meta-item"><strong>Source:</strong> ${paper.source || 'Unknown'}</span>
                 </div>
                 ${cleanAbstract ? `<p class="paper-abstract">${cleanAbstract}</p>` : ''}
@@ -290,6 +293,26 @@ function stripHtmlTags(text) {
     return temp.textContent || temp.innerText || '';
 }
 
+/**
+ * Format journal names - handles strings, arrays, and objects
+ */
+function formatJournal(journal) {
+    if (!journal) return '';
+
+    if (Array.isArray(journal)) {
+        // If array of objects, extract the 'name' or 'title' property
+        const journalNames = journal.map(j => {
+            if (typeof j === 'object' && j !== null) {
+                return j.name || j.title || String(j);
+            }
+            return String(j);
+        }).filter(name => name && name !== '[object Object]');
+        return journalNames.join(', ');
+    }
+
+    return String(journal);
+}
+
 // Helper function to build paper card HTML with proper URL handling
 function buildPaperCard(paper, index, showBadge = true) {
     // Helper function to truncate long text fields
@@ -311,8 +334,8 @@ function buildPaperCard(paper, index, showBadge = true) {
         authors = paper.authors || 'Unknown';
     }
 
-    // Truncate long journal names
-    const journal = truncateText(paper.journal, 100);
+    // Format and truncate journal names
+    const journal = truncateText(formatJournal(paper.journal), 100);
 
     // Strip HTML tags and truncate abstracts
     const cleanAbstract = stripHtmlTags(paper.abstract);
