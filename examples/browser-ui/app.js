@@ -354,6 +354,12 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 60) {
         const data = JSON.parse(e.data);
         console.log(`Source completed: ${data.source} (${data.count} papers)`);
         sourcesCompleted = data.completed;
+
+        // Capture total sources if available
+        if (data.total && totalSources === 0) {
+            totalSources = data.total;
+        }
+
         renderStreamingResults();
     });
 
@@ -361,6 +367,12 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 60) {
     eventSource.addEventListener('progress', (e) => {
         const data = JSON.parse(e.data);
         console.log(`Progress: ${data.percentage.toFixed(1)}% (${data.completed}/${data.total})`);
+
+        // Capture total sources from progress event
+        if (data.total && totalSources === 0) {
+            totalSources = data.total;
+        }
+
         showStatus(`Progress: ${data.percentage.toFixed(0)}% - ${data.results_count} papers found`, 'loading');
     });
 
