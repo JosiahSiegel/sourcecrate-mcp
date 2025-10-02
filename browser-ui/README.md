@@ -43,12 +43,13 @@ The server runs on `http://localhost:8000`.
 Open `index.html` in your browser:
 
 ```bash
-# Option 1: Direct file open
+# Option 1: Direct file open (from browser-ui directory)
 open index.html  # macOS
 xdg-open index.html  # Linux
 start index.html  # Windows
 
 # Option 2: Using a local server (recommended)
+# Run from the browser-ui directory:
 python -m http.server 3000
 # Then visit http://localhost:3000
 ```
