@@ -315,28 +315,19 @@ async def search_papers_sse(
                 update_type = update.type
 
                 if update_type == "result":
-                    # Early delivery - multiple results received
+                    # Early delivery - sorted top results
                     if update.results:
                         for result in update.results:
-                            all_results.append(result.data)
-                            yield f"event: results\ndata: {json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})}\n\n"
+                            result_id = id(result.data)
+                            if result_id not in delivered_result_ids:
+                                all_results.append(result.data)
+                                delivered_result_ids.add(result_id)
+                                yield f"event: results\ndata: {json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})}\n\n"
 
                 elif update_type == "source_complete":
-                    # Source finished - send immediate results if available
+                    # Source finished - only send notification (sorted results delivered via "result" and "final" updates)
                     sources_completed += 1
-
-                    # Send results from this source immediately
                     source_name = update.source
-                    if source_name and source_name in result_streamer.source_results:
-                        source_results = result_streamer.source_results[source_name]
-                        if source_results:
-                            for result in source_results:
-                                # Avoid duplicates
-                                result_id = id(result.data)
-                                if result_id not in delivered_result_ids:
-                                    all_results.append(result.data)
-                                    delivered_result_ids.add(result_id)
-                                    yield f"event: results\ndata: {json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})}\n\n"
 
                     # Send source completion notification
                     result_count = (
