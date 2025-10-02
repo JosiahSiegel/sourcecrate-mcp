@@ -2,6 +2,35 @@
 
 Deploy Paperez Browser UI and HTTP API for **$0/month** using free hosting platforms.
 
+## ⚠️ FREE TIER CAPACITY LIMITS
+
+**IMPORTANT:** Free hosting is suitable for **personal projects and prototypes**, not production scale.
+
+### Realistic Free Tier Capacity (Render.com):
+
+```
+✅ Concurrent searches: 5-10 maximum
+✅ Searches per hour: 200-500
+✅ Searches per day: 2,000-5,000
+✅ Monthly active users: ~700-1,600 (assuming 3 searches each)
+
+❌ NOT suitable for:
+   - 10K+ daily users
+   - 100K+ monthly users
+   - High-traffic production apps
+   - Commercial applications
+```
+
+**Why the limits?**
+- **512MB RAM** (fills quickly with cached API responses)
+- **0.1 CPU** (1/10th of a core, shared)
+- **Each search is heavy:** Queries 15+ APIs, BM25 ranking, deduplication
+- **Shared infrastructure:** Can restart anytime under load
+
+**Need more capacity?** See [Scaling Beyond Free Tier](#scaling-beyond-free-tier) below.
+
+---
+
 ## 🎯 Recommended: GitHub Pages + Render.com
 
 ```
@@ -12,6 +41,7 @@ GitHub Pages (Static UI)  +  Render.com (API Server)
 **Total Cost:** $0/month
 **Setup Time:** 15 minutes
 **Uptime:** 24/7 with UptimeRobot
+**Capacity:** ~1,000 MAU (personal/hobby use)
 
 ---
 
@@ -253,16 +283,136 @@ git push  # GitHub Pages auto-deploys on push
 
 ## Scaling Beyond Free Tier
 
-When you outgrow free hosting:
+### When to Upgrade
 
-**Render.com Paid Plans:**
-- Starter: $7/month (512MB RAM, no spin-down)
-- Standard: $25/month (2GB RAM, autoscaling)
+**Upgrade if you experience:**
+- ❌ Frequent 503 errors (server overloaded)
+- ❌ Searches taking > 10 seconds
+- ❌ Memory errors in logs
+- ❌ > 5,000 searches/day consistently
 
-**Alternatives:**
-- AWS Lightsail: $5/month (VPS)
-- DigitalOcean: $6/month (Droplet)
-- Fly.io Hobby: ~$2/month (pay for what you use)
+### Scaling Path by User Count
+
+#### Stage 1: Hobby (FREE)
+```
+Users: < 1,000 MAU
+Searches: < 5,000/day
+Platform: Render Free + GitHub Pages
+Cost: $0/month
+```
+
+#### Stage 2: Small Scale ($7/month)
+```
+Users: 1,000 - 10,000 MAU
+Searches: 5,000 - 50,000/day
+Platform: Render Starter (512MB RAM, no spin-down)
+Cost: $7/month
+Benefits:
+  - No cold starts (instant responses)
+  - 512MB RAM (same as free, but dedicated)
+  - Guaranteed uptime
+```
+
+#### Stage 3: Medium Scale ($21-36/month)
+```
+Users: 10,000 - 100,000 MAU
+Searches: 50,000 - 500,000/day
+Platform: 3-5 servers behind load balancer
+Cost: $21-36/month
+
+Recommended Architecture:
+┌─────────────────────────────────────────┐
+│  Cloudflare CDN (Static UI - FREE)      │
+└─────────────────────────────────────────┘
+                  ↓
+┌─────────────────────────────────────────┐
+│  Load Balancer (AWS ALB / Cloudflare)   │
+└─────────────────────────────────────────┘
+                  ↓
+      ┌───────────────────────┐
+      │                       │
+┌─────▼─────┐         ┌───────▼──────┐
+│ FastAPI   │         │   FastAPI    │
+│ Server 1  │   ...   │   Server N   │
+│ 2GB RAM   │         │   2GB RAM    │
+│ 1-2 vCPU  │         │   1-2 vCPU   │
+└───────────┘         └──────────────┘
+      │                       │
+      └───────────┬───────────┘
+                  ↓
+    ┌─────────────────────────┐
+    │  Redis Cache (Optional)  │
+    │  - Cache search results  │
+    │  - 50% faster responses  │
+    └─────────────────────────┘
+
+Provider Options:
+  - AWS Lightsail: 3× $10/mo = $30/month
+  - DigitalOcean: 3× $12/mo = $36/month
+  - Render Starter: 3× $7/mo = $21/month
+  - Fly.io: 3× 2GB RAM = ~$15-20/month
+```
+
+#### Stage 4: Large Scale ($100-500/month)
+```
+Users: 100,000 - 1,000,000 MAU
+Searches: 500,000 - 5,000,000/day
+Platform: Auto-scaling cluster, CDN, Redis, monitoring
+Cost: $100-500/month
+
+Requirements:
+  - 10-20 API servers (auto-scaling)
+  - Load balancer with health checks
+  - Redis cluster for caching
+  - CDN for static assets
+  - Monitoring (Datadog, New Relic)
+  - Database for user analytics (optional)
+```
+
+### Quick Upgrade Paths
+
+**For 10K Users (Simplest):**
+1. Upgrade Render to Starter plan: $7/month
+2. Done! No architecture changes needed.
+
+**For 100K Users (Recommended):**
+1. Use Fly.io or DigitalOcean
+2. Deploy 3 instances (2GB RAM, 2 vCPU each)
+3. Add Cloudflare load balancer (free)
+4. Optional: Add Redis for caching
+5. Total: $21-36/month
+
+**For 1M Users (Enterprise):**
+1. AWS/GCP/Azure with auto-scaling
+2. Kubernetes cluster (5-20 pods)
+3. Managed Redis/Memcached
+4. CDN (Cloudflare, AWS CloudFront)
+5. Monitoring and alerting
+6. Total: $500-2,000/month
+
+### Provider Comparison
+
+| Provider | Free Tier | Paid Start | Best For |
+|----------|-----------|------------|----------|
+| **Render** | 512MB, 0.1 CPU | $7/mo | Simplest upgr ade |
+| **Fly.io** | 3× 256MB VMs | ~$2/mo | Cost-effective |
+| **DigitalOcean** | None | $6/mo | Full control |
+| **AWS Lightsail** | None | $5/mo | AWS ecosystem |
+| **Railway** | $5 credit/mo | $5/mo | Dev-friendly |
+
+### Performance Optimization Tips
+
+**Before scaling up:**
+1. **Enable caching:** Redis for search results (50% faster)
+2. **Optimize queries:** Use `limit` parameter wisely
+3. **Monitor performance:** Check Render logs for bottlenecks
+4. **Rate limiting:** Prevent abuse with API rate limits
+
+**Cheap wins:**
+- Add Redis: DigitalOcean Managed Redis ($15/mo)
+- Use CDN: Cloudflare (free tier is excellent)
+- Compress responses: Enable gzip in FastAPI
+- Optimize Docker image: Multi-stage build
 
 ---
 
