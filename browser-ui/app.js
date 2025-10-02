@@ -193,7 +193,6 @@ function renderResults(data) {
         html += `
             <div class="paper-card">
                 <div class="paper-header">
-                    <span class="paper-number">${index + 1}</span>
                     <h3>${paper.title || 'Untitled'}</h3>
                 </div>
                 <div class="paper-meta">
@@ -415,37 +414,10 @@ function buildPaperCard(paper, index, showBadge = true) {
         accessLinks = `<a href="https://scholar.google.com/scholar?q=${searchQuery}" target="_blank" class="btn btn-small btn-secondary">Search Google Scholar</a>`;
     }
 
-    // Determine if paper has direct download (for badge)
-    // Only count as direct download if we have a valid PDF URL (not DOI)
-    const hasDirectDownload = pdfUrl !== null;
-    const downloadBadge = showBadge
-        ? (hasDirectDownload
-            ? '<span class="download-badge">📥 Direct Download</span>'
-            : '<span class="download-badge no-download">🔗 Link Only</span>')
-        : '';
-
-    // Add relevance score badge
-    let relevanceBadge = '';
-    if (paper.relevance_score !== undefined && paper.relevance_score !== null) {
-        const percentage = Math.round(paper.relevance_score * 100);
-        let badgeClass = 'low';
-        if (percentage >= 80) {
-            badgeClass = 'high';
-        } else if (percentage >= 50) {
-            badgeClass = 'medium';
-        }
-        relevanceBadge = `<span class="relevance-badge ${badgeClass}">🎯 ${percentage}% Match</span>`;
-    }
-
     return `
         <div class="paper-card ${showBadge ? 'paper-card-streaming' : ''}">
             <div class="paper-header">
-                <span class="paper-number">${index + 1}</span>
-                <div class="paper-title-row">
-                    <h3>${paper.title || 'Untitled'}</h3>
-                    ${relevanceBadge}
-                    ${downloadBadge}
-                </div>
+                <h3>${paper.title || 'Untitled'}</h3>
             </div>
             <div class="paper-meta">
                 <span class="meta-item"><strong>Authors:</strong> ${authors}</span>

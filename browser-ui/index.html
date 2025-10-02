@@ -9,23 +9,20 @@
 <body>
     <div class="container">
         <header>
-            <h1>📚 PaperezMCP</h1>
-            <p class="subtitle">Academic Paper Research Made Easy</p>
+            <h1>PaperezMCP</h1>
         </header>
 
         <main>
             <!-- Search Section -->
             <section class="search-section">
-                <h2>Search Papers</h2>
                 <form id="searchForm">
-                    <div class="floating-input">
+                    <div class="search-input">
                         <input
                             type="text"
                             id="searchQuery"
-                            placeholder=" "
+                            placeholder="Search papers (e.g., machine learning, DOI, author)"
                             required
                         >
-                        <label for="searchQuery">Search academic papers (e.g., machine learning, DOI, author name)</label>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -35,13 +32,11 @@
                             </label>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="relevanceThreshold">
-                                Min Relevance: <span id="relevanceValue">60</span>%
-                            </label>
-                            <input type="range" id="relevanceThreshold" min="0" max="100" value="60" step="5">
-                        </div>
+                    <div class="form-group">
+                        <label for="relevanceThreshold">
+                            Relevance: <span id="relevanceValue">60</span>%
+                        </label>
+                        <input type="range" id="relevanceThreshold" min="0" max="100" value="60" step="5">
                     </div>
                     <button type="submit" class="btn btn-primary">Search</button>
                 </form>
@@ -52,7 +47,6 @@
 
             <!-- Results Section -->
             <section class="results-section">
-                <h2>Results</h2>
                 <div id="results" class="results-container">
                     <p class="placeholder">Search results will appear here</p>
                 </div>
@@ -60,8 +54,7 @@
 
             <!-- System Status Section -->
             <section class="status-section">
-                <h2>System Status</h2>
-                <button onclick="checkStatus()" class="btn btn-secondary">Check Status</button>
+                <button onclick="checkStatus()" class="btn btn-secondary">System Status</button>
                 <div id="systemStatus" class="system-status">
                     <p class="placeholder">Click to check system status</p>
                 </div>
@@ -69,8 +62,7 @@
         </main>
 
         <footer>
-            <p>Powered by <a href="https://github.com/JosiahSiegel/paperez-mcp" target="_blank">PaperezMCP</a></p>
-            <p>API Server: <span id="apiServer">http://localhost:8000</span></p>
+            <p><a href="https://github.com/JosiahSiegel/paperez-mcp" target="_blank">PaperezMCP</a> · <span id="apiServer">localhost:8000</span></p>
         </footer>
     </div>
 
