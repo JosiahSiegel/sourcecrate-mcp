@@ -7,11 +7,110 @@ import os
 import re
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
+
+def build_browser_headers(referer: str | None = None) -> dict[str, str]:
+    """
+    Build comprehensive browser-like headers to avoid 403 errors.
+
+    Args:
+        referer: Optional referer URL (typically the paper's landing page)
+
+    Returns:
+        Dictionary of HTTP headers mimicking a real browser
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/pdf,application/x-pdf,*/*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "DNT": "1",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Cache-Control": "max-age=0",
+    }
+    if referer:
+        headers["Referer"] = referer
+    return headers
+
+
+async def try_download_with_adaptive_strategies(
+    url: str,
+    paper_url: str | None = None,
+) -> tuple[httpx.Response, str]:
+    """
+    Try downloading a PDF with adaptive retry strategies for publisher restrictions.
+
+    Combines best practices from HTTP server and core download logic:
+    - Auto-upgrade HTTP to HTTPS (most publishers require it)
+    - Try with full browser headers
+    - On 403: retry without query params (some publishers block versioned URLs)
+    - On 403: retry with minimal headers (some sites detect Sec-Fetch-* as bots)
+
+    Args:
+        url: PDF URL to download
+        paper_url: Optional paper landing page URL (for referer header)
+
+    Returns:
+        Tuple of (successful response, final URL used)
+
+    Raises:
+        httpx.HTTPError: If all strategies fail
+    """
+    parsed_url = urlparse(url)
+
+    # Strategy 1: Auto-upgrade HTTP to HTTPS (most publishers require it)
+    if parsed_url.scheme == "http":
+        logger.info(f"Auto-upgrading HTTP to HTTPS for {parsed_url.hostname}")
+        parsed_url = parsed_url._replace(scheme="https")
+        url = urlunparse(parsed_url)
+
+    # Build referer from paper URL or PDF domain
+    if paper_url:
+        referer = paper_url
+    else:
+        referer = f"{parsed_url.scheme}://{parsed_url.netloc}/"
+
+    # Try multiple strategies if we encounter 403 errors
+    async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
+        # Strategy 1: Full browser headers + HTTPS
+        headers = build_browser_headers(referer)
+        response = await client.get(url, headers=headers)
+
+        if response.status_code == 200:
+            return response, url
+
+        # Strategy 2: If 403, try without query parameters (some publishers block versioned URLs)
+        if response.status_code == 403 and parsed_url.query:
+            logger.info(
+                f"Got 403, retrying without query parameters: {parsed_url.query}"
+            )
+            clean_url = urlunparse(parsed_url._replace(query="", fragment=""))
+            response = await client.get(clean_url, headers=headers)
+            if response.status_code == 200:
+                return response, clean_url
+
+        # Strategy 3: If still 403, try with minimal headers (some sites block Sec-Fetch-* as bot detection)
+        if response.status_code == 403:
+            logger.info("Got 403, retrying with minimal headers")
+            minimal_headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept": "*/*",
+            }
+            response = await client.get(url, headers=minimal_headers)
+            if response.status_code == 200:
+                return response, url
+
+        # All strategies failed - return final response for error handling
+        return response, url
 
 
 async def download_pdf(
@@ -123,96 +222,42 @@ async def download_pdf(
 
         pdf_path = os.path.join(output_dir, f"{filename}.pdf")
 
-        # Enhanced browser headers to avoid 403 errors
-        headers: dict[str, str | None] = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/pdf,application/octet-stream,*/*;q=0.9",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
-            "DNT": "1",
-            "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "cross-site",
-            "Cache-Control": "max-age=0",
-        }
-
-        # Add referrer header if paper URL is provided
-        if paper_url:
-            headers["Referer"] = paper_url
-
-        # Retry mechanism with different strategies
-        max_retries = 3
-        retry_strategies: list[dict[str, str | None]] = [
-            # Strategy 1: Standard browser headers
-            headers,
-            # Strategy 2: Minimal headers (some sites block too many headers)
-            {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "application/pdf,*/*;q=0.8",
-                "Referer": paper_url if paper_url else None,
-            },
-            # Strategy 3: Basic headers only
-            {
-                "User-Agent": "Mozilla/5.0 (compatible; Academic Research Bot)",
-                "Accept": "*/*",
-            },
-        ]
-
+        # Try download with adaptive retry strategies
         last_error = None
         last_response = None
 
-        for attempt in range(max_retries):
-            # Remove None values from headers
-            current_headers = {
-                k: v for k, v in retry_strategies[attempt].items() if v is not None
-            }
+        try:
+            response, final_url = await try_download_with_adaptive_strategies(
+                pdf_url, paper_url
+            )
+            last_response = response  # Save for Cloudflare detection
 
-            try:
-                async with httpx.AsyncClient(
-                    timeout=60.0, follow_redirects=True, headers=current_headers
-                ) as client:
-                    response = await client.get(pdf_url)
-                    last_response = response  # Save for Cloudflare detection
+            if response.status_code == 200:
+                with open(pdf_path, "wb") as f:
+                    f.write(response.content)
 
-                    if response.status_code == 200:
-                        with open(pdf_path, "wb") as f:
-                            f.write(response.content)
+                result = {
+                    "success": True,
+                    "pdf_path": pdf_path,
+                    "file_size": len(response.content),
+                    "filename": filename,
+                }
 
-                        result = {
-                            "success": True,
-                            "pdf_path": pdf_path,
-                            "file_size": len(response.content),
-                            "filename": filename,
-                        }
+                # Add diagnostic fields only in debug mode
+                if debug:
+                    result["final_url"] = final_url
+                    result["original_url"] = pdf_url
 
-                        # Add diagnostic fields only in debug mode
-                        if debug:
-                            result["retry_attempt"] = attempt + 1
-                            result["headers_used"] = list(current_headers.keys())
+                return result
+            else:
+                last_error = f"HTTP {response.status_code}"
 
-                        return result
-                    else:
-                        last_error = f"HTTP {response.status_code}"
-                        if attempt < max_retries - 1:
-                            # Wait before retry (exponential backoff)
-                            import asyncio
-
-                            await asyncio.sleep(2**attempt)
-                        continue
-
-            except Exception as e:
-                last_error = str(e)
-                if attempt < max_retries - 1:
-                    import asyncio
-
-                    await asyncio.sleep(2**attempt)
-                continue
+        except Exception as e:
+            last_error = str(e)
 
         # All direct download retries failed - try fallback strategies
         logger.warning(
-            f"❌ Direct download failed after {max_retries} attempts: {last_error}"
+            f"❌ Direct download failed after adaptive retries: {last_error}"
         )
 
         # Check if failure is due to Cloudflare/access control
@@ -387,7 +432,7 @@ async def download_pdf(
             )
 
         # All strategies failed - provide helpful error
-        error_msg = f"Failed to download PDF after {max_retries} attempts: {last_error}"
+        error_msg = f"Failed to download PDF after adaptive retries: {last_error}"
 
         # Collect Unpaywall URLs for manual download suggestions
         unpaywall_urls_for_suggestions = (
@@ -404,7 +449,6 @@ async def download_pdf(
         # Add diagnostic fields only in debug mode
         if debug:
             result["pdf_url"] = pdf_url
-            result["final_attempt"] = max_retries
             result["cloudflare_detected"] = is_cloudflare
             result["unpaywall_tried"] = unpaywall_tried
             result["suggestions"] = suggestions

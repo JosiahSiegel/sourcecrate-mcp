@@ -561,70 +561,25 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
 
         logger.info(f"Proxying download: {url} -> {filename}")
 
-        # Adaptive retry strategy for handling publisher restrictions
-        from urllib.parse import urlparse, urlunparse
+        # Use shared adaptive retry strategy from file_utils
+        from paperez_mcp.utils.file_utils import try_download_with_adaptive_strategies
 
-        parsed_url = urlparse(url)
-
-        # Strategy 1: Try with browser-like headers and HTTPS upgrade if needed
-        def build_request_headers(referer_url: str) -> dict[str, str]:
-            """Build comprehensive browser-like headers."""
-            return {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "application/pdf,application/x-pdf,*/*",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Encoding": "gzip, deflate, br",
-                "Referer": referer_url,
-                "DNT": "1",
-                "Connection": "keep-alive",
-                "Upgrade-Insecure-Requests": "1",
-                "Sec-Fetch-Dest": "document",
-                "Sec-Fetch-Mode": "navigate",
-                "Sec-Fetch-Site": "none",
-                "Cache-Control": "max-age=0",
-            }
-
-        # Automatically upgrade HTTP to HTTPS (most publishers require it)
-        if parsed_url.scheme == "http":
-            logger.info(f"Auto-upgrading HTTP to HTTPS for {parsed_url.hostname}")
-            parsed_url = parsed_url._replace(scheme="https")
-            url = urlunparse(parsed_url)
-
-        referer = f"{parsed_url.scheme}://{parsed_url.netloc}/"
-        headers = build_request_headers(referer)
-
-        # Try multiple strategies if we encounter 403 errors
-        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
-            response = await client.get(url, headers=headers)
-
-            # Strategy 2: If 403, try without query parameters (some publishers block versioned URLs)
-            if response.status_code == 403 and parsed_url.query:
-                logger.info(
-                    f"Got 403, retrying without query parameters: {parsed_url.query}"
-                )
-                clean_url = urlunparse(parsed_url._replace(query="", fragment=""))
-                response = await client.get(clean_url, headers=headers)
-                if response.status_code == 200:
-                    url = clean_url  # Update URL for logging
-
-            # Strategy 3: If still 403, try with minimal headers (some sites block Sec-Fetch headers)
-            if response.status_code == 403:
-                logger.info("Got 403, retrying with minimal headers")
-                minimal_headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                    "Accept": "*/*",
-                }
-                response = await client.get(url, headers=minimal_headers)
+        try:
+            response, final_url = await try_download_with_adaptive_strategies(
+                url, paper_url=None  # No paper URL available in proxy context
+            )
 
             if response.status_code != 200:
-                logger.warning(f"PDF fetch failed: {response.status_code} for {url}")
+                logger.warning(
+                    f"PDF fetch failed: {response.status_code} for {final_url}"
+                )
                 record_download_attempt(url, success=False)
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"Failed to fetch PDF from source: HTTP {response.status_code}",
                 )
 
-            # Success - record it
+            # Success - record it (no-op now, client-side tracking)
             record_download_attempt(url, success=True)
 
             # Stream the PDF back with download headers
@@ -637,16 +592,19 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
                 },
             )
 
-    except httpx.TimeoutException:
-        logger.error(f"Timeout downloading PDF: {url}")
-        record_download_attempt(url, success=False)
-        raise HTTPException(status_code=504, detail="Timeout downloading PDF") from None
-    except httpx.HTTPError as e:
-        logger.error(f"HTTP error downloading PDF: {e}")
-        record_download_attempt(url, success=False)
-        raise HTTPException(
-            status_code=502, detail=f"Error fetching PDF: {str(e)}"
-        ) from e
+        except httpx.TimeoutException:
+            logger.error(f"Timeout downloading PDF: {url}")
+            record_download_attempt(url, success=False)
+            raise HTTPException(
+                status_code=504, detail="Timeout downloading PDF"
+            ) from None
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error downloading PDF: {e}")
+            record_download_attempt(url, success=False)
+            raise HTTPException(
+                status_code=502, detail=f"Error fetching PDF: {str(e)}"
+            ) from e
+
     except HTTPException:
         raise
     except Exception as e:
