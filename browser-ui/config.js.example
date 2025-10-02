@@ -1,0 +1,14 @@
+// Paperez Browser UI - API Configuration
+//
+// INSTRUCTIONS:
+// 1. Copy this file to config.js: cp config.js.example config.js
+// 2. Update PAPEREZ_API_URL to your deployed API server URL
+// 3. Add <script src="config.js"></script> BEFORE app.js in index.html
+//
+// For local development, you can skip this - app.js defaults to http://localhost:8000
+
+// Production API URL (e.g., Render, Fly.io, your own server)
+window.PAPEREZ_API_URL = 'https://paperez-api.onrender.com';
+
+// Local development (uncomment to override)
+// window.PAPEREZ_API_URL = 'http://localhost:8000';

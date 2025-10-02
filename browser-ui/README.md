@@ -103,7 +103,30 @@ If testing from `file://` protocol, you may encounter CORS issues.
 
 **Change API Server URL:**
 
-Edit `app.js`:
+**Option 1: Using config.js (Recommended for production)**
+```bash
+cp config.js.example config.js
+```
+
+Edit `config.js`:
+```javascript
+window.PAPEREZ_API_URL = 'https://your-api-server.com';
+```
+
+Add to `index.html` before `app.js`:
+```html
+<script src="config.js"></script>
+<script src="app.js"></script>
+```
+
+**Option 2: Inline in HTML**
+Add to `index.html`:
+```html
+<script>window.PAPEREZ_API_URL = 'https://your-api-server.com';</script>
+<script src="app.js"></script>
+```
+
+**Option 3: Edit app.js directly (not recommended)**
 ```javascript
 const API_BASE_URL = 'http://your-server:8000';
 ```
@@ -117,17 +140,23 @@ Modify `styles.css` to customize colors, fonts, and layout.
 - `index.html` - Main UI structure
 - `app.js` - API client logic
 - `styles.css` - UI styling
+- `config.js.example` - Example production configuration
 - `README.md` - This file
 
 ## Production Deployment
 
-For production use:
+**🚀 Deploy for FREE:** See [DEPLOYMENT.md](../docs/DEPLOYMENT.md) for step-by-step guide to deploy on GitHub Pages + Render.com ($0/month).
 
-1. **Build a proper frontend** with React/Vue/Svelte
-2. **Add authentication** to protect your API
-3. **Configure CORS** to allow only your domain
-4. **Use environment variables** for API URL
-5. **Add rate limiting** to prevent abuse
+Quick options:
+1. **GitHub Pages (UI) + Render.com (API)** - Recommended, 100% free
+2. **Render.com (all-in-one)** - Simpler setup, still free
+3. **Fly.io** - Alternative free hosting
+
+For advanced production use:
+- **Add authentication** to protect your API
+- **Configure rate limiting** to prevent abuse
+- **Use custom domain** for professional branding
+- **Set up monitoring** with UptimeRobot
 
 ## Next Steps
 

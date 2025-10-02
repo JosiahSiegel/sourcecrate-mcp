@@ -90,6 +90,9 @@ __temp_cache__/
 secrets.txt
 config.json
 
+# Browser UI production config
+browser-ui/config.js
+
 # Logs
 *.log
 logs/

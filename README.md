@@ -181,6 +181,18 @@ curl -X POST http://localhost:8000/api/v1/search \
 - **Automation** - Programmatic access via REST API
 - **Remote access** - Deploy on server, access from anywhere
 
+### Free Production Deployment
+
+**🚀 Deploy for $0/month:** See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete step-by-step guide.
+
+**Recommended:** GitHub Pages (UI) + Render.com (API)
+- ✅ 100% free forever
+- ✅ Global CDN for UI
+- ✅ Auto-deploys from GitHub
+- ✅ 24/7 uptime with UptimeRobot
+
+**Alternative:** Fly.io, Vercel, or all-in-one on Render
+
 ## 📋 Scope & Use Cases
 
 ### What PaperezMCP Does

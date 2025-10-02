@@ -13,7 +13,11 @@
 //
 // ============================================================================
 
-const API_BASE_URL = 'http://localhost:8000';
+// API Configuration
+// For production deployment, set window.PAPEREZ_API_URL before loading this script:
+// <script>window.PAPEREZ_API_URL = 'https://your-api.onrender.com';</script>
+// Or create a config.js file with: window.PAPEREZ_API_URL = 'https://...';
+const API_BASE_URL = window.PAPEREZ_API_URL || 'http://localhost:8000';
 
 // ============================================================================
 // 1. DOWNLOAD RELIABILITY TRACKING (CLIENT-SIDE)
