@@ -22,7 +22,7 @@ sources:
       response_format: json
       results_path: docs
       extra_params:
-        fields: title,author_name,first_publish_year,publisher,subject,isbn
+        fields: title,author_name,first_publish_year,publisher,subject,isbn,key
       field_mappings:
         title: title
         authors: author_name
