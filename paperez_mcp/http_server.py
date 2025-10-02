@@ -48,6 +48,12 @@ from paperez_mcp.core import (
     get_status_core,
 )
 
+# Import reliability tracking
+from paperez_mcp.utils.download_reliability import (
+    get_download_reliability,
+    record_download_attempt,
+)
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -600,10 +606,14 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
 
             if response.status_code != 200:
                 logger.warning(f"PDF fetch failed: {response.status_code} for {url}")
+                record_download_attempt(url, success=False)
                 raise HTTPException(
                     status_code=response.status_code,
                     detail=f"Failed to fetch PDF from source: HTTP {response.status_code}",
                 )
+
+            # Success - record it
+            record_download_attempt(url, success=True)
 
             # Stream the PDF back with download headers
             return StreamingResponse(
@@ -617,9 +627,11 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
 
     except httpx.TimeoutException:
         logger.error(f"Timeout downloading PDF: {url}")
+        record_download_attempt(url, success=False)
         raise HTTPException(status_code=504, detail="Timeout downloading PDF") from None
     except httpx.HTTPError as e:
         logger.error(f"HTTP error downloading PDF: {e}")
+        record_download_attempt(url, success=False)
         raise HTTPException(
             status_code=502, detail=f"Error fetching PDF: {str(e)}"
         ) from e
@@ -627,7 +639,44 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
         raise
     except Exception as e:
         logger.error(f"Unexpected error in proxy download: {e}")
+        record_download_attempt(url, success=False)
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/api/v1/download-reliability")
+async def check_download_reliability(url: str) -> dict[str, Any]:
+    """
+    Check download reliability for a given URL based on historical data.
+
+    Returns:
+        - status: "downloadable", "unreliable", or "browser_required"
+        - stats: Dictionary with attempts, successes, success_rate
+        - message: User-friendly description
+    """
+    try:
+        status, stats = get_download_reliability(url)
+
+        messages = {
+            "downloadable": "PDF should download successfully",
+            "unreliable": "Download may fail - publisher sometimes blocks automated access",
+            "browser_required": "Download likely to fail - use 'Open in Browser' instead",
+        }
+
+        return {
+            "url": url,
+            "status": status,
+            "stats": stats,
+            "message": messages[status],
+        }
+    except Exception as e:
+        logger.error(f"Error checking download reliability: {e}")
+        # Default to downloadable on error (optimistic)
+        return {
+            "url": url,
+            "status": "downloadable",
+            "stats": {"attempts": 0, "successes": 0, "success_rate": 0.0},
+            "message": "PDF should download successfully",
+        }
 
 
 # ==================== Error Handlers ====================
