@@ -187,6 +187,9 @@ function renderResults(data) {
             ? paper.authors.join(', ')
             : paper.authors || 'Unknown';
 
+        // Strip HTML tags from abstract for consistent plain text display
+        const cleanAbstract = stripHtmlTags(paper.abstract);
+
         html += `
             <div class="paper-card">
                 <div class="paper-header">
@@ -199,7 +202,7 @@ function renderResults(data) {
                     ${paper.journal ? `<span class="meta-item"><strong>Journal:</strong> ${paper.journal}</span>` : ''}
                     <span class="meta-item"><strong>Source:</strong> ${paper.source || 'Unknown'}</span>
                 </div>
-                ${paper.abstract ? `<p class="paper-abstract">${paper.abstract}</p>` : ''}
+                ${cleanAbstract ? `<p class="paper-abstract">${cleanAbstract}</p>` : ''}
                 <div class="paper-links">
                     ${paper.url ? `<a href="${paper.url}" target="_blank" class="btn btn-small">View Paper</a>` : ''}
                     ${paper.pdf_url ? `<a href="${paper.pdf_url}" target="_blank" class="btn btn-small btn-pdf">PDF</a>` : ''}
@@ -273,6 +276,17 @@ function isValidPdfUrl(url) {
 // ============================================================================
 
 
+/**
+ * Strip HTML tags from text to ensure plain text display
+ */
+function stripHtmlTags(text) {
+    if (!text) return '';
+    // Create a temporary div to use browser's HTML parsing
+    const temp = document.createElement('div');
+    temp.innerHTML = text;
+    return temp.textContent || temp.innerText || '';
+}
+
 // Helper function to build paper card HTML with proper URL handling
 function buildPaperCard(paper, index, showBadge = true) {
     // Helper function to truncate long text fields
@@ -297,8 +311,9 @@ function buildPaperCard(paper, index, showBadge = true) {
     // Truncate long journal names
     const journal = truncateText(paper.journal, 100);
 
-    // Truncate long abstracts
-    const abstract = truncateText(paper.abstract, 500);
+    // Strip HTML tags and truncate abstracts
+    const cleanAbstract = stripHtmlTags(paper.abstract);
+    const abstract = truncateText(cleanAbstract, 500);
 
     // Helper function to ensure URLs are absolute
     const makeAbsoluteUrl = (url, source) => {
