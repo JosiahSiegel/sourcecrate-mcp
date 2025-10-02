@@ -19,9 +19,10 @@ from diskcache import Cache
 
 logger = logging.getLogger(__name__)
 
-# Cache for domain reliability statistics (24 hour TTL)
+# Cache for domain reliability statistics (24 hour TTL, 10MB max size)
 _reliability_cache: Cache | None = None
 RELIABILITY_TTL = 86400  # 24 hours
+CACHE_SIZE_LIMIT = 10 * 1024 * 1024  # 10MB
 
 
 def get_reliability_cache() -> Cache:
@@ -32,8 +33,10 @@ def get_reliability_cache() -> Cache:
 
         cache_dir = Path.home() / ".cache" / "paperez-mcp" / "reliability"
         cache_dir.mkdir(parents=True, exist_ok=True)
-        _reliability_cache = Cache(str(cache_dir))
-        logger.info(f"Initialized reliability cache at {cache_dir}")
+        _reliability_cache = Cache(str(cache_dir), size_limit=CACHE_SIZE_LIMIT)
+        logger.info(
+            f"Initialized reliability cache at {cache_dir} (max {CACHE_SIZE_LIMIT / 1024 / 1024:.0f}MB)"
+        )
     return _reliability_cache
 
 
