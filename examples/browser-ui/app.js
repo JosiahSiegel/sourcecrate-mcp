@@ -73,6 +73,115 @@ let streamingResults = [];
 let sourcesCompleted = 0;
 let totalSources = 0;
 
+// Helper function to build paper card HTML with proper URL handling
+function buildPaperCard(paper, index, showBadge = true) {
+    const authors = Array.isArray(paper.authors)
+        ? paper.authors.join(', ')
+        : paper.authors || 'Unknown';
+
+    // Helper function to ensure URLs are absolute
+    const makeAbsoluteUrl = (url, source) => {
+        if (!url) return null;
+
+        // Already absolute
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            return url;
+        }
+
+        // Source-specific URL construction
+        const sourceLower = source?.toLowerCase();
+
+        // ERIC uses ?id= query parameter format
+        if (sourceLower === 'eric') {
+            const ericId = url.startsWith('/') ? url.substring(1) : url;
+            return `https://eric.ed.gov/?id=${ericId}`;
+        }
+
+        // Handle relative URLs based on source
+        const sourceBaseUrls = {
+            'pubmed': 'https://pubmed.ncbi.nlm.nih.gov',
+            'pubmed_central': 'https://www.ncbi.nlm.nih.gov/pmc',
+            'europe_pmc': 'https://europepmc.org/article/MED',
+            'arxiv': 'https://arxiv.org',
+            'crossref': 'https://doi.org',
+            'openalex': 'https://openalex.org',
+            'semantic_scholar': 'https://www.semanticscholar.org/paper',
+            'openlibrary': 'https://openlibrary.org',
+            'doaj': 'https://doaj.org/article',
+            'core': 'https://core.ac.uk/display',
+            'biorxiv': 'https://www.biorxiv.org/content',
+            'medrxiv': 'https://www.medrxiv.org/content',
+            'chemrxiv': 'https://chemrxiv.org/engage/chemrxiv/article-details',
+            'ssrn': 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=',
+            'clinicaltrials': 'https://clinicaltrials.gov/study',
+        };
+
+        const baseUrl = sourceBaseUrls[sourceLower];
+        if (baseUrl) {
+            // For SSRN, URL is just the ID
+            if (sourceLower === 'ssrn') {
+                const ssrnId = url.replace(/[^0-9]/g, '');
+                return `${baseUrl}${ssrnId}`;
+            }
+            return `${baseUrl}${url.startsWith('/') ? url : '/' + url}`;
+        }
+
+        // If we don't know the source, return null to skip this URL
+        console.warn(`Relative URL without known source: ${url} from ${source}`);
+        return null;
+    };
+
+    // Build access links - always show at least one link
+    let accessLinks = '';
+    const pdfUrl = makeAbsoluteUrl(paper.pdf_url, paper.source) || makeAbsoluteUrl(paper.open_access_pdf, paper.source);
+    if (pdfUrl) {
+        accessLinks += `<a href="${pdfUrl}" target="_blank" class="btn btn-small btn-pdf">Download PDF</a>`;
+    }
+
+    const viewUrl = makeAbsoluteUrl(paper.url, paper.source);
+    if (viewUrl) {
+        accessLinks += `<a href="${viewUrl}" target="_blank" class="btn btn-small">View Online</a>`;
+    } else if (paper.doi) {
+        accessLinks += `<a href="https://doi.org/${paper.doi}" target="_blank" class="btn btn-small">View via DOI</a>`;
+    }
+
+    // If still no links, create a search link
+    if (!accessLinks) {
+        const searchQuery = encodeURIComponent(paper.title);
+        accessLinks = `<a href="https://scholar.google.com/scholar?q=${searchQuery}" target="_blank" class="btn btn-small btn-secondary">Search Google Scholar</a>`;
+    }
+
+    // Determine if paper has direct download (for badge)
+    const hasDirectDownload = paper.pdf_url || paper.open_access_pdf;
+    const downloadBadge = showBadge
+        ? (hasDirectDownload
+            ? '<span class="download-badge">📥 Direct Download</span>'
+            : '<span class="download-badge no-download">🔗 Link Only</span>')
+        : '';
+
+    return `
+        <div class="paper-card ${showBadge ? 'paper-card-streaming' : ''}">
+            <div class="paper-header">
+                <span class="paper-number">${index + 1}</span>
+                <div class="paper-title-row">
+                    <h3>${paper.title || 'Untitled'}</h3>
+                    ${downloadBadge}
+                </div>
+            </div>
+            <div class="paper-meta">
+                <span class="meta-item"><strong>Authors:</strong> ${authors}</span>
+                <span class="meta-item"><strong>Year:</strong> ${formatDate(paper.year)}</span>
+                ${paper.journal ? `<span class="meta-item"><strong>Journal:</strong> ${paper.journal}</span>` : ''}
+                <span class="meta-item"><strong>Source:</strong> ${paper.source || 'Unknown'}</span>
+            </div>
+            ${paper.abstract ? `<p class="paper-abstract">${paper.abstract}</p>` : ''}
+            <div class="paper-links">
+                ${accessLinks}
+            </div>
+        </div>
+    `;
+}
+
 function renderStreamingResults() {
     const resultsDiv = document.getElementById('results');
 
@@ -87,108 +196,7 @@ function renderStreamingResults() {
     </div>`;
 
     streamingResults.forEach((paper, index) => {
-        const authors = Array.isArray(paper.authors)
-            ? paper.authors.join(', ')
-            : paper.authors || 'Unknown';
-
-        // Determine if paper has direct download
-        const hasDirectDownload = paper.pdf_url || paper.open_access_pdf;
-        const downloadBadge = hasDirectDownload
-            ? '<span class="download-badge">📥 Direct Download</span>'
-            : '<span class="download-badge no-download">🔗 Link Only</span>';
-
-        // Helper function to ensure URLs are absolute
-        const makeAbsoluteUrl = (url, source) => {
-            if (!url) return null;
-
-            // Already absolute
-            if (url.startsWith('http://') || url.startsWith('https://')) {
-                return url;
-            }
-
-            // Source-specific URL construction
-            const sourceLower = source?.toLowerCase();
-
-            // ERIC uses ?id= query parameter format
-            if (sourceLower === 'eric') {
-                const ericId = url.startsWith('/') ? url.substring(1) : url;
-                return `https://eric.ed.gov/?id=${ericId}`;
-            }
-
-            // Handle relative URLs based on source
-            const sourceBaseUrls = {
-                'pubmed': 'https://pubmed.ncbi.nlm.nih.gov',
-                'pubmed_central': 'https://www.ncbi.nlm.nih.gov/pmc',
-                'europe_pmc': 'https://europepmc.org/article/MED',
-                'arxiv': 'https://arxiv.org',
-                'crossref': 'https://doi.org',
-                'openalex': 'https://openalex.org',
-                'semantic_scholar': 'https://www.semanticscholar.org/paper',
-                'openlibrary': 'https://openlibrary.org',
-                'doaj': 'https://doaj.org/article',
-                'core': 'https://core.ac.uk/display',
-                'biorxiv': 'https://www.biorxiv.org/content',
-                'medrxiv': 'https://www.medrxiv.org/content',
-                'chemrxiv': 'https://chemrxiv.org/engage/chemrxiv/article-details',
-                'ssrn': 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=',
-            };
-
-            const baseUrl = sourceBaseUrls[sourceLower];
-            if (baseUrl) {
-                // For SSRN, URL is just the ID
-                if (sourceLower === 'ssrn') {
-                    const ssrnId = url.replace(/[^0-9]/g, '');
-                    return `${baseUrl}${ssrnId}`;
-                }
-                return `${baseUrl}${url.startsWith('/') ? url : '/' + url}`;
-            }
-
-            // If we don't know the source, return null to skip this URL
-            console.warn(`Relative URL without known source: ${url} from ${source}`);
-            return null;
-        };
-
-        // Build access links - always show at least one link
-        let accessLinks = '';
-        const pdfUrl = makeAbsoluteUrl(paper.pdf_url, paper.source) || makeAbsoluteUrl(paper.open_access_pdf, paper.source);
-        if (pdfUrl) {
-            accessLinks += `<a href="${pdfUrl}" target="_blank" class="btn btn-small btn-pdf">Download PDF</a>`;
-        }
-
-        const viewUrl = makeAbsoluteUrl(paper.url, paper.source);
-        if (viewUrl) {
-            accessLinks += `<a href="${viewUrl}" target="_blank" class="btn btn-small">View Online</a>`;
-        } else if (paper.doi) {
-            accessLinks += `<a href="https://doi.org/${paper.doi}" target="_blank" class="btn btn-small">View via DOI</a>`;
-        }
-
-        // If still no links, create a search link
-        if (!accessLinks) {
-            const searchQuery = encodeURIComponent(paper.title);
-            accessLinks = `<a href="https://scholar.google.com/scholar?q=${searchQuery}" target="_blank" class="btn btn-small btn-secondary">Search Google Scholar</a>`;
-        }
-
-        html += `
-            <div class="paper-card paper-card-streaming">
-                <div class="paper-header">
-                    <span class="paper-number">${index + 1}</span>
-                    <div class="paper-title-row">
-                        <h3>${paper.title || 'Untitled'}</h3>
-                        ${downloadBadge}
-                    </div>
-                </div>
-                <div class="paper-meta">
-                    <span class="meta-item"><strong>Authors:</strong> ${authors}</span>
-                    <span class="meta-item"><strong>Year:</strong> ${formatDate(paper.year)}</span>
-                    ${paper.journal ? `<span class="meta-item"><strong>Journal:</strong> ${paper.journal}</span>` : ''}
-                    <span class="meta-item"><strong>Source:</strong> ${paper.source || 'Unknown'}</span>
-                </div>
-                ${paper.abstract ? `<p class="paper-abstract">${paper.abstract}</p>` : ''}
-                <div class="paper-links">
-                    ${accessLinks}
-                </div>
-            </div>
-        `;
+        html += buildPaperCard(paper, index, true);
     });
 
     resultsDiv.innerHTML = html;
@@ -284,30 +292,7 @@ function searchWithSSE(query, limit, pdfOnly = false) {
         </div>`;
 
         streamingResults.forEach((paper, index) => {
-            const authors = Array.isArray(paper.authors)
-                ? paper.authors.join(', ')
-                : paper.authors || 'Unknown';
-
-            html += `
-                <div class="paper-card">
-                    <div class="paper-header">
-                        <span class="paper-number">${index + 1}</span>
-                        <h3>${paper.title || 'Untitled'}</h3>
-                    </div>
-                    <div class="paper-meta">
-                        <span class="meta-item"><strong>Authors:</strong> ${authors}</span>
-                        <span class="meta-item"><strong>Year:</strong> ${formatDate(paper.year)}</span>
-                        ${paper.journal ? `<span class="meta-item"><strong>Journal:</strong> ${paper.journal}</span>` : ''}
-                        <span class="meta-item"><strong>Source:</strong> ${paper.source || 'Unknown'}</span>
-                    </div>
-                    ${paper.abstract ? `<p class="paper-abstract">${paper.abstract}</p>` : ''}
-                    <div class="paper-links">
-                        ${paper.url ? `<a href="${paper.url}" target="_blank" class="btn btn-small">View Paper</a>` : ''}
-                        ${paper.pdf_url ? `<a href="${paper.pdf_url}" target="_blank" class="btn btn-small btn-pdf">PDF</a>` : ''}
-                        ${paper.doi ? `<a href="https://doi.org/${paper.doi}" target="_blank" class="btn btn-small">DOI</a>` : ''}
-                    </div>
-                </div>
-            `;
+            html += buildPaperCard(paper, index, false);
         });
 
         resultsDiv.innerHTML = html;
