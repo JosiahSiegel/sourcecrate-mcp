@@ -75,9 +75,30 @@ let totalSources = 0;
 
 // Helper function to build paper card HTML with proper URL handling
 function buildPaperCard(paper, index, showBadge = true) {
-    const authors = Array.isArray(paper.authors)
-        ? paper.authors.join(', ')
-        : paper.authors || 'Unknown';
+    // Helper function to truncate long text fields
+    const truncateText = (text, maxLength) => {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength).trim() + '...';
+    };
+
+    // Limit authors display to first 5, add "et al." if more
+    let authors;
+    if (Array.isArray(paper.authors)) {
+        if (paper.authors.length > 5) {
+            authors = paper.authors.slice(0, 5).join(', ') + ' et al.';
+        } else {
+            authors = paper.authors.join(', ');
+        }
+    } else {
+        authors = paper.authors || 'Unknown';
+    }
+
+    // Truncate long journal names
+    const journal = truncateText(paper.journal, 100);
+
+    // Truncate long abstracts
+    const abstract = truncateText(paper.abstract, 500);
 
     // Helper function to ensure URLs are absolute
     const makeAbsoluteUrl = (url, source) => {
@@ -205,10 +226,10 @@ function buildPaperCard(paper, index, showBadge = true) {
             <div class="paper-meta">
                 <span class="meta-item"><strong>Authors:</strong> ${authors}</span>
                 <span class="meta-item"><strong>Year:</strong> ${formatDate(paper.year)}</span>
-                ${paper.journal ? `<span class="meta-item"><strong>Journal:</strong> ${paper.journal}</span>` : ''}
+                ${journal ? `<span class="meta-item"><strong>Journal:</strong> ${journal}</span>` : ''}
                 <span class="meta-item"><strong>Source:</strong> ${paper.source || 'Unknown'}</span>
             </div>
-            ${paper.abstract ? `<p class="paper-abstract">${paper.abstract}</p>` : ''}
+            ${abstract ? `<p class="paper-abstract">${abstract}</p>` : ''}
             <div class="paper-links">
                 ${accessLinks}
             </div>
@@ -245,6 +266,7 @@ function renderStreamingResults() {
 
 // Global filter state
 let pdfOnlyFilter = false;
+let relevanceThreshold = 60; // Default 60%
 
 // Helper function to check if a PDF URL is valid (not a DOI redirect)
 function isValidPdfUrl(url) {
@@ -257,7 +279,7 @@ function isValidPdfUrl(url) {
 }
 
 // Handle SSE streaming search
-function searchWithSSE(query, limit, pdfOnly = false) {
+function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 60) {
     // Close existing connection if any
     if (currentEventSource) {
         currentEventSource.close();
@@ -268,6 +290,7 @@ function searchWithSSE(query, limit, pdfOnly = false) {
     sourcesCompleted = 0;
     totalSources = 0;
     pdfOnlyFilter = pdfOnly;
+    relevanceThreshold = minRelevance;
 
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = '<p class="loading-message">🔍 Initiating search...</p>';
@@ -298,10 +321,24 @@ function searchWithSSE(query, limit, pdfOnly = false) {
         const data = JSON.parse(e.data);
         console.log(`Received ${data.papers.length} papers from ${data.source}`);
 
-        // Filter papers if PDF-only mode is enabled
-        const papersToAdd = pdfOnlyFilter
-            ? data.papers.filter(paper => isValidPdfUrl(paper.pdf_url) || isValidPdfUrl(paper.open_access_pdf))
-            : data.papers;
+        // Apply filters: PDF-only and relevance threshold
+        let papersToAdd = data.papers;
+
+        // Filter by PDF availability
+        if (pdfOnlyFilter) {
+            papersToAdd = papersToAdd.filter(paper =>
+                isValidPdfUrl(paper.pdf_url) || isValidPdfUrl(paper.open_access_pdf)
+            );
+        }
+
+        // Filter by relevance threshold
+        papersToAdd = papersToAdd.filter(paper => {
+            if (paper.relevance_score === undefined || paper.relevance_score === null) {
+                return true; // Keep papers without relevance scores
+            }
+            const percentage = Math.round(paper.relevance_score * 100);
+            return percentage >= relevanceThreshold;
+        });
 
         // Add new papers
         streamingResults.push(...papersToAdd);
@@ -309,8 +346,9 @@ function searchWithSSE(query, limit, pdfOnly = false) {
         // Re-render with new results
         renderStreamingResults();
 
-        const filterInfo = pdfOnlyFilter ? ` with direct download` : '';
-        showStatus(`Found ${streamingResults.length} papers${filterInfo} so far (from ${data.source})...`, 'loading');
+        const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
+        const relevanceInfo = relevanceThreshold > 0 ? `, min ${relevanceThreshold}% relevance` : '';
+        showStatus(`Found ${streamingResults.length} papers${pdfInfo}${relevanceInfo} so far (from ${data.source})...`, 'loading');
     });
 
     // Source completed
@@ -398,9 +436,10 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
     const query = document.getElementById('searchQuery').value;
     const limit = parseInt(document.getElementById('limit').value);
     const pdfOnly = document.getElementById('pdfOnly').checked;
+    const minRelevance = parseInt(document.getElementById('relevanceThreshold').value);
 
     // Always use SSE streaming for better performance
-    searchWithSSE(query, limit, pdfOnly);
+    searchWithSSE(query, limit, pdfOnly, minRelevance);
 });
 
 // Check system status
@@ -452,4 +491,12 @@ async function checkStatus() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('PaperezMCP Browser UI initialized');
     console.log('API Server:', API_BASE_URL);
+
+    // Update relevance threshold display when slider changes
+    const relevanceSlider = document.getElementById('relevanceThreshold');
+    const relevanceValue = document.getElementById('relevanceValue');
+
+    relevanceSlider.addEventListener('input', (e) => {
+        relevanceValue.textContent = e.target.value;
+    });
 });
