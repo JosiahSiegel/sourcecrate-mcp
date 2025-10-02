@@ -273,6 +273,11 @@ async def search_papers_sse(
                 result_streamer,
             )
 
+            # CRITICAL: Reset streaming state for each new request to prevent cache pollution
+            # This ensures results from previous searches don't leak into new searches
+            result_streamer.reset_streaming_state()
+            logger.info(f"🔄 Reset streaming state for new search: query='{query}'")
+
             search_funcs = _lazy_import_search_functions()
             if not search_funcs:
                 yield f"event: error\ndata: {json.dumps({'error': 'No search functions available'})}\n\n"

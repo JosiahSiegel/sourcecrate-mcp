@@ -99,6 +99,19 @@ class ResultStreamer:
         Yields:
             StreamingUpdate objects with incremental results and progress
         """
+        # CRITICAL: Reset state to prevent cache pollution between searches
+        # Without this, results from previous searches leak into new searches
+        self.completed_sources.clear()
+        self.error_sources.clear()
+        self.source_results.clear()
+        self.first_result_time = None
+        self.streaming_stats = {
+            "total_results": 0,
+            "sources_completed": 0,
+            "sources_failed": 0,
+            "average_latency": 0.0,
+        }
+
         self.start_time = time.time()
         total_sources = len(search_tasks)
 
