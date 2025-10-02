@@ -261,10 +261,20 @@ class GenericHTTPClient(BaseAPIClient):
                             paper[standard_field] = ""
                     else:
                         paper[standard_field] = str(value) if value else ""
-                elif standard_field == "url" and self.source_name == "crossref":
-                    # CrossRef: Generate DOI URL if no direct URL provided
-                    if not value and paper.get("doi"):
-                        paper[standard_field] = f"https://doi.org/{paper['doi']}"
+                elif standard_field == "url":
+                    # Source-specific URL handling
+                    if self.source_name == "crossref":
+                        # CrossRef: Generate DOI URL if no direct URL provided
+                        if not value and paper.get("doi"):
+                            paper[standard_field] = f"https://doi.org/{paper['doi']}"
+                        else:
+                            paper[standard_field] = value or ""
+                    elif self.source_name == "openlibrary":
+                        # OpenLibrary: Convert relative paths to absolute URLs
+                        if value and isinstance(value, str) and value.startswith("/"):
+                            paper[standard_field] = f"{self.base_url}{value}"
+                        else:
+                            paper[standard_field] = value or ""
                     else:
                         paper[standard_field] = value or ""
                 else:
