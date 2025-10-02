@@ -28,7 +28,9 @@ import logging
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -143,6 +145,7 @@ async def root() -> dict[str, Any]:
             "search": "POST /api/v1/search",
             "search_streaming": "POST /api/v1/search/streaming",
             "download": "POST /api/v1/download",
+            "proxy_download": "GET /api/v1/proxy-download",
             "convert_pdf_to_text": "POST /api/v1/convert/pdf-to-text",
             "convert_pdf_to_markdown": "POST /api/v1/convert/pdf-to-markdown",
             "batch_convert": "POST /api/v1/convert/batch",
@@ -514,6 +517,67 @@ async def get_help() -> dict[str, Any]:
         return result
     except Exception as e:
         logger.error(f"Help retrieval failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/api/v1/proxy-download")
+async def proxy_download(url: str, filename: str | None = None) -> StreamingResponse:
+    """
+    Proxy download endpoint - fetches PDF from external source and streams it with download headers.
+
+    This ensures PDFs are downloaded rather than displayed in browser, regardless of source CORS policies.
+
+    Args:
+        url: The external PDF URL to download
+        filename: Optional filename for the download (defaults to 'paper.pdf')
+
+    Returns:
+        StreamingResponse with Content-Disposition: attachment header
+    """
+    try:
+        # Validate URL
+        if not url.startswith(("http://", "https://")):
+            raise HTTPException(status_code=400, detail="Invalid URL protocol")
+
+        # Default filename if not provided
+        if not filename:
+            filename = "paper.pdf"
+
+        logger.info(f"Proxying download: {url} -> {filename}")
+
+        # Fetch the PDF from the external source
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.get(url, follow_redirects=True)
+
+            if response.status_code != 200:
+                logger.warning(f"PDF fetch failed: {response.status_code} for {url}")
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Failed to fetch PDF from source: HTTP {response.status_code}",
+                )
+
+            # Stream the PDF back with download headers
+            return StreamingResponse(
+                iter([response.content]),
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{quote(filename)}"',
+                    "Content-Length": str(len(response.content)),
+                },
+            )
+
+    except httpx.TimeoutException:
+        logger.error(f"Timeout downloading PDF: {url}")
+        raise HTTPException(status_code=504, detail="Timeout downloading PDF") from None
+    except httpx.HTTPError as e:
+        logger.error(f"HTTP error downloading PDF: {e}")
+        raise HTTPException(
+            status_code=502, detail=f"Error fetching PDF: {str(e)}"
+        ) from e
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in proxy download: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 

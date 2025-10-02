@@ -135,7 +135,20 @@ function buildPaperCard(paper, index, showBadge = true) {
     let accessLinks = '';
     const pdfUrl = makeAbsoluteUrl(paper.pdf_url, paper.source) || makeAbsoluteUrl(paper.open_access_pdf, paper.source);
     if (pdfUrl) {
-        accessLinks += `<a href="${pdfUrl}" target="_blank" class="btn btn-small btn-pdf">Download PDF</a>`;
+        // Generate a safe filename from the paper title
+        const sanitizeFilename = (title) => {
+            if (!title) return 'paper.pdf';
+            // Remove invalid filename characters and limit length
+            return title
+                .replace(/[<>:"/\\|?*\x00-\x1F]/g, '')
+                .replace(/\s+/g, '_')
+                .substring(0, 100) + '.pdf';
+        };
+        const filename = sanitizeFilename(paper.title);
+
+        // Use proxy download endpoint to ensure actual download (not browser display)
+        const proxyUrl = `${API_BASE_URL}/api/v1/proxy-download?url=${encodeURIComponent(pdfUrl)}&filename=${encodeURIComponent(filename)}`;
+        accessLinks += `<a href="${proxyUrl}" target="_blank" class="btn btn-small btn-pdf">Download PDF</a>`;
     }
 
     const viewUrl = makeAbsoluteUrl(paper.url, paper.source);
