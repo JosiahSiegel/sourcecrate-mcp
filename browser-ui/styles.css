@@ -603,7 +603,7 @@ input[type="range"]::-moz-range-thumb:hover {
 
 .status-item {
     padding: 0.75rem;
-    background: white;
+    background: var(--surface-color);
     border-radius: 6px;
     border: 1px solid var(--border-color);
 }
@@ -615,19 +615,27 @@ details {
 details summary {
     cursor: pointer;
     padding: 0.75rem;
-    background-color: white;
+    background-color: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-weight: 500;
+    color: var(--text-color);
+}
+
+details summary:hover {
+    background-color: var(--card-bg);
+    border-color: var(--accent-color);
 }
 
 details pre {
     margin-top: 0.5rem;
     padding: 1rem;
-    background-color: #f3f4f6;
+    background-color: var(--bg-color);
     border-radius: 6px;
     overflow-x: auto;
     font-size: 0.875rem;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
 }
 
 /* Footer */
