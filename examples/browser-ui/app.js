@@ -136,7 +136,7 @@ function buildPaperCard(paper, index, showBadge = true) {
     let pdfUrl = makeAbsoluteUrl(paper.pdf_url, paper.source) || makeAbsoluteUrl(paper.open_access_pdf, paper.source);
 
     // Filter out DOI URLs - they redirect to publisher pages (HTML), not direct PDFs
-    if (pdfUrl && (pdfUrl.includes('doi.org/') || pdfUrl.startsWith('https://doi.apa.org/'))) {
+    if (!isValidPdfUrl(pdfUrl)) {
         pdfUrl = null; // Don't show as downloadable PDF
     }
 
@@ -246,6 +246,16 @@ function renderStreamingResults() {
 // Global filter state
 let pdfOnlyFilter = false;
 
+// Helper function to check if a PDF URL is valid (not a DOI redirect)
+function isValidPdfUrl(url) {
+    if (!url) return false;
+    // Filter out DOI URLs - they redirect to publisher pages, not direct PDFs
+    if (url.includes('doi.org/') || url.startsWith('https://doi.apa.org/')) {
+        return false;
+    }
+    return true;
+}
+
 // Handle SSE streaming search
 function searchWithSSE(query, limit, pdfOnly = false) {
     // Close existing connection if any
@@ -290,7 +300,7 @@ function searchWithSSE(query, limit, pdfOnly = false) {
 
         // Filter papers if PDF-only mode is enabled
         const papersToAdd = pdfOnlyFilter
-            ? data.papers.filter(paper => paper.pdf_url || paper.open_access_pdf)
+            ? data.papers.filter(paper => isValidPdfUrl(paper.pdf_url) || isValidPdfUrl(paper.open_access_pdf))
             : data.papers;
 
         // Add new papers
