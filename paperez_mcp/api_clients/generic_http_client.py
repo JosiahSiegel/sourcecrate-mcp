@@ -363,8 +363,40 @@ class GenericHTTPClient(BaseAPIClient):
                 for item in results[:limit]:
                     try:
                         paper = self._standardize_paper(item)
-                        if paper.get("title"):  # Only include papers with titles
-                            papers.append(paper)
+
+                        # Quality filters: exclude junk metadata entries
+                        if not paper.get("title"):
+                            continue
+
+                        # Filter out conference/journal metadata entries
+                        # (e.g., "Table of Contents" entries with no authors)
+                        title_lower = paper.get("title", "").lower()
+                        has_authors = bool(paper.get("authors"))
+
+                        # Skip metadata entries: ToC, front matter, back matter, etc.
+                        metadata_titles = [
+                            "table of contents",
+                            "front matter",
+                            "back matter",
+                            "editorial board",
+                            "author index",
+                            "subject index",
+                            "volume information",
+                            "copyright",
+                            "preface",
+                        ]
+
+                        # Exclude if title matches metadata patterns AND has no authors
+                        if not has_authors and any(
+                            title_lower == metadata or title_lower.startswith(metadata + " ")
+                            for metadata in metadata_titles
+                        ):
+                            self.logger.debug(
+                                f"Filtered out metadata entry: '{paper.get('title')}' (no authors)"
+                            )
+                            continue
+
+                        papers.append(paper)
                     except Exception as e:
                         self.logger.warning(f"Failed to parse item: {e}")
                         continue
