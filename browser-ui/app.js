@@ -624,7 +624,7 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const query = document.getElementById('searchQuery').value;
-    const limit = parseInt(document.getElementById('limit').value);
+    const limit = 25; // Default: 25 results per source for comprehensive coverage
     const pdfOnly = document.getElementById('pdfOnly').checked;
     const minRelevance = parseInt(document.getElementById('relevanceThreshold').value);
 
