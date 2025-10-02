@@ -97,16 +97,45 @@ function renderStreamingResults() {
             ? '<span class="download-badge">📥 Direct Download</span>'
             : '<span class="download-badge no-download">🔗 Link Only</span>';
 
+        // Helper function to ensure URLs are absolute
+        const makeAbsoluteUrl = (url, source) => {
+            if (!url) return null;
+
+            // Already absolute
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+
+            // Handle relative URLs based on source
+            const sourceBaseUrls = {
+                'eric': 'https://eric.ed.gov',
+                'pubmed': 'https://pubmed.ncbi.nlm.nih.gov',
+                'pubmed_central': 'https://www.ncbi.nlm.nih.gov/pmc',
+                'arxiv': 'https://arxiv.org',
+                'crossref': 'https://doi.org',
+                // Add more as needed
+            };
+
+            const baseUrl = sourceBaseUrls[source?.toLowerCase()];
+            if (baseUrl) {
+                return `${baseUrl}${url.startsWith('/') ? url : '/' + url}`;
+            }
+
+            // If we don't know the source, return null to skip this URL
+            console.warn(`Relative URL without known source: ${url} from ${source}`);
+            return null;
+        };
+
         // Build access links - always show at least one link
         let accessLinks = '';
-        if (paper.pdf_url) {
-            accessLinks += `<a href="${paper.pdf_url}" target="_blank" class="btn btn-small btn-pdf">Download PDF</a>`;
-        } else if (paper.open_access_pdf) {
-            accessLinks += `<a href="${paper.open_access_pdf}" target="_blank" class="btn btn-small btn-pdf">Download PDF</a>`;
+        const pdfUrl = makeAbsoluteUrl(paper.pdf_url, paper.source) || makeAbsoluteUrl(paper.open_access_pdf, paper.source);
+        if (pdfUrl) {
+            accessLinks += `<a href="${pdfUrl}" target="_blank" class="btn btn-small btn-pdf">Download PDF</a>`;
         }
 
-        if (paper.url) {
-            accessLinks += `<a href="${paper.url}" target="_blank" class="btn btn-small">View Online</a>`;
+        const viewUrl = makeAbsoluteUrl(paper.url, paper.source);
+        if (viewUrl) {
+            accessLinks += `<a href="${viewUrl}" target="_blank" class="btn btn-small">View Online</a>`;
         } else if (paper.doi) {
             accessLinks += `<a href="https://doi.org/${paper.doi}" target="_blank" class="btn btn-small">View via DOI</a>`;
         }
