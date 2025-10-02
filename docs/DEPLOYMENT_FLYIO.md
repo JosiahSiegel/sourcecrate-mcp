@@ -494,7 +494,7 @@ fly machine restart <machine-id>
 
 ### Add Additional Academic Data Sources
 
-**🎯 Expand coverage with ToS-compliant academic APIs**
+🎯 Expand coverage with ToS-compliant academic APIs
 
 Paperez MCP comes with 15+ built-in sources. Below are additional sources with commercial-use-friendly terms of service that you can integrate:
 
@@ -631,7 +631,7 @@ fly regions list
 
 ### Multi-Region Rate Limit Distribution
 
-**🎯 Key Benefit: Multiple Regions = Multiple IPs = Higher Rate Limits**
+🎯 **Key Benefit:** Multiple Regions = Multiple IPs = Higher Rate Limits
 
 Academic APIs rate-limit by server IP, not by end user. When you deploy to multiple regions, **each region gets its own IP address**, effectively multiplying your rate limits.
 
