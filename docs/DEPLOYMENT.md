@@ -31,6 +31,32 @@ Deploy Paperez Browser UI and HTTP API for **$0/month** using free hosting platf
 
 ---
 
+## ⚖️ Terms of Service Compliance
+
+**IMPORTANT:** This guide follows all platform Terms of Service. Please read carefully:
+
+### Render.com Free Tier
+✅ **Intended for:** Low-traffic hobby projects, prototypes, development/testing
+✅ **Acceptable:** Allowing natural spin-down after 15 min of inactivity
+❌ **Prohibited:** Using keep-alive services to circumvent spin-down behavior
+
+**Cold starts are by design.** If you need 24/7 uptime without cold starts, upgrade to Starter plan ($7/month).
+
+### GitHub Pages
+✅ **Intended for:** Personal projects, open-source documentation, educational use
+✅ **Acceptable:** Donation buttons, crowdfunding links
+❌ **Prohibited:** Commercial SaaS products, e-commerce sites, business hosting
+
+**For commercial use,** host your UI on paid platforms (Netlify, Vercel, Cloudflare Pages).
+
+### Free Tier Philosophy
+Free tiers are for **genuine small-scale use**, not production applications. When you outgrow free limits:
+- ✅ Upgrade to paid plans
+- ✅ Optimize to reduce resource usage
+- ❌ Don't circumvent limitations with workarounds
+
+---
+
 ## 🎯 Recommended: GitHub Pages + Render.com
 
 ```
@@ -40,8 +66,9 @@ GitHub Pages (Static UI)  +  Render.com (API Server)
 
 **Total Cost:** $0/month
 **Setup Time:** 15 minutes
-**Uptime:** 24/7 with UptimeRobot
+**Cold Starts:** ~50 seconds after 15 min inactivity (by design)
 **Capacity:** ~1,000 MAU (personal/hobby use)
+**Uptime:** Suitable for hobby projects, not production
 
 ---
 
@@ -82,24 +109,25 @@ https://paperez-api.onrender.com
 
 **Save this URL** - you'll need it for the browser UI.
 
-### Step 4: Keep API Awake (Prevent Cold Starts)
+### Step 4: Understanding Cold Starts
 
-**Problem:** Render's free tier spins down after 15 minutes of inactivity (50-second cold start).
+**Render's free tier spins down after 15 minutes of inactivity** (by design). When a new request arrives:
+- Spin-up takes ~50 seconds
+- Subsequent requests are fast until next 15-min idle period
 
-**Solution:** Use UptimeRobot to ping your API every 10 minutes.
+**This is normal and expected behavior for the free tier.**
 
-1. Sign up at [uptimerobot.com](https://uptimerobot.com) (free)
-2. Click **"+ Add New Monitor"**
-3. Configure:
-   ```
-   Monitor Type: HTTP(s)
-   Friendly Name: Paperez API
-   URL: https://your-paperez-api.onrender.com/health
-   Monitoring Interval: 10 minutes
-   ```
-4. Click **"Create Monitor"**
+**Options:**
 
-**Result:** Your API stays warm 24/7, responses are instant! 🚀
+1. **Accept cold starts** (recommended for hobby projects)
+   - First request after idle: 50 seconds
+   - Perfect for personal research, demos, learning
+
+2. **Upgrade to eliminate cold starts** (production use)
+   - Render Starter: $7/month (no spin-down, guaranteed uptime)
+   - See [Scaling Beyond Free Tier](#scaling-beyond-free-tier) below
+
+**⚠️ Do NOT use keep-alive services** (UptimeRobot, cron jobs, etc.) to circumvent spin-down. This violates Render's Terms of Service.
 
 ---
 
@@ -181,7 +209,7 @@ Deploy both UI and API on the same Render service (simpler, same domain, no CORS
 
 **Cons:**
 - Slower static file serving (no CDN)
-- Still has 15-min sleep issue (use UptimeRobot)
+- Still has 15-min sleep/cold starts (free tier limitation)
 
 **Setup:**
 1. Follow Part 1 above
@@ -224,21 +252,24 @@ Deploy both UI and API on the same Render service (simpler, same domain, no CORS
 Before going public:
 
 - [ ] API deployed and accessible (test: `curl https://your-api.com/health`)
-- [ ] UptimeRobot configured (prevents cold starts)
 - [ ] Browser UI deployed to GitHub Pages
 - [ ] API URL configured in browser UI
-- [ ] Test search functionality
+- [ ] Test search functionality (expect 50-sec cold start on first request)
+- [ ] Understand cold start behavior (normal for free tier)
 - [ ] (Optional) Add custom domain
 - [ ] (Optional) Set up environment variables for API keys
+- [ ] (Optional) Upgrade to paid plan if cold starts are unacceptable
 
 ---
 
 ## Monitoring & Maintenance
 
 ### Free Monitoring Tools
-- **UptimeRobot**: 24/7 uptime monitoring (50 monitors free)
-- **Render Dashboard**: View logs and metrics
-- **GitHub Actions**: Monitor deployment status
+- **Render Dashboard**: View logs, metrics, and deployment status
+- **GitHub Actions**: Monitor deployment status for UI updates
+- **Browser DevTools**: Check API responses and network performance
+
+**Note:** Uptime monitoring services (UptimeRobot, etc.) should NOT be used to circumvent free tier spin-down. This violates ToS.
 
 ### Updating Your Deployment
 
@@ -263,7 +294,13 @@ git push  # GitHub Pages auto-deploys on push
 **Fix:** Verify `window.PAPEREZ_API_URL` is set correctly. Check browser console for CORS errors.
 
 ### Issue: Slow First Request (50+ seconds)
-**Fix:** Set up UptimeRobot to keep API awake (see Part 1, Step 4).
+**This is normal behavior for Render's free tier.** The service spins down after 15 minutes of inactivity.
+
+**Options:**
+1. Accept cold starts (recommended for hobby projects)
+2. Upgrade to Render Starter ($7/month) for instant responses
+
+**Do NOT use keep-alive services** - this violates Render's ToS.
 
 ### Issue: GitHub Pages Shows 404
 **Fix:** Ensure Pages is configured to serve from `/browser-ui` folder, not root.
@@ -276,8 +313,15 @@ git push  # GitHub Pages auto-deploys on push
 |---------|-----------|-------------|
 | Render.com | 750 hrs/mo | $0 |
 | GitHub Pages | Unlimited | $0 |
-| UptimeRobot | 50 monitors | $0 |
 | **Total** | - | **$0/month** |
+
+**Trade-offs with free tier:**
+- ✅ Completely free
+- ✅ Perfect for hobby projects, demos, learning
+- ⚠️ Cold starts (~50 seconds after 15 min idle)
+- ⚠️ Not suitable for production use
+
+**For production:** Upgrade to paid plans ($7-36/month) for guaranteed uptime.
 
 ---
 
