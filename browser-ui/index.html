@@ -62,15 +62,14 @@
         </main>
 
         <footer>
-            <p><a href="https://github.com/JosiahSiegel/paperez-mcp" target="_blank">Paperez</a> · <span id="apiServer">192.168.65.3:8000 (WSL2)</span></p>
+            <p><a href="https://github.com/JosiahSiegel/paperez-mcp" target="_blank">Paperez</a> · <span id="apiServer">localhost:8000</span></p>
         </footer>
     </div>
 
     <script>
-        // WSL2 IP configuration (mirrored networking not working)
-        // Use eth0 IP since Windows firewall blocks localhost forwarding
-        // Get current IP with: ip addr show eth0 | grep "inet "
-        window.PAPEREZ_API_URL = 'http://192.168.65.3:8000';
+        // Browser uses localhost, Windows port proxy forwards to WSL IP
+        // Run fix-port-proxy.ps1 as Administrator to set up port forwarding
+        window.PAPEREZ_API_URL = 'http://localhost:8000';
     </script>
     <script src="app.js"></script>
 </body>
