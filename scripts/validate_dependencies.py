@@ -15,8 +15,7 @@ def check_pdf_dependencies():
     required_deps = [
         ("PyMuPDF", "fitz"),
         ("pymupdf4llm", "pymupdf4llm"),
-        ("pdfplumber", "pdfplumber"),
-        ("lxml", "lxml"),
+        # pdfplumber and lxml removed as unused dependencies (optimization: 161MB saved)
         ("beautifulsoup4", "bs4"),
     ]
 

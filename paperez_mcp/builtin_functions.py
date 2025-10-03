@@ -75,18 +75,20 @@ async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
                     for author in article.authors:
                         if isinstance(author, dict):
                             # Extract firstname and lastname from dict
-                            firstname = author.get('firstname', '')
-                            lastname = author.get('lastname', '')
+                            firstname = author.get("firstname", "")
+                            lastname = author.get("lastname", "")
                             if firstname and lastname:
                                 authors.append(f"{firstname} {lastname}")
                             elif lastname:
                                 authors.append(lastname)
                             elif firstname:
                                 authors.append(firstname)
-                        elif hasattr(author, 'firstname') and hasattr(author, 'lastname'):
+                        elif hasattr(author, "firstname") and hasattr(
+                            author, "lastname"
+                        ):
                             # Extract from object attributes
-                            firstname = getattr(author, 'firstname', '')
-                            lastname = getattr(author, 'lastname', '')
+                            firstname = getattr(author, "firstname", "")
+                            lastname = getattr(author, "lastname", "")
                             if firstname and lastname:
                                 authors.append(f"{firstname} {lastname}")
                             elif lastname:

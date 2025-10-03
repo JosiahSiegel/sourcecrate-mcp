@@ -28,8 +28,8 @@ try:
     WATCHDOG_AVAILABLE = True
 except ImportError:
     WATCHDOG_AVAILABLE = False
-    Observer = None
-    FileSystemEventHandler = None
+    Observer = None  # type: ignore[assignment,misc]
+    FileSystemEventHandler = None  # type: ignore[assignment,misc]
 
 from .schemas import PaperezConfig
 

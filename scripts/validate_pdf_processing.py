@@ -35,6 +35,9 @@ def test_pdf_processor_functions() -> bool:
     """Test that PDF processor functions are available."""
     print("🔍 Testing PDF processor functions...")
 
+    # Add current directory to path for imports
+    sys.path.insert(0, ".")
+
     try:
         from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
 

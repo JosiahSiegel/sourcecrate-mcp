@@ -162,12 +162,38 @@ async def process_papers(
                                 paper["download_error"] = (
                                     f"Failed to save markdown: {save_result.get('error')}"
                                 )
+                                # Clean up PDF file since markdown save failed
+                                try:
+                                    import os
+
+                                    if os.path.exists(pdf_file_path):
+                                        os.remove(pdf_file_path)
+                                        logger.info(
+                                            f"Cleaned up PDF after failed markdown save: {pdf_file_path}"
+                                        )
+                                except Exception as e:
+                                    logger.warning(
+                                        f"Failed to clean up PDF file {pdf_file_path}: {e}"
+                                    )
                         else:
                             paper["download_success"] = False
                             paper["download_status"] = "failed"
                             paper["download_error"] = (
                                 f"Failed to convert to markdown: {markdown_result.get('error')}"
                             )
+                            # Clean up PDF file since markdown conversion failed
+                            try:
+                                import os
+
+                                if os.path.exists(pdf_file_path):
+                                    os.remove(pdf_file_path)
+                                    logger.info(
+                                        f"Cleaned up PDF after failed markdown conversion: {pdf_file_path}"
+                                    )
+                            except Exception as e:
+                                logger.warning(
+                                    f"Failed to clean up PDF file {pdf_file_path}: {e}"
+                                )
                     else:
                         # PDF-only mode: keep the PDF file
                         paper["local_pdf"] = pdf_file_path
