@@ -8,7 +8,8 @@
         "paperez-mcp"
       ],
       "env": {
-        "UNPAYWALL_EMAIL": "research@example.com"
+        "UNPAYWALL_EMAIL": "research@example.com",
+        "PATH": "/home/node/.local/bin:${PATH}"
       }
     },
     "paperez-mcp-local": {
@@ -20,7 +21,9 @@
         "/mnt/d/repos/paperez-mcp",
         "paperez-mcp"
       ],
-      "env": {}
+      "env": {
+        "PATH": "/home/node/.local/bin:${PATH}"
+      }
     },
     "context7": {
       "type": "stdio",
