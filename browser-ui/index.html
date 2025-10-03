@@ -62,14 +62,13 @@
         </main>
 
         <footer>
-            <p><a href="https://github.com/JosiahSiegel/paperez-mcp" target="_blank">Paperez</a> · <span id="apiServer">localhost:8000</span></p>
+            <p><a href="https://github.com/JosiahSiegel/paperez-mcp" target="_blank">Paperez</a> · <span id="apiServer">localhost:8001</span></p>
         </footer>
     </div>
 
     <script>
-        // Browser uses localhost, Windows port proxy forwards to WSL IP
-        // Run fix-port-proxy.ps1 as Administrator to set up port forwarding
-        window.PAPEREZ_API_URL = 'http://localhost:8000';
+        // VS Code port forwarding: container port 8000 → Windows localhost:8001
+        window.PAPEREZ_API_URL = 'http://localhost:8001';
     </script>
     <script src="app.js"></script>
 </body>
