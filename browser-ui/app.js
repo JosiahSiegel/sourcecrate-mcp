@@ -367,61 +367,10 @@ function buildPaperCard(paper, index, showBadge = true) {
     const cleanAbstract = stripHtmlTags(paper.abstract);
     const abstract = truncateText(cleanAbstract, 500);
 
-    // Helper function to ensure URLs are absolute
-    const makeAbsoluteUrl = (url, source) => {
-        if (!url) return null;
-
-        // Already absolute
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-            return url;
-        }
-
-        // Source-specific URL construction
-        const sourceLower = source?.toLowerCase();
-
-        // ERIC uses ?id= query parameter format
-        if (sourceLower === 'eric') {
-            const ericId = url.startsWith('/') ? url.substring(1) : url;
-            return `https://eric.ed.gov/?id=${ericId}`;
-        }
-
-        // Handle relative URLs based on source
-        const sourceBaseUrls = {
-            'pubmed': 'https://pubmed.ncbi.nlm.nih.gov',
-            'pubmed_central': 'https://www.ncbi.nlm.nih.gov/pmc',
-            'europe_pmc': 'https://europepmc.org/article/MED',
-            'arxiv': 'https://arxiv.org',
-            'crossref': 'https://doi.org',
-            'openalex': 'https://openalex.org',
-            'semantic_scholar': 'https://www.semanticscholar.org/paper',
-            'openlibrary': 'https://openlibrary.org',
-            'doaj': 'https://doaj.org/article',
-            'core': 'https://core.ac.uk/display',
-            'biorxiv': 'https://www.biorxiv.org/content',
-            'medrxiv': 'https://www.medrxiv.org/content',
-            'chemrxiv': 'https://chemrxiv.org/engage/chemrxiv/article-details',
-            'ssrn': 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=',
-            'clinicaltrials': 'https://clinicaltrials.gov/study',
-        };
-
-        const baseUrl = sourceBaseUrls[sourceLower];
-        if (baseUrl) {
-            // For SSRN, URL is just the ID
-            if (sourceLower === 'ssrn') {
-                const ssrnId = url.replace(/[^0-9]/g, '');
-                return `${baseUrl}${ssrnId}`;
-            }
-            return `${baseUrl}${url.startsWith('/') ? url : '/' + url}`;
-        }
-
-        // If we don't know the source, return null to skip this URL
-        console.warn(`Relative URL without known source: ${url} from ${source}`);
-        return null;
-    };
-
     // Build access links - always show at least one link
+    // Note: Server now normalizes all URLs to absolute, no client-side normalization needed
     let accessLinks = '';
-    let pdfUrl = makeAbsoluteUrl(paper.pdf_url, paper.source) || makeAbsoluteUrl(paper.open_access_pdf, paper.source);
+    let pdfUrl = paper.pdf_url || paper.open_access_pdf;
 
     // Filter out DOI URLs - they redirect to publisher pages (HTML), not direct PDFs
     if (!isValidPdfUrl(pdfUrl)) {
@@ -454,9 +403,9 @@ function buildPaperCard(paper, index, showBadge = true) {
                         </a>`;
     }
 
-    const viewUrl = makeAbsoluteUrl(paper.url, paper.source);
-    if (viewUrl) {
-        accessLinks += `<a href="${viewUrl}" target="_blank" class="btn btn-small">View Online</a>`;
+    // Use server-normalized URL directly
+    if (paper.url) {
+        accessLinks += `<a href="${paper.url}" target="_blank" class="btn btn-small">View Online</a>`;
     } else if (paper.doi) {
         accessLinks += `<a href="https://doi.org/${paper.doi}" target="_blank" class="btn btn-small">View via DOI</a>`;
     }
@@ -539,7 +488,8 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 45) {
     const filterText = pdfOnly ? ' (Direct Download only)' : '';
     showStatus(`Searching for "${query}"${filterText}...`, 'loading');
 
-    const url = `${API_BASE_URL}/api/v1/search/stream?query=${encodeURIComponent(query)}&limit=${limit}`;
+    // Build URL with optional server-side filters
+    const url = `${API_BASE_URL}/api/v1/search/stream?query=${encodeURIComponent(query)}&limit=${limit}&pdf_only=${pdfOnly}&min_relevance=${minRelevance}`;
     const eventSource = new EventSource(url);
     currentEventSource = eventSource;
 

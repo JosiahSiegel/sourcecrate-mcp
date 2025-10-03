@@ -223,6 +223,8 @@ async def search_papers_sse(
     limit: int = 10,
     force_category: str | None = None,
     debug: bool = False,
+    pdf_only: bool = False,
+    min_relevance: int = 0,
 ) -> StreamingResponse:
     """
     Search academic papers with true Server-Sent Events (SSE) streaming.
@@ -262,6 +264,8 @@ async def search_papers_sse(
         limit: Maximum number of results (default: 10)
         force_category: Force specific source category (optional)
         debug: Include diagnostic information (default: False)
+        pdf_only: Only return papers with direct PDF downloads (default: False)
+        min_relevance: Minimum relevance score 0-100 (default: 0, no filtering)
 
     Returns:
         StreamingResponse with text/event-stream content type
@@ -284,6 +288,28 @@ async def search_papers_sse(
         last_keepalive = start_time
         max_duration = 300  # 5 minutes
         keepalive_interval = 30  # seconds
+
+        # Helper function to filter results based on pdf_only and min_relevance
+        def should_include_result(paper: dict) -> bool:
+            """Filter paper based on pdf_only and min_relevance settings."""
+            # Filter by PDF availability
+            if pdf_only:
+                pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
+                if not pdf_url:
+                    return False
+                # Filter out DOI URLs - they're not direct PDFs
+                if "doi.org/" in str(pdf_url):
+                    return False
+
+            # Filter by relevance score
+            if min_relevance > 0:
+                relevance = paper.get("relevance_score", 0)
+                # Convert to percentage (0-100 scale)
+                relevance_pct = int(relevance * 100) if relevance else 0
+                if relevance_pct < min_relevance:
+                    return False
+
+            return True
 
         try:
             # Send search start event
@@ -356,7 +382,10 @@ async def search_papers_sse(
                     if update.results:
                         for result in update.results:
                             result_id = id(result.data)
-                            if result_id not in delivered_result_ids:
+                            if (
+                                result_id not in delivered_result_ids
+                                and should_include_result(result.data)
+                            ):
                                 all_results.append(result.data)
                                 delivered_result_ids.add(result_id)
                                 yield f"event: results\ndata: {json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})}\n\n"
@@ -389,7 +418,10 @@ async def search_papers_sse(
                     if update.results:
                         for result in update.results:
                             result_id = id(result.data)
-                            if result_id not in delivered_result_ids:
+                            if (
+                                result_id not in delivered_result_ids
+                                and should_include_result(result.data)
+                            ):
                                 all_results.append(result.data)
                                 delivered_result_ids.add(result_id)
                                 yield f"event: results\ndata: {json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})}\n\n"

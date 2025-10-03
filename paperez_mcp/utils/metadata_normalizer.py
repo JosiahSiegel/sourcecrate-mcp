@@ -207,6 +207,74 @@ class MetadataNormalizer:
 
         return abstract.strip()
 
+    def normalize_url(self, url: str | None, source: str | None = None) -> str | None:
+        """
+        Normalize and convert relative URLs to absolute URLs based on source.
+
+        This function handles source-specific URL formatting to ensure all URLs
+        are absolute and properly formatted.
+
+        Args:
+            url: URL to normalize (can be relative or absolute)
+            source: Source name for determining base URL
+
+        Returns:
+            Absolute URL or None if URL is invalid
+        """
+        if not url:
+            return None
+
+        # Already absolute
+        if url.startswith("http://") or url.startswith("https://"):
+            return url
+
+        # Source-specific URL construction
+        source_lower = source.lower() if source else ""
+
+        # Define base URLs for each source
+        source_base_urls: dict[str, str] = {
+            "pubmed": "https://pubmed.ncbi.nlm.nih.gov",
+            "pubmed_central": "https://www.ncbi.nlm.nih.gov/pmc",
+            "europe_pmc": "https://europepmc.org/article/MED",
+            "arxiv": "https://arxiv.org",
+            "crossref": "https://doi.org",
+            "openalex": "https://openalex.org",
+            "semantic_scholar": "https://www.semanticscholar.org/paper",
+            "openlibrary": "https://openlibrary.org",
+            "doaj": "https://doaj.org/article",
+            "core": "https://core.ac.uk/display",
+            "biorxiv": "https://www.biorxiv.org/content",
+            "medrxiv": "https://www.medrxiv.org/content",
+            "chemrxiv": "https://chemrxiv.org/engage/chemrxiv/article-details",
+            "ssrn": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=",
+            "clinicaltrials": "https://clinicaltrials.gov/study",
+            "eric": "https://eric.ed.gov/",
+        }
+
+        # ERIC uses special ?id= query parameter format
+        if source_lower == "eric":
+            eric_id = url[1:] if url.startswith("/") else url
+            return f"https://eric.ed.gov/?id={eric_id}"
+
+        # SSRN uses abstract_id parameter
+        if source_lower == "ssrn":
+            ssrn_id = re.sub(r"[^0-9]", "", url)  # Extract ID only
+            return f"https://papers.ssrn.com/sol3/papers.cfm?abstract_id={ssrn_id}"
+
+        # Get base URL for source
+        base_url = source_base_urls.get(source_lower)
+        if base_url:
+            # Add leading slash if not present
+            if not url.startswith("/"):
+                url = "/" + url
+            return f"{base_url}{url}"
+
+        # If we don't know the source, return None to avoid creating invalid URLs
+        logger.debug(
+            f"Cannot normalize relative URL without known source: {url} from {source}"
+        )
+        return None
+
     def calculate_completeness_score(self, paper_data: dict[str, Any]) -> float:
         """
         Calculate metadata completeness score (0.0 to 1.0)
@@ -270,15 +338,22 @@ class MetadataNormalizer:
         normalized["abstract"] = self.normalize_abstract(paper_data.get("abstract", ""))
         normalized["year"] = self.normalize_date(paper_data.get("year"))
 
+        # Get source for URL normalization
+        source = paper_data.get("source", "")
+        normalized["source"] = source.strip() if isinstance(source, str) else source
+
+        # Normalize URLs to ensure they're absolute
+        normalized["url"] = self.normalize_url(paper_data.get("url"), source)
+        normalized["pdf_url"] = self.normalize_url(paper_data.get("pdf_url"), source)
+        normalized["open_access_pdf"] = self.normalize_url(
+            paper_data.get("open_access_pdf"), source
+        )
+
         # Pass through other fields as-is but clean strings
         for field in [
             "journal",
             "doi",
-            "url",
-            "pdf_url",
-            "open_access_pdf",
             "citation_count",
-            "source",
         ]:
             value = paper_data.get(field)
             if isinstance(value, str):
