@@ -112,7 +112,7 @@ sources:
         abstract: item.abstract
         journal: item.categories
         year: item.publishedDate
-        url: item.doi
+        url: item.id  # ChemRxiv article-details URL uses item ID, not DOI
         citation_count: "0"
         pdf_url: item.asset.original.url
       rate_limit_delay: 1.0

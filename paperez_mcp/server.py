@@ -2986,7 +2986,7 @@ categories:
         abstract: item.abstract
         year: item.publishedDate
         doi: item.doi
-        url: item.url
+        url: item.id  # ChemRxiv article-details URL uses item ID, not DOI
       rate_limit_delay: 0.5
 
 # Similar preprint servers you can add:
