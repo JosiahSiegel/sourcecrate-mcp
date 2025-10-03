@@ -577,25 +577,23 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 45) {
 
     // Error handling
     eventSource.addEventListener('error', (e) => {
-        let errorMsg = 'Unknown error';
-        try {
-            const data = JSON.parse(e.data);
-            errorMsg = data.error;
+        // Note: e.data only exists for server-sent 'error' events, not connection errors
+        if (e.data) {
+            try {
+                const data = JSON.parse(e.data);
+                const errorMsg = data.error || 'Unknown error';
 
-            if (data.fatal) {
-                eventSource.close();
-                currentEventSource = null;
-                showStatus(`Error: ${errorMsg}`, 'error');
-            } else {
-                // Non-fatal error, continue
-                console.warn(`Source error: ${data.source} - ${errorMsg}`);
+                if (data.fatal) {
+                    eventSource.close();
+                    currentEventSource = null;
+                    showStatus(`Error: ${errorMsg}`, 'error');
+                } else {
+                    // Non-fatal error, continue
+                    console.warn(`Source error: ${data.source} - ${errorMsg}`);
+                }
+            } catch (err) {
+                console.error('Failed to parse error event:', err);
             }
-        } catch (err) {
-            // Connection error
-            console.error('SSE connection error:', err);
-            eventSource.close();
-            currentEventSource = null;
-            showStatus('Connection lost. Please try again.', 'error');
         }
     });
 
