@@ -309,6 +309,42 @@ class MetadataNormalizer:
                 # Clean up malformed URLs from specific providers
                 cleaned_url = self._clean_provider_url(url, domain)
 
+                # Upgrade HTTP to HTTPS for security (fixes Mixed Content errors in HTTPS pages)
+                # Most academic repositories now support HTTPS
+                if cleaned_url.startswith("http://"):
+                    # List of domains known to support HTTPS
+                    https_supported_domains = {
+                        "arxiv.org",
+                        "deepblue.lib.umich.edu",
+                        "doi.org",
+                        "europepmc.org",
+                        "ncbi.nlm.nih.gov",
+                        "pubmed.ncbi.nlm.nih.gov",
+                        "core.ac.uk",
+                        "semanticscholar.org",
+                        "biorxiv.org",
+                        "medrxiv.org",
+                        "chemrxiv.org",
+                        "openalex.org",
+                        "doaj.org",
+                        "eric.ed.gov",
+                        "osf.io",
+                        "cambridge.org",
+                        "springer.com",
+                        "nature.com",
+                        "sciencedirect.com",
+                        "wiley.com",
+                        "tandfonline.com",
+                        "jstor.org",
+                        "nih.gov",
+                        ".edu",  # Most .edu domains support HTTPS
+                    }
+
+                    # Check if domain supports HTTPS
+                    if any(supported in domain for supported in https_supported_domains):
+                        cleaned_url = cleaned_url.replace("http://", "https://", 1)
+                        logger.debug(f"Upgraded to HTTPS: {domain}")
+
                 # Valid absolute URL
                 return cleaned_url
             except Exception as e:
