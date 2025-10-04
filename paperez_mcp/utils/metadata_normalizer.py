@@ -16,6 +16,18 @@ class MetadataNormalizer:
     """Standardizes and normalizes metadata from academic sources"""
 
     def __init__(self) -> None:
+        # Known dead/outdated journal domains that should be filtered out
+        # These domains no longer resolve or have moved to new URLs
+        self.dead_domains = {
+            "ijs.sgmjournals.org",  # International Journal of Systematic Bacteriology (moved)
+            "mic.sgmjournals.org",  # Microbiology (moved)
+            "jmm.sgmjournals.org",  # Journal of Medical Microbiology (moved)
+            "jgv.sgmjournals.org",  # Journal of General Virology (moved)
+            "vir.sgmjournals.org",  # Journal of General Virology (moved)
+            "jim.sgmjournals.org",  # Journal of Infection and Immunity (moved)
+            # Add more dead domains as discovered
+        }
+
         # Common academic title prefixes to handle
         self.title_prefixes = [
             "a ",
@@ -207,26 +219,101 @@ class MetadataNormalizer:
 
         return abstract.strip()
 
+    def _clean_provider_url(self, url: str, domain: str) -> str:
+        """
+        Clean malformed URLs using YAML-configured cleaning rules.
+
+        Applies regex-based URL cleaning rules from base.yaml configuration.
+        Rules can fix known patterns of malformed URLs from specific providers.
+
+        Args:
+            url: The URL to clean
+            domain: The domain of the URL
+
+        Returns:
+            Cleaned URL
+        """
+        import re
+        from paperez_mcp.config.singleton import get_config_manager
+
+        # Get URL cleaning rules from config
+        config_manager = get_config_manager()
+        config = config_manager.config
+        cleaning_rules = config.get("url_cleaning_rules", []) if config else []
+
+        for rule in cleaning_rules:
+            # Skip disabled rules
+            if not rule.get("enabled", True):
+                continue
+
+            # Check if rule applies to this domain
+            rule_domains = rule.get("domains", [])
+            if not any(rule_domain in domain for rule_domain in rule_domains):
+                continue
+
+            # Apply regex substitution
+            pattern = rule.get("regex")
+            replacement = rule.get("replacement", "")
+
+            if pattern:
+                try:
+                    cleaned = re.sub(pattern, replacement, url)
+                    if cleaned != url:
+                        logger.debug(
+                            f"Applied rule '{rule.get('name')}': {url[:80]}... -> {cleaned[:80]}..."
+                        )
+                        return cleaned
+                except Exception as e:
+                    logger.warning(
+                        f"Error applying URL cleaning rule '{rule.get('name')}': {e}"
+                    )
+
+        return url
+
     def normalize_url(self, url: str | None, source: str | None = None) -> str | None:
         """
         Normalize and convert relative URLs to absolute URLs based on source.
 
         This function handles source-specific URL formatting to ensure all URLs
-        are absolute and properly formatted.
+        are absolute and properly formatted. Also filters out known dead domains.
 
         Args:
             url: URL to normalize (can be relative or absolute)
             source: Source name for determining base URL
 
         Returns:
-            Absolute URL or None if URL is invalid
+            Absolute URL or None if URL is invalid or from a dead domain
         """
         if not url:
             return None
 
-        # Already absolute
+        # Handle non-string URLs (e.g., lists)
+        if not isinstance(url, str):
+            return None
+
+        # Check if absolute URL is from a dead domain
         if url.startswith("http://") or url.startswith("https://"):
-            return url
+            try:
+                from urllib.parse import urlparse
+
+                parsed = urlparse(url)
+                domain = parsed.netloc.lower()
+
+                # Filter out known dead domains
+                if domain in self.dead_domains:
+                    logger.debug(
+                        f"Filtered out dead domain: {domain} (URL: {url[:100]}...)"
+                    )
+                    return None
+
+                # Clean up malformed URLs from specific providers
+                cleaned_url = self._clean_provider_url(url, domain)
+
+                # Valid absolute URL
+                return cleaned_url
+            except Exception as e:
+                logger.warning(f"Error parsing URL {url}: {e}")
+                return None
 
         # Source-specific URL construction
         source_lower = source.lower() if source else ""
