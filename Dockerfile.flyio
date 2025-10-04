@@ -57,7 +57,7 @@ EXPOSE 8080
 # Run with gunicorn for production
 CMD ["gunicorn", "paperez_mcp.http_server:app", \
      "--bind", "0.0.0.0:8080", \
-     "--workers", "2", \
+     "--workers", "1", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
      "--timeout", "120", \
      "--keep-alive", "5"]
