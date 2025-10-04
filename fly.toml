@@ -32,7 +32,7 @@ primary_region = 'iad'
     hard_limit = 25  # Max 25 concurrent requests per machine
 
 [[vm]]
-  size = 'shared-cpu-1x'
+  size = 'shared-cpu-2x'  # 512MB RAM (was shared-cpu-1x with 256MB)
 
 [[statics]]
   guest_path = "/app/browser-ui"
