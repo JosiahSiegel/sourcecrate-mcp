@@ -239,7 +239,7 @@ class MetadataNormalizer:
         # Get URL cleaning rules from config
         config_manager = get_config_manager()
         config = config_manager.config
-        cleaning_rules = config.get("url_cleaning_rules", []) if config else []
+        cleaning_rules = config.url_cleaning_rules if config else []
 
         for rule in cleaning_rules:
             # Skip disabled rules

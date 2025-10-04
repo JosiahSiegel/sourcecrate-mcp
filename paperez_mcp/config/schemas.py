@@ -343,6 +343,12 @@ class PaperezConfig(BaseModel):
         description="Named capability profile definitions (reusable capability templates)",
     )
 
+    # URL cleaning rules for fixing malformed URLs
+    url_cleaning_rules: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Regex-based URL cleaning rules for fixing known malformed URL patterns",
+    )
+
     @model_validator(mode="after")
     def validate_paperez_config(self) -> "PaperezConfig":
         """Validate configuration consistency and expand capability profiles."""
