@@ -331,6 +331,22 @@ capability_profiles:
     search_priority: 7
     topic_routing_weight: 1.0
 
+# URL Cleaning Rules
+# Fix malformed URLs from specific providers using regex patterns
+url_cleaning_rules:
+  - name: cambridge_pdf_cleanup_extra_path
+    description: Remove extra path segments after .pdf in Cambridge URLs (OpenAlex bug)
+    domains: [cambridge.org]
+    regex: '(\.pdf)/.*$'
+    replacement: '\1'
+    enabled: true
+  - name: cambridge_pdf_cleanup_extra_chars
+    description: Remove extra uppercase characters before .pdf in Cambridge URLs (e.g., S155192950005094Xa.pdf -> S155192950005094a.pdf)
+    domains: [cambridge.org]
+    regex: '(S[0-9]+)[A-Z]([a-z]?)\.pdf$'
+    replacement: '\1\2.pdf'
+    enabled: true
+
 # Initialize empty collections for sources and categories (populated by domain files)
 sources: {}
 categories: {}
