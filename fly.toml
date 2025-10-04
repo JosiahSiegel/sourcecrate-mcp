@@ -1,0 +1,39 @@
+# fly.toml app configuration file generated for paperez-api on 2025-10-03T17:13:20-07:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'paperez-api'
+primary_region = 'iad'
+
+[build]
+  dockerfile = "Dockerfile.flyio"
+
+[deploy]
+  strategy = "rolling"
+  wait_timeout = "10m"
+
+[env]
+  PORT = "8080"
+  PYTHONUNBUFFERED = "1"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  # Concurrency limits (important for multi-source API calls)
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 10  # Start new machines at 10 concurrent requests
+    hard_limit = 25  # Max 25 concurrent requests per machine
+
+[[vm]]
+  size = 'shared-cpu-1x'
+
+[[statics]]
+  guest_path = "/app/browser-ui"
+  url_prefix = "/"

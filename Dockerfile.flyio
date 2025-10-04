@@ -1,0 +1,63 @@
+# =============================================================================
+# Stage 1: Builder - Install dependencies with full Python image
+# =============================================================================
+FROM python:3.11-bookworm AS builder
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only requirements first for better caching
+COPY pyproject.toml README.md ./
+COPY paperez_mcp ./paperez_mcp
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -e ".[http]"
+
+# =============================================================================
+# Stage 2: Runtime - Slim image with only necessary files
+# =============================================================================
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/usr/local/bin:$PATH"
+
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY paperez_mcp ./paperez_mcp
+COPY browser-ui ./browser-ui
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Expose port
+EXPOSE 8080
+
+# Run with gunicorn for production
+CMD ["gunicorn", "paperez_mcp.http_server:app", \
+     "--bind", "0.0.0.0:8080", \
+     "--workers", "2", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--timeout", "120", \
+     "--keep-alive", "5"]

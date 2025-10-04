@@ -94,7 +94,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only requirements first for better caching
-COPY pyproject.toml setup.py setup.cfg README.md ./
+COPY pyproject.toml README.md ./
 COPY paperez_mcp ./paperez_mcp
 
 # Install Python dependencies
@@ -174,6 +174,7 @@ primary_region = "iad"  # Change to closest region
   auto_stop_machines = false  # Keep running 24/7
   auto_start_machines = true
   min_machines_running = 1
+  processes = ["app"]
 
   # Concurrency limits (important for multi-source API calls)
   [http_service.concurrency]
@@ -184,9 +185,6 @@ primary_region = "iad"  # Change to closest region
 # VM resources
 [[vm]]
   size = "shared-cpu-1x"  # 256MB RAM, 1 shared CPU (free tier)
-  memory = "256mb"
-  cpu_kind = "shared"
-  cpus = 1
 
 # Health checks
 [[checks]]
