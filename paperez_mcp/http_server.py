@@ -457,9 +457,12 @@ async def search_papers_sse(
         event_generator(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-transform",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",  # Disable nginx buffering
+            "Content-Type": "text/event-stream; charset=utf-8",
+            "Transfer-Encoding": "chunked",  # Force chunked encoding for SSE
+            "Access-Control-Allow-Origin": "*",  # Allow CORS for browser clients
         },
     )
 
