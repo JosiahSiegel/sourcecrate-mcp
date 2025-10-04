@@ -315,7 +315,10 @@ async def search_papers_sse(
 
         try:
             # Send search start event
-            yield f"event: search_start\ndata: {json.dumps({'query': query, 'limit': limit, 'timestamp': time.time()})}\n\n"
+            yield {
+                "event": "search_start",
+                "data": json.dumps({'query': query, 'limit': limit, 'timestamp': time.time()})
+            }
 
             # Get search functions and API status
             from paperez_mcp.server import _lazy_import_search_functions, get_api_status
@@ -331,7 +334,10 @@ async def search_papers_sse(
 
             search_funcs = _lazy_import_search_functions()
             if not search_funcs:
-                yield f"event: error\ndata: {json.dumps({'error': 'No search functions available'})}\n\n"
+                yield {
+                    "event": "error",
+                    "data": json.dumps({'error': 'No search functions available'})
+                }
                 return
 
             api_status = get_api_status()
@@ -369,12 +375,15 @@ async def search_papers_sse(
                     logger.warning(
                         f"SSE connection timeout after {elapsed:.1f}s (max {max_duration}s)"
                     )
-                    yield f"event: error\ndata: {json.dumps({'error': 'Connection timeout', 'elapsed': elapsed, 'fatal': True})}\n\n"
+                    yield {
+                        "event": "error",
+                        "data": json.dumps({'error': 'Connection timeout', 'elapsed': elapsed, 'fatal': True})
+                    }
                     break
 
                 # Send keepalive comment to prevent client timeout
                 if time.time() - last_keepalive > keepalive_interval:
-                    yield ": keepalive\n\n"
+                    yield {"comment": "keepalive"}
                     last_keepalive = time.time()
 
                 update_type = update.type
@@ -390,7 +399,10 @@ async def search_papers_sse(
                             ):
                                 all_results.append(result.data)
                                 delivered_result_ids.add(result_id)
-                                yield f"event: results\ndata: {json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})}\n\n"
+                                yield {
+                                    "event": "results",
+                                    "data": json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})
+                                }
 
                 elif update_type == "source_complete":
                     # Source finished - only send notification (sorted results delivered via "result" and "final" updates)
@@ -403,17 +415,26 @@ async def search_papers_sse(
                         if source_name
                         else 0
                     )
-                    yield f"event: source_complete\ndata: {json.dumps({'source': source_name, 'count': result_count, 'completed': sources_completed, 'total': total_sources})}\n\n"
+                    yield {
+                        "event": "source_complete",
+                        "data": json.dumps({'source': source_name, 'count': result_count, 'completed': sources_completed, 'total': total_sources})
+                    }
 
                     # Send progress update
                     if total_sources > 0:
                         progress_pct = (sources_completed / total_sources) * 100
-                        yield f"event: progress\ndata: {json.dumps({'completed': sources_completed, 'total': total_sources, 'percentage': progress_pct, 'results_count': len(all_results)})}\n\n"
+                        yield {
+                            "event": "progress",
+                            "data": json.dumps({'completed': sources_completed, 'total': total_sources, 'percentage': progress_pct, 'results_count': len(all_results)})
+                        }
 
                 elif update_type == "error":
                     # Source error (non-fatal, continue with other sources)
                     error_msg = update.error or "Unknown error"
-                    yield f"event: error\ndata: {json.dumps({'source': update.source, 'error': error_msg, 'fatal': False})}\n\n"
+                    yield {
+                        "event": "error",
+                        "data": json.dumps({'source': update.source, 'error': error_msg, 'fatal': False})
+                    }
 
                 elif update_type == "final":
                     # All sources complete - send any remaining results
@@ -426,11 +447,17 @@ async def search_papers_sse(
                             ):
                                 all_results.append(result.data)
                                 delivered_result_ids.add(result_id)
-                                yield f"event: results\ndata: {json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})}\n\n"
+                                yield {
+                                    "event": "results",
+                                    "data": json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})
+                                }
                     break
 
             # Send completion event
-            yield f"event: complete\ndata: {json.dumps({'total_results': len(all_results), 'sources_searched': total_sources, 'query': query, 'timestamp': time.time()})}\n\n"
+            yield {
+                "event": "complete",
+                "data": json.dumps({'total_results': len(all_results), 'sources_searched': total_sources, 'query': query, 'timestamp': time.time()})
+            }
 
         except asyncio.CancelledError:
             # Client disconnected - clean up gracefully
@@ -446,7 +473,10 @@ async def search_papers_sse(
             import traceback
 
             traceback.print_exc()
-            yield f"event: error\ndata: {json.dumps({'error': str(e), 'fatal': True})}\n\n"
+            yield {
+                "event": "error",
+                "data": json.dumps({'error': str(e), 'fatal': True})
+            }
 
         finally:
             # Always clean up streaming state when connection closes
