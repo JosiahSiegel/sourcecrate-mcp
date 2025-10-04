@@ -13,11 +13,47 @@
 //
 // ============================================================================
 
-// API Configuration
+// API Configuration with Smart Auto-Detection
 // For production deployment, set window.PAPEREZ_API_URL before loading this script:
 // <script>window.PAPEREZ_API_URL = 'https://your-api.onrender.com';</script>
 // Or create a config.js file with: window.PAPEREZ_API_URL = 'https://...';
-const API_BASE_URL = window.PAPEREZ_API_URL || 'http://localhost:8000';
+
+/**
+ * Smart API URL detection with fallback chain:
+ * 1. Explicit window.PAPEREZ_API_URL (highest priority)
+ * 2. Auto-detect based on current page port (dev container friendly)
+ * 3. Default to localhost:8000
+ */
+function getApiUrl() {
+    // 1. Check explicit config (highest priority)
+    if (window.PAPEREZ_API_URL) {
+        return window.PAPEREZ_API_URL;
+    }
+
+    // 2. Auto-detect based on current page URL (dev container friendly)
+    const currentPort = window.location.port;
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+
+    // Production deployment: no port or standard HTTP(S) ports → use same origin
+    if (!currentPort || currentPort === '80' || currentPort === '443') {
+        return `${protocol}//${hostname}`;
+    }
+
+    if (currentPort === '3000') {
+        // UI on 3000, API on 8000 (standard dev setup)
+        return `${protocol}//${hostname}:8000`;
+    } else if (currentPort === '3001') {
+        // UI forwarded to 3001, API likely on 8001 (VS Code port forwarding)
+        return `${protocol}//${hostname}:8001`;
+    }
+
+    // 3. Default fallback
+    return 'http://localhost:8000';
+}
+
+const API_BASE_URL = getApiUrl();
+console.log(`[Paperez] Using API URL: ${API_BASE_URL}`);
 
 // ============================================================================
 // 1. DOWNLOAD RELIABILITY TRACKING (CLIENT-SIDE)
@@ -257,12 +293,21 @@ function applyFilters(results) {
     return filtered;
 }
 
-// Sort results by relevance score (descending)
+// Sort results by relevance score (descending), then by title (ascending)
 function sortByRelevance(results) {
     return results.sort((a, b) => {
         const scoreA = a.relevance_score !== undefined ? a.relevance_score : 0;
         const scoreB = b.relevance_score !== undefined ? b.relevance_score : 0;
-        return scoreB - scoreA; // Descending order
+
+        // Primary sort: relevance score descending
+        if (scoreB !== scoreA) {
+            return scoreB - scoreA;
+        }
+
+        // Secondary sort: title ascending (keeps papers with same title together)
+        const titleA = (a.title || '').toLowerCase();
+        const titleB = (b.title || '').toLowerCase();
+        return titleA.localeCompare(titleB);
     });
 }
 
