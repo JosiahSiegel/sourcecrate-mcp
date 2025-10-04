@@ -7,6 +7,7 @@ without needing to write any Python code.
 
 import asyncio
 import logging
+import os
 from typing import Any
 
 import httpx
@@ -67,7 +68,7 @@ class GenericHTTPClient(BaseAPIClient):
         # Request configuration
         self.timeout = config.get("timeout", 30)
         self.headers = config.get("headers", {})
-        self.extra_params = config.get("extra_params", {})
+        self.extra_params = self._expand_env_vars(config.get("extra_params", {}))
 
         # Response parsing
         self.response_format = config.get("response_format", "json")
@@ -94,6 +95,39 @@ class GenericHTTPClient(BaseAPIClient):
 
         # Rate limiting
         self.rate_limit_delay = config.get("rate_limit_delay", 0.1)
+
+    def _expand_env_vars(self, params: dict[str, Any]) -> dict[str, Any]:
+        """Expand environment variables in config parameters.
+
+        Supports ${VAR_NAME} or $VAR_NAME syntax.
+        Falls back to original value if env var not found.
+        """
+        import re
+
+        expanded = {}
+        for key, value in params.items():
+            if isinstance(value, str):
+                # Pattern matches ${VAR} or $VAR
+                pattern = r'\$\{([A-Z_]+)\}|\$([A-Z_]+)'
+
+                def replacer(match: re.Match[str]) -> str:
+                    var_name = match.group(1) or match.group(2)
+                    env_value = os.getenv(var_name)
+                    if env_value:
+                        logger.debug(
+                            f"Expanded ${{{var_name}}} to environment value for {key}"
+                        )
+                        return env_value
+                    # Keep original if env var not found
+                    logger.debug(
+                        f"Environment variable {var_name} not found, keeping original value"
+                    )
+                    return match.group(0)
+
+                expanded[key] = re.sub(pattern, replacer, value)
+            else:
+                expanded[key] = value
+        return expanded
 
     def _get_nested_value(self, data: dict[str, Any], path: str) -> Any:
         """Get value from nested dictionary using dot notation path."""
@@ -196,13 +230,113 @@ class GenericHTTPClient(BaseAPIClient):
         else:
             return [str(authors_data)]
 
+    def _resolve_field_value(
+        self, item: dict[str, Any], paper: dict[str, Any], field_config: Any
+    ) -> Any:
+        """
+        Resolve field value supporting both simple paths and advanced configurations.
+
+        Supports YAML configurations like:
+        ```yaml
+        field_mappings:
+          url:
+            alternatives:
+              - path: fullTextUrlList.fullTextUrl
+                filter_by: {field: site, values: ["Europe_PMC"]}
+                extract: url
+              - path: fullTextUrlList.fullTextUrl.0.url
+              - template: "https://example.com/{pmcid}"
+        ```
+
+        Args:
+            item: Raw API response item
+            paper: Partially constructed paper dict (for template substitution)
+            field_config: String path or dict with alternatives
+
+        Returns:
+            Resolved field value or None
+        """
+        # Simple case: String path (backward compatible)
+        if isinstance(field_config, str):
+            return self._get_nested_value(item, field_config)
+
+        # Advanced case: Dict with alternatives
+        if isinstance(field_config, dict) and "alternatives" in field_config:
+            alternatives = field_config["alternatives"]
+            if not isinstance(alternatives, list):
+                alternatives = [alternatives]
+
+            for alt in alternatives:
+                if isinstance(alt, str):
+                    # Simple path alternative
+                    value = self._get_nested_value(item, alt)
+                    if value:
+                        return value
+
+                elif isinstance(alt, dict):
+                    # Advanced alternative with filtering/template
+
+                    # Template-based construction
+                    if "template" in alt:
+                        template = alt["template"]
+                        try:
+                            # Replace {field} placeholders with values from paper dict
+                            result = template
+                            for key, val in paper.items():
+                                if val and f"{{{key}}}" in template:
+                                    result = result.replace(f"{{{key}}}", str(val))
+                            # Also try from item dict
+                            for key in ["pmcid", "doi", "pmid"]:
+                                val = self._get_nested_value(item, key)
+                                if val and f"{{{key}}}" in result:
+                                    result = result.replace(f"{{{key}}}", str(val))
+                            # Check if all placeholders were replaced
+                            if "{" not in result:
+                                return result
+                        except Exception:
+                            pass
+
+                    # Path with filtering
+                    elif "path" in alt:
+                        value = self._get_nested_value(item, alt["path"])
+
+                        # Apply filtering if specified
+                        if value and "filter_by" in alt:
+                            filter_config = alt["filter_by"]
+                            filter_field = filter_config.get("field")
+                            filter_values = filter_config.get("values", [])
+
+                            if isinstance(value, list) and filter_field:
+                                # Find first item matching filter
+                                for item_in_list in value:
+                                    if isinstance(item_in_list, dict):
+                                        item_value = item_in_list.get(filter_field)
+                                        if item_value in filter_values:
+                                            # Extract specified field
+                                            extract_field = alt.get("extract")
+                                            if extract_field:
+                                                return item_in_list.get(extract_field)
+                                            return item_in_list
+                            # Filtering failed - continue to next alternative
+                            # (don't return unfiltered value)
+
+                        # Return value as-is only if NO filtering was specified
+                        elif value:
+                            extract_field = alt.get("extract")
+                            if extract_field and isinstance(value, dict):
+                                return value.get(extract_field)
+                            return value
+
+        return None
+
     def _standardize_paper(self, item: dict[str, Any]) -> dict[str, Any]:
         """Convert API response item to standard paper format."""
         paper: dict[str, Any] = {}
 
         for standard_field, api_field in self.field_mappings.items():
             if api_field:
-                value = self._get_nested_value(item, api_field)
+                # Use enhanced field resolver (supports both simple and advanced configs)
+                value = self._resolve_field_value(item, paper, api_field)
 
                 if standard_field == "authors":
                     paper[standard_field] = self._parse_authors(value)

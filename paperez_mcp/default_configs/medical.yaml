@@ -104,8 +104,27 @@ sources:
         journal: journalTitle
         year: pubYear
         doi: doi
-        url: fullTextUrlList.fullTextUrl.0.url
-        pdf_url: fullTextUrlList.fullTextUrl.0.url  # Often contains PDF links
+        # Smart URL selection: Prefer Europe PMC/DOI over potentially dead publisher links
+        url:
+          alternatives:
+            - path: fullTextUrlList.fullTextUrl
+              filter_by: {field: site, values: ["Europe_PMC"]}
+              extract: url
+            - path: fullTextUrlList.fullTextUrl
+              filter_by: {field: site, values: ["DOI"]}
+              extract: url
+            - path: fullTextUrlList.fullTextUrl.0.url
+            - template: "https://europepmc.org/article/MED/{pmcid}"
+            - template: "https://doi.org/{doi}"
+        # Smart PDF selection: Only show PDF if actual PDF file is available
+        pdf_url:
+          alternatives:
+            - path: fullTextUrlList.fullTextUrl
+              filter_by: {field: documentStyle, values: ["pdf"]}
+              extract: url
+            - path: fullTextUrlList.fullTextUrl
+              filter_by: {field: documentStyle, values: ["PDF"]}
+              extract: url
         citation_count: citedByCount
       rate_limit_delay: 0.2
 
@@ -155,7 +174,7 @@ sources:
       response_format: json
       results_path: results
       extra_params:
-        mailto: research@paperez.org
+        mailto: ${OPENALEX_EMAIL}
       field_mappings:
         title: title
         authors: authorships

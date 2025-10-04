@@ -6,6 +6,7 @@ It's used by researchers to find legal open access versions when publisher sites
 """
 
 import logging
+import os
 from typing import Any
 
 import httpx
@@ -101,9 +102,17 @@ class UnpaywallClient:
 _unpaywall_client: UnpaywallClient | None = None
 
 
-def get_unpaywall_client(email: str = "research@paperez-mcp.org") -> UnpaywallClient:
-    """Get or create global Unpaywall client instance."""
+def get_unpaywall_client(email: str | None = None) -> UnpaywallClient:
+    """Get or create global Unpaywall client instance.
+
+    Args:
+        email: Email for Unpaywall API. If None, uses UNPAYWALL_EMAIL env var,
+               or falls back to default.
+    """
     global _unpaywall_client
     if _unpaywall_client is None:
-        _unpaywall_client = UnpaywallClient(email=email)
+        # Priority: parameter > environment variable > default
+        final_email = email or os.getenv("UNPAYWALL_EMAIL", "research@paperez-mcp.org")
+        _unpaywall_client = UnpaywallClient(email=final_email)
+        logger.info(f"Initialized Unpaywall client with email: {final_email}")
     return _unpaywall_client
