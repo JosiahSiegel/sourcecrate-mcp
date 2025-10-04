@@ -31,10 +31,11 @@ from typing import Any
 from urllib.parse import quote
 
 import httpx
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
+from sse_starlette.sse import EventSourceResponse
 
 # Import core business logic
 from paperez_mcp.core import (
@@ -219,13 +220,14 @@ async def search_papers_streaming(request: SearchRequest) -> dict[str, Any]:
 
 @app.get("/api/v1/search/stream")
 async def search_papers_sse(
+    request: Request,
     query: str,
     limit: int = 10,
     force_category: str | None = None,
     debug: bool = False,
     pdf_only: bool = False,
     min_relevance: int = 0,
-) -> StreamingResponse:
+) -> EventSourceResponse:
     """
     Search academic papers with true Server-Sent Events (SSE) streaming.
 
@@ -268,7 +270,7 @@ async def search_papers_sse(
         min_relevance: Minimum relevance score 0-100 (default: 0, no filtering)
 
     Returns:
-        StreamingResponse with text/event-stream content type
+        EventSourceResponse with HTTP/2-compatible SSE streaming
     """
 
     async def event_generator() -> AsyncIterator[str]:
@@ -453,9 +455,8 @@ async def search_papers_sse(
                 f"SSE connection closed: query='{query}', duration={time.time() - start_time:.1f}s"
             )
 
-    return StreamingResponse(
+    return EventSourceResponse(
         event_generator(),
-        media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache, no-transform",
             "X-Accel-Buffering": "no",  # Disable nginx buffering
