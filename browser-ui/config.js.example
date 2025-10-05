@@ -3,12 +3,28 @@
 // INSTRUCTIONS:
 // 1. Copy this file to config.js: cp config.js.example config.js
 // 2. Update PAPEREZ_API_URL to your deployed API server URL
-// 3. Add <script src="config.js"></script> BEFORE app.js in index.html
+// 3. The <script src="config.js"></script> tag is already in index.html
 //
-// For local development, you can skip this - app.js defaults to http://localhost:8000
+// For local development, you can skip this - app.js auto-detects:
+//   - UI on port 3000 → API on port 8000
+//   - UI on port 3001 → API on port 8000 (devcontainer)
+//   - Default fallback → http://localhost:8000
 
-// Production API URL (e.g., Render, Fly.io, your own server)
-window.PAPEREZ_API_URL = 'https://paperez-api.onrender.com';
+// === PRODUCTION DEPLOYMENT EXAMPLES ===
 
-// Local development (uncomment to override)
+// Fly.io (same-origin serving, UI + API on same domain)
+// If using fly.toml [[statics]] to serve UI, you can skip this file entirely
+// The UI will auto-detect and use the same origin for API calls
+
+// Fly.io (separate deployment)
+// window.PAPEREZ_API_URL = 'https://paperez-api.fly.dev';
+
+// Render.com
+// window.PAPEREZ_API_URL = 'https://paperez-api.onrender.com';
+
+// Custom domain
+// window.PAPEREZ_API_URL = 'https://api.yoursite.com';
+
+// === LOCAL DEVELOPMENT OVERRIDE ===
+// Uncomment to force a specific local port:
 // window.PAPEREZ_API_URL = 'http://localhost:8000';

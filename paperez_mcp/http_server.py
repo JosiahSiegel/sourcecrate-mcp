@@ -806,16 +806,32 @@ async def internal_error_handler(request: Any, exc: Any) -> JSONResponse:
 
 def main() -> None:
     """Main entry point for HTTP server"""
+    import argparse
     import uvicorn
 
+    parser = argparse.ArgumentParser(description="PaperezMCP HTTP Server")
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to run the server on (default: 8000)",
+    )
+    parser.add_argument(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        help="Host to bind to (default: 0.0.0.0)",
+    )
+    args = parser.parse_args()
+
     logger.info("Starting PaperezMCP HTTP server...")
-    logger.info("OpenAPI docs: http://localhost:8000/docs")
-    logger.info("ReDoc docs: http://localhost:8000/redoc")
+    logger.info(f"OpenAPI docs: http://localhost:{args.port}/docs")
+    logger.info(f"ReDoc docs: http://localhost:{args.port}/redoc")
 
     uvicorn.run(
         app,
-        host="0.0.0.0",
-        port=8000,
+        host=args.host,
+        port=args.port,
         log_level="info",
         access_log=True,
     )

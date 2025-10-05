@@ -1,0 +1,91 @@
+{
+  "name": "PaperezMCP Development",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      "TZ": "${localEnv:TZ:America/Los_Angeles}",
+      "CLAUDE_CODE_VERSION": "latest",
+      "GIT_DELTA_VERSION": "0.18.2",
+      "ZSH_IN_DOCKER_VERSION": "1.2.0"
+    }
+  },
+  // Note: --network=host doesn't work on WSL2/Docker Desktop
+  // VS Code handles port forwarding automatically via forwardPorts
+  "runArgs": [],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "charliermarsh.ruff",
+        "eamodio.gitlens"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "explicit"
+          }
+        },
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "python.linting.enabled": true,
+        "python.linting.ruffEnabled": true,
+        "python.formatting.provider": "black",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "bash",
+            "icon": "terminal-bash"
+          },
+          "zsh": {
+            "path": "zsh"
+          }
+        }
+      }
+    }
+  },
+  "remoteUser": "node",
+  "mounts": [
+    "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=claude-code-config-${devcontainerId},target=/home/node/.claude,type=volume",
+    // Mount Windows drives with proper Windows paths
+    "source=C:/,target=/mnt/c,type=bind,consistency=cached",
+    "source=D:/,target=/mnt/d,type=bind,consistency=cached"
+  ],
+  "containerEnv": {
+    "PATH": "/home/node/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/share/npm-global/bin",
+    "NODE_OPTIONS": "--max-old-space-size=4096",
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+    "CLAUDE_AUTH_CALLBACK_URL": "http://localhost:3000/auth/callback"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
+  "postCreateCommand": "chmod 700 /home/node/.claude && chown -R node:node /home/node/.claude",
+  "waitFor": "postCreateCommand",
+  // Port forwarding configuration for PaperezMCP services
+  // VS Code forwards container ports to Windows localhost
+  // requireLocalPort forces exact port mapping (e.g., 9000→9000, not 9000→9001)
+  "forwardPorts": [9000, 3000, 3001],
+  "portsAttributes": {
+    "9000": {
+      "label": "PaperezMCP HTTP API",
+      "protocol": "http",
+      "onAutoForward": "notify",
+      "requireLocalPort": true
+    },
+    "3000": {
+      "label": "Claude Auth Callback",
+      "protocol": "http",
+      "onAutoForward": "silent"
+    },
+    "3001": {
+      "label": "Browser UI",
+      "protocol": "http",
+      "onAutoForward": "notify"
+    }
+  }
+}

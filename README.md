@@ -115,16 +115,6 @@ python -m http.server 3000
 # Then visit http://localhost:3000
 ```
 
-### Docker Deployment
-
-```bash
-# Build and run with Docker Compose
-docker-compose up
-
-# HTTP API: http://localhost:8000
-# Browser UI: http://localhost:3000
-```
-
 ### API Documentation
 
 - **Interactive Docs**: http://localhost:8000/docs (Swagger UI)
@@ -181,27 +171,42 @@ curl -X POST http://localhost:8000/api/v1/search \
 - **Automation** - Programmatic access via REST API
 - **Remote access** - Deploy on server, access from anywhere
 
-### Free Production Deployment
+### 🔌 Port Configuration
 
-**🚀 Deploy for $0/month:** See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete step-by-step guide.
+The system uses consistent ports across all environments:
 
-**Option 1: Render.com (Easiest)**
-- ✅ 100% free for hobby projects
-- ✅ Simple setup, auto-deploys from GitHub
-- ⚠️ Cold starts after 15 min idle (by design)
-- 👉 [Quick Start Guide](docs/DEPLOYMENT.md)
+| Environment | Component | Port | Access |
+|-------------|-----------|------|--------|
+| **Local Development** | HTTP API | 8000 | `http://localhost:8000` |
+| | Browser UI | 3001 | `http://localhost:3001` |
+| | UI (alternate) | 3000 | `http://localhost:3000` |
+| **Devcontainer (VS Code)** | HTTP API | 8000 | `http://localhost:8000` |
+| | Browser UI | 3001 | `http://localhost:3001` |
+| **Fly.io Production** | HTTP API (internal) | 8080 | N/A (internal only) |
+| | HTTP API (external) | 443 | `https://your-app.fly.dev` |
+| | Browser UI | 443 | `https://your-app.fly.dev/` |
 
-**Option 2: Fly.io (Recommended for Production)**
-- ✅ Better free tier (3 VMs vs 1)
+**Auto-Detection:** The browser UI automatically detects the correct API URL:
+- Local dev → `http://localhost:8000`
+- Production → Same origin (HTTPS)
+- Can be overridden via `config.js`
+
+**Management Scripts:**
+- `scripts/local-manager.sh` - Interactive CLI for local development
+- `scripts/fly-manager.sh` - Interactive CLI for Fly.io operations
+
+### Production Deployment
+
+**🚀 Deploy to Fly.io:** See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete step-by-step guide.
+
+**Why Fly.io:**
+- ✅ Free tier: 3 VMs (vs 1 on alternatives)
 - ✅ No forced spin-down (runs 24/7)
-- ✅ Global edge network, built-in load balancing
-- ✅ Best for 100K+ users ($15-30/month)
-- 👉 [Complete Fly.io Guide](docs/DEPLOYMENT_FLYIO.md)
+- ✅ Global edge network (30+ regions)
+- ✅ 3x rate limits (multi-region IPs)
+- ✅ Scales to 100K users ($15-30/month)
+- 👉 [Complete Deployment Guide](docs/DEPLOYMENT.md)
 
-**Both options include:**
-- Free tier for hobby projects
-- Clear scaling path to production
-- ToS-compliant deployment
 
 ## 📋 Scope & Use Cases
 
@@ -359,15 +364,16 @@ If you encounter problems with the automatic installation:
 
 ## 📚 Documentation
 
-- [Installation Guide](docs/installation.md) - Detailed setup instructions
-- [Configuration Guide](docs/configuration.md) - Advanced configuration options
-- [API Reference](docs/api-reference.md) - Complete tool documentation
-- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
-- [Examples](docs/examples.md) - Usage examples and workflows
+- **[HTTP API Reference](docs/HTTP_API.md)** - Complete REST API documentation
+- **[Configuration Guide](docs/configuration.md)** - Custom sources and advanced config
+- **[Custom Source Guide](docs/CUSTOM_SOURCE_GUIDE.md)** - Add your own academic databases
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment to Fly.io
+- **[Terms of Service](docs/legal/TERMS_OF_SERVICE.md)** - Legal compliance and usage terms
+- **[Development Guide](docs/development/VALIDATION.md)** - Validation and testing
 
 ## ⚖️ Legal & Ethical Usage
 
-**📋 [Complete Terms of Service](TERMS_OF_SERVICE.md) - Full legal compliance details and user obligations**
+**📋 [Complete Terms of Service](docs/legal/TERMS_OF_SERVICE.md) - Full legal compliance details and user obligations**
 
 **All 15+ enabled sources verified legal for academic research (2025):**
 
@@ -428,7 +434,7 @@ If you encounter problems with the automatic installation:
 ## 📄 License & Terms
 
 - **Software License:** MIT License - see the [LICENSE](LICENSE) file for details
-- **Terms of Service:** [TERMS_OF_SERVICE.md](TERMS_OF_SERVICE.md) - Legal compliance and usage terms
+- **Terms of Service:** [TERMS_OF_SERVICE.md](docs/legal/TERMS_OF_SERVICE.md) - Legal compliance and usage terms
 
 ---
 

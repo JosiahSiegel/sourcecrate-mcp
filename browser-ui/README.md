@@ -36,9 +36,18 @@ paperez-http
 python -m paperez_mcp.http_server
 ```
 
-The server runs on `http://localhost:8000`.
+The server runs on `http://localhost:9000`.
 
-### 2. Open the UI
+### 2. Verify API is Running
+
+```bash
+# Test the API endpoint
+curl http://localhost:9000/health
+
+# Should return: {"status":"healthy"}
+```
+
+### 3. Open the UI
 
 Open `index.html` in your browser:
 
@@ -54,7 +63,7 @@ python -m http.server 3000
 # Then visit http://localhost:3000
 ```
 
-### 3. Search Papers
+### 4. Search Papers
 
 1. Enter a search query (e.g., "machine learning", "climate change")
 2. Set max results (1-50)
@@ -65,6 +74,23 @@ Results show:
 - Paper titles, authors, year
 - Abstracts
 - Links to papers, PDFs, and DOIs
+
+## Port Configuration
+
+The UI automatically detects the API URL based on how you're running it:
+
+| UI Access Method | UI Port | API Port | Auto-Detected URL |
+|-----------------|---------|----------|-------------------|
+| Direct file open | N/A | 9000 | `http://localhost:9000` |
+| Local server (python -m http.server 3000) | 3000 | 9000 | `http://localhost:9000` |
+| Devcontainer (VS Code) | 3001 | 9000 | `http://localhost:9000` |
+| Fly.io production (same-origin) | 443 | 8080 | Same origin (HTTPS) |
+| Custom deployment | Varies | Varies | Use `config.js` override |
+
+**How it works:**
+1. UI checks for `window.PAPEREZ_API_URL` from `config.js` (highest priority)
+2. Auto-detects based on current page port (for local dev)
+3. Falls back to `http://localhost:9000` (default local API)
 
 ## API Endpoints Used
 
@@ -128,7 +154,7 @@ Add to `index.html`:
 
 **Option 3: Edit app.js directly (not recommended)**
 ```javascript
-const API_BASE_URL = 'http://your-server:8000';
+const API_BASE_URL = 'http://your-server:9000';
 ```
 
 **Styling:**

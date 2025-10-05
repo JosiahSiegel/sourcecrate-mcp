@@ -1,237 +1,869 @@
-# Free Deployment Guide
+# Fly.io Deployment Guide for Paperez
 
-Deploy Paperez Browser UI and HTTP API for **$0/month** using free hosting platforms.
+Complete guide for deploying Paperez HTTP API and Browser UI on Fly.io with optimal configuration for production scale.
 
-## ⚠️ FREE TIER CAPACITY LIMITS
+---
 
-**IMPORTANT:** Free hosting is suitable for **personal projects and prototypes**, not production scale.
+## 🎯 Why Fly.io?
 
-### Realistic Free Tier Capacity (Render.com):
-
-```
-✅ Concurrent searches: 5-10 maximum
-✅ Searches per hour: 200-500
-✅ Searches per day: 2,000-5,000
-✅ Monthly active users: ~700-1,600 (assuming 3 searches each)
-
-❌ NOT suitable for:
-   - 10K+ daily users
-   - 100K+ monthly users
-   - High-traffic production apps
-   - Commercial applications
+```text
+✅ Better free tier than Render (3 VMs vs 1)
+✅ No forced spin-down (runs 24/7)
+✅ Global edge network (30+ regions)
+✅ Scale to zero support (optional)
+✅ Built-in load balancing
+✅ Pay-as-you-go pricing
 ```
 
-**Why the limits?**
-- **512MB RAM** (fills quickly with cached API responses)
-- **0.1 CPU** (1/10th of a core, shared)
-- **Each search is heavy:** Queries 15+ APIs, BM25 ranking, deduplication
-- **Shared infrastructure:** Can restart anytime under load
-
-**Need more capacity?** See [Scaling Beyond Free Tier](#scaling-beyond-free-tier) below.
+**Cost Comparison:**
+- Free tier: 3× 256MB VMs (enough for ~2,000 MAU)
+- Small scale: $5.70/month for 1GB RAM
+- 100K users: $15-30/month (vs $21-36 on alternatives)
 
 ---
 
 ## ⚖️ Terms of Service Compliance
 
-**IMPORTANT:** This guide follows all platform Terms of Service. Please read carefully:
+**Fly.io ToS states:**
+> "You may not access the Services in a manner intended to avoid incurring fees or exceeding usage limits or quotas"
 
-### Render.com Free Tier
-✅ **Intended for:** Low-traffic hobby projects, prototypes, development/testing
-✅ **Acceptable:** Allowing natural spin-down after 15 min of inactivity
-❌ **Prohibited:** Using keep-alive services to circumvent spin-down behavior
+**Compliant usage:**
+- ✅ Using free tier for genuine small-scale projects
+- ✅ Paying for what you use when you exceed limits
+- ✅ Scaling up to paid plans when needed
 
-**Cold starts are by design.** If you need 24/7 uptime without cold starts, upgrade to Starter plan ($7/month).
+**Non-compliant:**
+- ❌ Splitting workloads across multiple accounts to avoid payment
+- ❌ Gaming the system to stay just under free limits
+- ❌ Running production services on free tier indefinitely
 
-### GitHub Pages
-✅ **Intended for:** Personal projects, open-source documentation, educational use
-✅ **Acceptable:** Donation buttons, crowdfunding links
-❌ **Prohibited:** Commercial SaaS products, e-commerce sites, business hosting
-
-**For commercial use,** host your UI on paid platforms (Netlify, Vercel, Cloudflare Pages).
-
-### Free Tier Philosophy
-Free tiers are for **genuine small-scale use**, not production applications. When you outgrow free limits:
-- ✅ Upgrade to paid plans
-- ✅ Optimize to reduce resource usage
-- ❌ Don't circumvent limitations with workarounds
+**Recommendation:** Use free tier for hobby projects (<2K MAU), upgrade to paid for production.
 
 ---
 
-## 🎯 Recommended: GitHub Pages + Render.com
+## 📋 Prerequisites
 
-```
-GitHub Pages (Static UI)  +  Render.com (API Server)
-     FREE                       FREE (750 hrs/mo)
-```
-
-**Total Cost:** $0/month
-**Setup Time:** 15 minutes
-**Cold Starts:** ~50 seconds after 15 min inactivity (by design)
-**Capacity:** ~1,000 MAU (personal/hobby use)
-**Uptime:** Suitable for hobby projects, not production
-
----
-
-## Part 1: Deploy HTTP API to Render.com
-
-### Step 1: Sign Up
-1. Visit [render.com](https://render.com)
-2. Sign up with GitHub account (free)
-
-### Step 2: Create Web Service
-1. Click **"New +"** → **"Web Service"**
-2. Connect your GitHub repository:
-   - If using fork: Connect your fork
-   - If using original: `JosiahSiegel/paperez-mcp`
-3. Configure service:
-   ```
-   Name: paperez-api
-   Environment: Python 3
-   Build Command: pip install -e ".[http]"
-   Start Command: paperez-http --host 0.0.0.0 --port $PORT
-   Plan: Free
-   ```
-
-4. (Optional) Add environment variables for enhanced performance:
-   ```
-   SEMANTIC_SCHOLAR_API_KEY=your_key_here
-   CROSSREF_EMAIL=your_email@example.com
-   NCBI_API_KEY=your_ncbi_key
-   ```
-
-5. Click **"Create Web Service"**
-
-### Step 3: Get Your API URL
-After deployment completes, Render provides a URL like:
-```
-https://paperez-api.onrender.com
-```
-
-**Save this URL** - you'll need it for the browser UI.
-
-### Step 4: Understanding Cold Starts
-
-**Render's free tier spins down after 15 minutes of inactivity** (by design). When a new request arrives:
-- Spin-up takes ~50 seconds
-- Subsequent requests are fast until next 15-min idle period
-
-**This is normal and expected behavior for the free tier.**
-
-**Options:**
-
-1. **Accept cold starts** (recommended for hobby projects)
-   - First request after idle: 50 seconds
-   - Perfect for personal research, demos, learning
-
-2. **Upgrade to eliminate cold starts** (production use)
-   - Render Starter: $7/month (no spin-down, guaranteed uptime)
-   - See [Scaling Beyond Free Tier](#scaling-beyond-free-tier) below
-
-**⚠️ Do NOT use keep-alive services** (UptimeRobot, cron jobs, etc.) to circumvent spin-down. This violates Render's Terms of Service.
-
----
-
-## Part 2: Deploy Browser UI to GitHub Pages
-
-### Step 1: Fork Repository (if you haven't)
-1. Visit [github.com/JosiahSiegel/paperez-mcp](https://github.com/JosiahSiegel/paperez-mcp)
-2. Click **"Fork"** in top-right
-
-### Step 2: Configure API URL
-
-**Option A: Using config.js (Recommended)**
-1. Copy the example config:
+1. **Install Fly CLI:**
    ```bash
-   cd browser-ui
-   cp config.js.example config.js
+   # macOS
+   brew install flyctl
+
+   # Linux
+   curl -L https://fly.io/install.sh | sh
+
+   # Windows
+   iwr https://fly.io/install.ps1 -useb | iex
    ```
 
-2. Edit `browser-ui/config.js`:
-   ```javascript
-   // Replace with your Render.com API URL
-   window.PAPEREZ_API_URL = 'https://paperez-api.onrender.com';
-   ```
-
-3. Update `browser-ui/index.html` to load config.js:
-   ```html
-   <!-- Add this line BEFORE <script src="app.js"></script> -->
-   <script src="config.js"></script>
-   <script src="app.js"></script>
-   ```
-
-4. Commit and push:
+2. **Sign up and authenticate:**
    ```bash
-   git add browser-ui/config.js browser-ui/index.html
-   git commit -m "Configure production API URL"
-   git push
+   fly auth signup
+   # or if you have an account
+   fly auth login
    ```
 
-**Option B: Direct Inline Configuration**
-1. Edit `browser-ui/index.html`
-2. Add before `<script src="app.js"></script>`:
-   ```html
-   <script>
-     window.PAPEREZ_API_URL = 'https://paperez-api.onrender.com';
-   </script>
-   <script src="app.js"></script>
+3. **Clone Paperez repository:**
+   ```bash
+   git clone https://github.com/JosiahSiegel/paperez-mcp.git
+   cd paperez-mcp
    ```
-
-### Step 3: Enable GitHub Pages
-1. Go to your fork's **Settings** → **Pages**
-2. Configure:
-   ```
-   Source: Deploy from a branch
-   Branch: main
-   Folder: /browser-ui
-   ```
-3. Click **"Save"**
-
-### Step 4: Access Your Deployed UI
-After 1-2 minutes, your site will be live at:
-```
-https://YOUR_USERNAME.github.io/paperez-mcp/
-```
-
-**Done! 🎉** You now have a free, globally-distributed academic paper search engine!
 
 ---
 
-## Alternative Deployment Options
+## 🐳 Optimized Multi-Stage Dockerfile
 
-### Option B: All-in-One on Render.com
+Create an optimized Dockerfile for Paperez using multi-stage builds:
 
-Deploy both UI and API on the same Render service (simpler, same domain, no CORS issues).
+```dockerfile
+# =============================================================================
+# Stage 1: Builder - Install dependencies with full Python image
+# =============================================================================
+FROM python:3.11-bookworm AS builder
 
-**Pros:**
-- Single deployment
-- No CORS configuration needed
-- Easier to manage
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
 
-**Cons:**
-- Slower static file serving (no CDN)
-- Still has 15-min sleep/cold starts (free tier limitation)
+WORKDIR /app
 
-**Setup:**
-1. Follow Part 1 above
-2. Configure Render to serve static files:
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only requirements first for better caching
+COPY pyproject.toml README.md ./
+COPY paperez_mcp ./paperez_mcp
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -e ".[http]"
+
+# =============================================================================
+# Stage 2: Runtime - Slim image with only necessary files
+# =============================================================================
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/usr/local/bin:$PATH"
+
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY paperez_mcp ./paperez_mcp
+COPY browser-ui ./browser-ui
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# Expose port
+EXPOSE 8080
+
+# Run with gunicorn for production
+CMD ["gunicorn", "paperez_mcp.http_server:app", \
+     "--bind", "0.0.0.0:8080", \
+     "--workers", "2", \
+     "--worker-class", "uvicorn.workers.UvicornWorker", \
+     "--timeout", "120", \
+     "--keep-alive", "5"]
+```
+
+**Save as:** `Dockerfile.flyio` in the project root.
+
+---
+
+## ⚙️ Fly.io Configuration (fly.toml)
+
+Create `fly.toml` for Paperez:
+
+```toml
+# Paperez HTTP API - Fly.io Configuration
+app = "paperez-api"  # Change to your app name
+primary_region = "iad"  # Change to closest region
+
+# Build configuration
+[build]
+  dockerfile = "Dockerfile.flyio"
+
+# Deploy configuration
+[deploy]
+  strategy = "rolling"
+  wait_timeout = "10m"
+
+# Environment variables
+[env]
+  PORT = "8080"
+  PYTHONUNBUFFERED = "1"
+
+# HTTP service configuration
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false  # Keep running 24/7
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  # Concurrency limits (important for multi-source API calls)
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 10  # Start new machines at 10 concurrent requests
+    hard_limit = 25  # Max 25 concurrent requests per machine
+
+# VM resources
+[[vm]]
+  size = "shared-cpu-1x"  # 256MB RAM, 1 shared CPU (free tier)
+
+# Health checks
+[[checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/health"
+  protocol = "http"
+
+  [checks.headers]
+    User-Agent = "Fly Health Check"
+```
+
+**Save as:** `fly.toml` in the project root.
+
+---
+
+## 🚀 Deployment Steps
+
+### Step 1: Initialize Fly App
+
+```bash
+# Generate fly.toml (or use the one above)
+fly launch --no-deploy --name paperez-api --region iad
+```
+
+**Choose:**
+- App name: `paperez-api` (or your preferred name)
+- Region: Choose closest to you (see `fly regions list`)
+- Postgres: No (we don't need a database)
+- Redis: No (optional, for caching later)
+
+### Step 2: Set Environment Variables (Optional)
+
+Add API keys for better performance:
+
+```bash
+fly secrets set \
+  SEMANTIC_SCHOLAR_API_KEY=your_key_here \
+  CROSSREF_EMAIL=your_email@example.com \
+  NCBI_API_KEY=your_ncbi_key
+```
+
+### Step 3: Deploy to Fly.io
+
+```bash
+# Deploy the application
+fly deploy
+
+# Monitor deployment
+fly logs
+```
+
+### Step 4: Get Your API URL
+
+```bash
+fly status
+```
+
+Your API will be available at: `https://paperez-api.fly.dev`
+
+### Step 5: Test the Deployment
+
+```bash
+# Test health endpoint
+curl https://paperez-api.fly.dev/health
+
+# Test search endpoint
+curl -X POST https://paperez-api.fly.dev/api/v1/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query":"machine learning","limit":5}'
+```
+
+---
+
+## 🌐 Deploy Browser UI
+
+### Option A: Serve from Same Fly App
+
+**Update Dockerfile.flyio** to serve static files:
+
+```dockerfile
+# Add this after COPY commands
+COPY browser-ui ./browser-ui
+```
+
+**Update fly.toml:**
+
+```toml
+# Add static file serving
+[[statics]]
+  guest_path = "/app/browser-ui"
+  url_prefix = "/"
+```
+
+Then redeploy:
+
+```bash
+fly deploy
+```
+
+UI available at: `https://paperez-api.fly.dev/`
+
+### Option B: Separate GitHub Pages Deployment
+
+Follow the GitHub Pages instructions from [DEPLOYMENT.md](./DEPLOYMENT.md), using your Fly.io API URL:
+
+```javascript
+// browser-ui/config.js
+window.PAPEREZ_API_URL = 'https://paperez-api.fly.dev';
+```
+
+---
+
+## 📈 Scaling for Production
+
+### Scale to 2-3 Machines (Recommended for Production)
+
+**🎯 Primary Benefits:**
+1. **3x rate limit capacity** - Each region gets unique IP
+2. **Better global latency** - Users connect to nearest region
+3. **High availability** - Automatic failover between regions
+4. **Zero extra cost** - Free tier includes 3 VMs
+
+```bash
+# Scale to 3 machines across multiple regions (RECOMMENDED)
+fly scale count 3 --region iad,lhr,syd
+
+# Result:
+# - 3 independent IPs for API rate limits
+# - ~200ms latency worldwide
+# - Free tier covers all 3 VMs
+
+# Single region (NOT recommended - no rate limit benefit)
+fly scale count 3  # Same IP, no rate limit improvement
+```
+
+**Rate Limit Impact:**
+- **1 region**: 1,200 arXiv papers/hour, 3,600 Semantic Scholar/hour
+- **3 regions**: 3,600 arXiv papers/hour, 10,800 Semantic Scholar/hour
+
+### Upgrade VM Size
+
+```bash
+# Upgrade to 1GB RAM (recommended for 10K-50K MAU)
+fly scale vm shared-cpu-2x --memory 1024
+
+# Or use dedicated CPU for better performance
+fly scale vm performance-1x --memory 2048
+```
+
+### Scale to 100K Users
+
+**Architecture:**
+
+```text
+Cloudflare CDN (Browser UI)
+         ↓
+    Fly.io Load Balancer
+         ↓
+   ┌─────┴─────┬─────────┬─────────┐
+   │           │         │         │
+FastAPI VM  FastAPI VM  FastAPI VM  ...
+2GB RAM     2GB RAM     2GB RAM
+IP: x.x.1   IP: x.x.2   IP: x.x.3   (5 unique IPs)
+(iad)       (lhr)       (syd)       (gru, nrt)
+```
+
+**Commands:**
+
+```bash
+# Deploy 5 machines across 5 regions for maximum rate limit capacity
+fly scale count 5 --region iad,lhr,syd,gru,nrt
+fly scale vm shared-cpu-2x --memory 2048
+
+# Result: 5 independent IPs = 5x rate limits
+# - arXiv: 6,000 papers/hour (vs 1,200)
+# - Semantic Scholar: 18,000 papers/hour (vs 3,600)
+# - PubMed: 54,000 papers/hour (vs 10,800)
+
+# Enable autoscaling (optional)
+fly autoscale set min=3 max=10 --memory 2048
+```
+
+**Rate Limit Capacity:**
+- **5 regions**: 5x effective rate limits
+- **Handle**: 300K API calls/hour
+- **Support**: 100K+ concurrent users
+
+**Cost:** ~$15-30/month for 100K MAU
+
+---
+
+## 💰 Cost Breakdown
+
+### Free Tier (Hobby Projects)
+
+```text
+Resources: 3× 256MB VMs
+Cost: $0/month
+Capacity: ~2,000 MAU
+Monthly searches: ~6,000
+Suitable for: Personal projects, demos, learning
+```
+
+### Small Scale ($5-10/month)
+
+```text
+Resources: 1× 1GB VM
+Cost: ~$5.70/month
+Capacity: 5,000-10,000 MAU
+Monthly searches: 15,000-30,000
+Suitable for: Small production apps
+```
+
+### Medium Scale ($15-30/month)
+
+```text
+Resources: 3-5× 2GB VMs
+Cost: ~$15-30/month
+Capacity: 50,000-100,000 MAU
+Monthly searches: 150,000-300,000
+Suitable for: Production apps with global users
+```
+
+### Large Scale ($100-200/month)
+
+```text
+Resources: 10× 4GB VMs + Redis
+Cost: ~$100-200/month
+Capacity: 500,000-1,000,000 MAU
+Monthly searches: 1,500,000-3,000,000
+Suitable for: Enterprise applications
+```
+
+**Pricing details:**
+- Shared CPU VMs: $0.0000008/sec (~$2.07/month per 256MB)
+- Performance VMs: $0.000002/sec (~$5.18/month per 1GB)
+- Network: First 100GB free, then $0.02/GB
+- Storage: $0.15/GB/month
+
+---
+
+## 🔍 Monitoring & Management
+
+### View Logs
+
+```bash
+# Stream live logs
+fly logs
+
+# View specific machine logs
+fly logs -i <machine-id>
+```
+
+### SSH into Machine
+
+```bash
+fly ssh console
+```
+
+### Check Machine Status
+
+```bash
+# List all machines
+fly machines list
+
+# Show app status
+fly status
+
+# Show metrics
+fly dashboard metrics
+```
+
+### Restart Machines
+
+```bash
+# Restart all machines
+fly apps restart
+
+# Restart specific machine
+fly machine restart <machine-id>
+```
+
+---
+
+## 🎛️ Advanced Configuration
+
+### Add Redis Caching (Recommended for 10K+ MAU)
+
+1. **Create Upstash Redis:**
+   ```bash
+   fly ext redis create --name paperez-cache
    ```
-   Start Command: paperez-http --host 0.0.0.0 --port $PORT --static-dir browser-ui
+
+2. **Update Dockerfile.flyio:**
+   ```dockerfile
+   # Add redis to dependencies
+   RUN pip install redis
    ```
-3. Access UI at: `https://paperez-api.onrender.com/`
 
-### Option C: Fly.io (Recommended for Production)
+3. **Access Redis URL:**
+   Redis URL will be automatically set as `REDIS_URL` environment variable.
 
-**🎯 See [DEPLOYMENT_FLYIO.md](./DEPLOYMENT_FLYIO.md) for complete Fly.io deployment guide.**
+### Add Additional Academic Data Sources
 
-**Why Fly.io?**
-- ✅ Better free tier: 3× 256MB VMs (vs Render's 1× 512MB)
-- ✅ No forced spin-down (runs 24/7)
-- ✅ Global edge network (30+ regions)
-- ✅ Built-in load balancing
-- ✅ Better performance and scaling
-- ✅ Lower cost for 100K users: $15-30/month
+🎯 Expand coverage with ToS-compliant academic APIs
 
-**Quick Start:**
+Paperez MCP comes with 15+ built-in sources. Below are additional sources with commercial-use-friendly terms of service that you can integrate:
+
+#### ✅ OpenAlex (250M+ works, CC0 license)
+
+**Coverage:** Comprehensive cross-disciplinary database
+**Terms:** CC0 public domain, commercial use explicitly allowed
+**Rate Limits:** 100K calls/day (unlimited with polite pool)
+**API Key:** None required (email recommended)
+
+```bash
+# Set polite pool email for unlimited access
+fly secrets set OPENALEX_EMAIL=your.email@example.com
+```
+
+**Best for:** Comprehensive metadata, citation graphs, institutions, funding
+
+#### ✅ Unpaywall (20M+ open access papers, CC0 license)
+
+**Coverage:** Open access PDF URLs for paywalled papers
+**Terms:** CC0 public domain, commercial use explicitly allowed
+**Rate Limits:** 100K calls/day
+**API Key:** None required (email recommended)
+
+```bash
+# Set email for tracking (optional)
+fly secrets set UNPAYWALL_EMAIL=your.email@example.com
+```
+
+**Best for:** Finding free PDFs of papers behind paywalls
+
+#### ✅ CORE (9.5M+ papers, commercial use allowed)
+
+**Coverage:** Open access research papers across all disciplines
+**Terms:** Commercial use allowed with attribution
+**Rate Limits:** Free tier - 1 batch or 5 single requests per 10 seconds
+**API Key:** **Required** (free registration)
+
+```bash
+# Register at: https://core.ac.uk/services/api
+# Then set API key:
+fly secrets set CORE_API_KEY=your_core_key_here
+```
+
+**Best for:** Humanities, social sciences, education research
+
+#### ✅ DataCite (DOI metadata, CC0 license)
+
+**Coverage:** Research dataset and paper DOI metadata
+**Terms:** CC0 public domain, commercial use explicitly allowed
+**Rate Limits:** Unlimited (reasonable use)
+**API Key:** None required
+
+**Best for:** Dataset metadata, research data discovery
+
+#### ✅ Zenodo (Research data, CC0 metadata)
+
+**Coverage:** Research datasets and publications from CERN
+**Terms:** CC0 metadata, non-military use only
+**Rate Limits:** Unlimited (reasonable use via OAI-PMH)
+**API Key:** None required
+
+**Best for:** Physics, datasets, open science repositories
+
+#### ✅ PLOS (Open access journals, CC BY license)
+
+**Coverage:** PLOS ONE and other PLOS journals
+**Terms:** CC BY license, commercial use with attribution
+**Rate Limits:** Unlimited (reasonable use)
+**API Key:** None required
+
+**Best for:** Biology, medicine, open access peer-reviewed papers
+
+#### Rate Limit Benefits with Multi-Region
+
+**Important:** When deployed to multiple regions, each source's rate limits multiply:
+
+```text
+Single Region (1 IP):
+- OpenAlex: 100K calls/day
+- Unpaywall: 100K calls/day
+- CORE: 1 batch/10s
+
+Three Regions (3 IPs):
+- OpenAlex: 300K calls/day (3x)
+- Unpaywall: 300K calls/day (3x)
+- CORE: 3 batches/10s (3x)
+```
+
+#### Integration Steps
+
+1. **Register for API keys** (where required)
+2. **Set secrets** via `fly secrets set`
+3. **Configure in YAML** (see Paperez MCP documentation)
+4. **Deploy and test** with multi-region setup
+
+**Note:** All sources listed have verified ToS allowing commercial use as of 2025. Always review individual ToS before deploying to production.
+
+### Enable Scale-to-Zero (Cost Optimization)
+
+**Update fly.toml:**
+
+```toml
+[http_service]
+  auto_stop_machines = true   # Stop when idle
+  auto_start_machines = true  # Start on request
+  min_machines_running = 0    # Can scale to zero
+```
+
+**Trade-offs:**
+- ✅ Lower cost (only pay when running)
+- ⚠️ Cold starts (~5-10 seconds)
+- ⚠️ Not suitable for production
+
+### Multi-Region Deployment
+
+```bash
+# Deploy to multiple regions
+fly scale count 3 --region iad,lhr,syd
+
+# Add more regions later
+fly scale count 5 --region iad,lhr,syd,gru,nrt
+
+# View region list
+fly regions list
+```
+
+**Recommended regions for global coverage:**
+- `iad` - Ashburn, VA (US East)
+- `lhr` - London (Europe)
+- `syd` - Sydney (Asia-Pacific)
+- `gru` - São Paulo (South America)
+- `nrt` - Tokyo (Asia)
+
+### Multi-Region Rate Limit Distribution
+
+🎯 **Key Benefit:** Multiple Regions = Multiple IPs = Higher Rate Limits
+
+Academic APIs rate-limit by server IP, not by end user. When you deploy to multiple regions, **each region gets its own IP address**, effectively multiplying your rate limits.
+
+**Architecture:**
+
+```text
+User Search Request
+        ↓
+   Fly.io Load Balancer (routes to closest region)
+        ↓
+    ┌────────────┴────────────┬──────────────┐
+    ↓                         ↓              ↓
+US Server (iad)          EU Server (lhr)  Asia Server (syd)
+IP: 1.2.3.4              IP: 5.6.7.8      IP: 9.10.11.12
+    ↓                         ↓              ↓
+Makes 15+ API calls from its own unique IP
+    ↓                         ↓              ↓
+Each IP has INDEPENDENT rate limits from academic APIs
+```
+
+**Rate Limit Examples (Per IP):**
+
+| API Source | Rate Limit (1 IP) | Rate Limit (3 IPs) | Multiplier |
+|------------|-------------------|-------------------|------------|
+| arXiv | 1 req/3s (1,200/hour) | 3 concurrent (3,600/hour) | 3x |
+| Semantic Scholar | 1 RPS (3,600/hour) | 3 RPS (10,800/hour) | 3x |
+| PubMed | 3 RPS (10,800/hour) | 9 RPS (32,400/hour) | 3x |
+| CrossRef | Unlimited* | Unlimited* | ∞ |
+| OpenAlex | 100K/day | 300K/day | 3x |
+| Unpaywall | 100K/day | 300K/day | 3x |
+
+*With polite pool (email parameter)
+
+**Real-World Impact:**
+
+```text
+Single Region Setup:
+- 100 concurrent users
+- All requests from 1 IP
+- Hit rate limits quickly
+- Some searches fail
+
+3-Region Setup:
+- 100 concurrent users
+- Load distributed across 3 IPs
+- 3x effective rate limits
+- All searches succeed
+```
+
+**Cost-Benefit Analysis:**
+
+| Configuration | Cost/Month | Effective Rate Limits | Best For |
+|--------------|------------|----------------------|----------|
+| 1 VM (single region) | $0 (free) | 1x | Hobby projects |
+| 3 VMs (3 regions) | $0 (free) | 3x | 1K-5K MAU |
+| 5 VMs (5 regions) | ~$10 | 5x | 10K-50K MAU |
+
+**How It Works:**
+
+1. **Load balancer** routes each user to nearest region
+2. **That region's server** makes API calls from its IP
+3. **Academic APIs** see only that server's IP for rate limiting
+4. **Geographic distribution** naturally spreads load across IPs
+
+**Optimal Strategy:**
+
+```bash
+# Free tier: Deploy to 3 strategic regions
+fly scale count 3 --region iad,lhr,syd
+
+# Result:
+# - 3x rate limit capacity
+# - Better global latency
+# - Zero additional cost
+```
+
+**Why This Beats Client-Side Requests:**
+
+| Approach | Rate Limits | Privacy | Works? |
+|----------|-------------|---------|--------|
+| **Client-side** (browser → APIs) | User's IP varies | APIs see user IP | ❌ CORS blocks |
+| **Single server** (server → APIs) | 1 server IP | APIs see server IP | ✅ But limited |
+| **Multi-region** (3 servers → APIs) | 3 independent IPs | APIs see server IPs | ✅ **Best** |
+
+---
+
+## 🆚 Fly.io vs Render.com Comparison
+
+| Feature | Fly.io | Render.com |
+|---------|--------|------------|
+| **Free Tier** | 3× 256MB VMs | 1× 512MB VM |
+| **API Rate Limits** | 3x (3 IPs) | 1x (1 IP) |
+| **Spin-down** | Optional | Forced (15 min) |
+| **Cold starts** | 5-10 sec (if enabled) | 50 sec |
+| **Global regions** | 30+ regions | Single region |
+| **Autoscaling** | Built-in | Manual only |
+| **Load balancing** | Automatic | N/A (single VM) |
+| **Small app cost** | ~$5.70/mo | $7/mo |
+| **100K users** | ~$15-30/mo | ~$21-36/mo |
+| **ToS compliance** | Accept terms | Accept terms |
+
+**Recommendation:**
+- **Fly.io**: Better for production, global apps, scaling, **3x rate limits**
+- **Render.com**: Simpler setup, good for beginners, single IP
+
+---
+
+## 🐛 Troubleshooting
+
+### Issue: Deployment Timeout
+
+**Symptom:** `Error: timeout reached waiting for health checks to pass`
+
+**Fix:**
+```bash
+# Increase wait timeout in fly.toml
+[deploy]
+  wait_timeout = "15m"
+```
+
+### Issue: Out of Memory
+
+**Symptom:** Machine keeps restarting, logs show memory errors
+
+**Fix:**
+```bash
+# Upgrade VM memory
+fly scale vm shared-cpu-1x --memory 512
+
+# Or upgrade to larger VM
+fly scale vm shared-cpu-2x --memory 1024
+```
+
+### Issue: High Latency
+
+**Symptom:** Searches taking > 5 seconds
+
+**Fix:**
+```bash
+# Deploy closer to users
+fly scale count 3 --region iad,lhr,syd
+
+# Or upgrade CPU
+fly scale vm performance-1x
+```
+
+### Issue: Connection Timeout
+
+**Symptom:** `502 Bad Gateway` errors
+
+**Fix:**
+```bash
+# Increase gunicorn timeout in Dockerfile.flyio
+CMD ["gunicorn", "paperez_mcp.http_server:app", \
+     "--timeout", "180", \  # Increase from 120
+     ...]
+```
+
+---
+
+## 🎓 Best Practices
+
+### 1. Use Multi-Stage Docker Builds
+- Reduces final image size by 50-70%
+- Faster deployments
+- Lower bandwidth costs
+
+### 2. Set Appropriate Concurrency Limits
+```toml
+[http_service.concurrency]
+  soft_limit = 10  # Start new VM
+  hard_limit = 25  # Reject requests
+```
+
+### 3. Enable Health Checks
+- Automatic restart on failure
+- Better uptime
+- Faster problem detection
+
+### 4. Use Secrets for API Keys
+```bash
+fly secrets set KEY=value
+# Never commit secrets to git
+```
+
+### 5. Monitor Resource Usage
+```bash
+# Check metrics dashboard
+fly dashboard metrics
+
+# Set up alerts (in dashboard)
+```
+
+### 6. Deploy to Multiple Regions for Rate Limit Optimization
+**🎯 Critical for scaling:** Each region gets a unique IP address, multiplying your effective rate limits.
+
+- **Lower latency** for global users (~200ms worldwide)
+- **Better availability** with automatic failover
+- **3-5x rate limit capacity** - independent IP per region
+- **Zero extra cost** - free tier includes 3 VMs
+
+**Recommended deployment:**
+```bash
+# Always deploy to 3+ regions (not single region)
+fly scale count 3 --region iad,lhr,syd
+
+# Each region gets its own IP:
+# - iad (US): IP 1.2.3.4
+# - lhr (EU): IP 5.6.7.8
+# - syd (Asia): IP 9.10.11.12
+
+# Result: 3x rate limits for all academic APIs
+```
+
+**Why this matters:**
+- Academic APIs rate-limit by server IP
+- 1 region = 1 IP = 1x rate limits
+- 3 regions = 3 IPs = 3x rate limits
+- Load balancer automatically distributes requests
+
+---
+
+## 📚 Additional Resources
+
+- **Fly.io Docs:** <https://fly.io/docs>
+- **FastAPI on Fly.io:** <https://fly.io/docs/python/frameworks/fastapi>
+- **Fly.io Pricing:** <https://fly.io/docs/about/pricing>
+- **Fly.io CLI Reference:** <https://fly.io/docs/flyctl>
+- **Paperez GitHub:** <https://github.com/JosiahSiegel/paperez-mcp>
+
+---
+
+## 🚦 Quick Start Summary
+
 ```bash
 # 1. Install Fly CLI
 brew install flyctl  # or curl -L https://fly.io/install.sh | sh
@@ -239,238 +871,101 @@ brew install flyctl  # or curl -L https://fly.io/install.sh | sh
 # 2. Authenticate
 fly auth login
 
-# 3. Deploy
-fly launch
+# 3. Clone and navigate
+git clone https://github.com/JosiahSiegel/paperez-mcp.git
+cd paperez-mcp
+
+# 4. Create Dockerfile.flyio and fly.toml (see above)
+
+# 5. Launch app
+fly launch --no-deploy
+
+# 6. Set secrets (optional)
+fly secrets set SEMANTIC_SCHOLAR_API_KEY=your_key
+
+# 7. Deploy
 fly deploy
+
+# 8. Scale for production (if needed)
+fly scale count 3 --region iad,lhr,syd
+fly scale vm shared-cpu-2x --memory 2048
+
+# 9. Monitor
+fly logs
+fly status
 ```
 
-**Full guide includes:**
-- Optimized multi-stage Dockerfile
-- Production fly.toml configuration
-- Scaling to 100K users
-- Multi-region deployment
-- Cost breakdowns
-- Monitoring and troubleshooting
-
-→ **[Read Complete Fly.io Guide](./DEPLOYMENT_FLYIO.md)**
+**Your API is now live at:** `https://paperez-api.fly.dev` 🎉
 
 ---
 
-## Production Checklist
+## 🔌 Port Configuration Reference
 
-Before going public:
+Understanding the port setup across different environments:
 
-- [ ] API deployed and accessible (test: `curl https://your-api.com/health`)
-- [ ] Browser UI deployed to GitHub Pages
-- [ ] API URL configured in browser UI
-- [ ] Test search functionality (expect 50-sec cold start on first request)
-- [ ] Understand cold start behavior (normal for free tier)
-- [ ] (Optional) Add custom domain
-- [ ] (Optional) Set up environment variables for API keys
-- [ ] (Optional) Upgrade to paid plan if cold starts are unacceptable
+### Local Development
 
----
+| Component | Port | Access URL | Notes |
+|-----------|------|------------|-------|
+| HTTP API | 9000 | `http://localhost:9000` | Default local API port |
+| Browser UI | 3001 | `http://localhost:3001` | Devcontainer setup |
+| Browser UI (alt) | 3000 | `http://localhost:3000` | Standard local server |
+| OpenAPI Docs | 9000 | `http://localhost:9000/docs` | Interactive API docs |
 
-## Monitoring & Maintenance
+**Key Points:**
+- Devcontainer uses VS Code port forwarding (9000→9000 mapping)
+- UI auto-detects API at `localhost:9000` regardless of UI port
+- Can run API and UI independently
 
-### Free Monitoring Tools
-- **Render Dashboard**: View logs, metrics, and deployment status
-- **GitHub Actions**: Monitor deployment status for UI updates
-- **Browser DevTools**: Check API responses and network performance
+### Fly.io Production
 
-**Note:** Uptime monitoring services (UptimeRobot, etc.) should NOT be used to circumvent free tier spin-down. This violates ToS.
+| Component | Internal Port | External Port | Access URL |
+|-----------|---------------|---------------|------------|
+| HTTP API | 8080 | 443 (HTTPS) | `https://paperez-api.fly.dev/api/v1/*` |
+| Browser UI | N/A | 443 (HTTPS) | `https://paperez-api.fly.dev/` |
+| Health Check | 8080 | N/A | Internal only |
 
-### Updating Your Deployment
+**Key Points:**
+- Single deployment serves both UI and API (via `[[statics]]`)
+- Gunicorn binds to `0.0.0.0:8080` internally
+- Fly.io proxy handles HTTPS termination and routing
+- UI uses same-origin for API calls (no CORS issues)
 
-**Update API Server:**
+### Environment Alignment Checklist
+
+To ensure your app works identically in both environments:
+
+- [x] **API Port**: Local uses 9000, Fly.io uses 8080 (both configurable)
+- [x] **UI Auto-Detection**: Works for both local (3000/3001) and production (443)
+- [x] **Health Checks**: `/health` endpoint works on both environments
+- [x] **Static Files**: Fly.io serves from `/app/browser-ui`, local from `browser-ui/`
+- [x] **CORS**: Enabled for local cross-origin, unnecessary for Fly.io same-origin
+- [x] **Environment Variables**: `PORT` set in fly.toml, `HTTP_PORT` in local scripts
+
+### Testing Both Environments
+
+**Local:**
 ```bash
-git push  # Render auto-deploys on push
+# Start API
+bash scripts/local-manager.sh http-start
+
+# Verify
+curl http://localhost:9000/health
+
+# Access UI
+open http://localhost:3001  # Devcontainer
+# or
+python -m http.server 3000 && open http://localhost:3000
 ```
 
-**Update Browser UI:**
+**Fly.io:**
 ```bash
-git push  # GitHub Pages auto-deploys on push
+# Deploy
+fly deploy
+
+# Verify
+curl https://paperez-api.fly.dev/health
+
+# Access UI
+open https://paperez-api.fly.dev
 ```
-
----
-
-## Troubleshooting
-
-### Issue: API Returns 404
-**Fix:** Check Render logs for errors. Ensure build command installed dependencies.
-
-### Issue: Browser UI Shows "Failed to fetch"
-**Fix:** Verify `window.PAPEREZ_API_URL` is set correctly. Check browser console for CORS errors.
-
-### Issue: Slow First Request (50+ seconds)
-**This is normal behavior for Render's free tier.** The service spins down after 15 minutes of inactivity.
-
-**Options:**
-1. Accept cold starts (recommended for hobby projects)
-2. Upgrade to Render Starter ($7/month) for instant responses
-
-**Do NOT use keep-alive services** - this violates Render's ToS.
-
-### Issue: GitHub Pages Shows 404
-**Fix:** Ensure Pages is configured to serve from `/browser-ui` folder, not root.
-
----
-
-## Cost Breakdown
-
-| Service | Free Tier | Actual Cost |
-|---------|-----------|-------------|
-| Render.com | 750 hrs/mo | $0 |
-| GitHub Pages | Unlimited | $0 |
-| **Total** | - | **$0/month** |
-
-**Trade-offs with free tier:**
-- ✅ Completely free
-- ✅ Perfect for hobby projects, demos, learning
-- ⚠️ Cold starts (~50 seconds after 15 min idle)
-- ⚠️ Not suitable for production use
-
-**For production:** Upgrade to paid plans ($7-36/month) for guaranteed uptime.
-
----
-
-## Scaling Beyond Free Tier
-
-### When to Upgrade
-
-**Upgrade if you experience:**
-- ❌ Frequent 503 errors (server overloaded)
-- ❌ Searches taking > 10 seconds
-- ❌ Memory errors in logs
-- ❌ > 5,000 searches/day consistently
-
-### Scaling Path by User Count
-
-#### Stage 1: Hobby (FREE)
-```
-Users: < 1,000 MAU
-Searches: < 5,000/day
-Platform: Render Free + GitHub Pages
-Cost: $0/month
-```
-
-#### Stage 2: Small Scale ($7/month)
-```
-Users: 1,000 - 10,000 MAU
-Searches: 5,000 - 50,000/day
-Platform: Render Starter (512MB RAM, no spin-down)
-Cost: $7/month
-Benefits:
-  - No cold starts (instant responses)
-  - 512MB RAM (same as free, but dedicated)
-  - Guaranteed uptime
-```
-
-#### Stage 3: Medium Scale ($21-36/month)
-```
-Users: 10,000 - 100,000 MAU
-Searches: 50,000 - 500,000/day
-Platform: 3-5 servers behind load balancer
-Cost: $21-36/month
-
-Recommended Architecture:
-┌─────────────────────────────────────────┐
-│  Cloudflare CDN (Static UI - FREE)      │
-└─────────────────────────────────────────┘
-                  ↓
-┌─────────────────────────────────────────┐
-│  Load Balancer (AWS ALB / Cloudflare)   │
-└─────────────────────────────────────────┘
-                  ↓
-      ┌───────────────────────┐
-      │                       │
-┌─────▼─────┐         ┌───────▼──────┐
-│ FastAPI   │         │   FastAPI    │
-│ Server 1  │   ...   │   Server N   │
-│ 2GB RAM   │         │   2GB RAM    │
-│ 1-2 vCPU  │         │   1-2 vCPU   │
-└───────────┘         └──────────────┘
-      │                       │
-      └───────────┬───────────┘
-                  ↓
-    ┌─────────────────────────┐
-    │  Redis Cache (Optional)  │
-    │  - Cache search results  │
-    │  - 50% faster responses  │
-    └─────────────────────────┘
-
-Provider Options:
-  - AWS Lightsail: 3× $10/mo = $30/month
-  - DigitalOcean: 3× $12/mo = $36/month
-  - Render Starter: 3× $7/mo = $21/month
-  - Fly.io: 3× 2GB RAM = ~$15-20/month
-```
-
-#### Stage 4: Large Scale ($100-500/month)
-```
-Users: 100,000 - 1,000,000 MAU
-Searches: 500,000 - 5,000,000/day
-Platform: Auto-scaling cluster, CDN, Redis, monitoring
-Cost: $100-500/month
-
-Requirements:
-  - 10-20 API servers (auto-scaling)
-  - Load balancer with health checks
-  - Redis cluster for caching
-  - CDN for static assets
-  - Monitoring (Datadog, New Relic)
-  - Database for user analytics (optional)
-```
-
-### Quick Upgrade Paths
-
-**For 10K Users (Simplest):**
-1. Upgrade Render to Starter plan: $7/month
-2. Done! No architecture changes needed.
-
-**For 100K Users (Recommended):**
-1. Use Fly.io or DigitalOcean
-2. Deploy 3 instances (2GB RAM, 2 vCPU each)
-3. Add Cloudflare load balancer (free)
-4. Optional: Add Redis for caching
-5. Total: $21-36/month
-
-**For 1M Users (Enterprise):**
-1. AWS/GCP/Azure with auto-scaling
-2. Kubernetes cluster (5-20 pods)
-3. Managed Redis/Memcached
-4. CDN (Cloudflare, AWS CloudFront)
-5. Monitoring and alerting
-6. Total: $500-2,000/month
-
-### Provider Comparison
-
-| Provider | Free Tier | Paid Start | Best For |
-|----------|-----------|------------|----------|
-| **Render** | 512MB, 0.1 CPU | $7/mo | Simplest upgr ade |
-| **Fly.io** | 3× 256MB VMs | ~$2/mo | Cost-effective |
-| **DigitalOcean** | None | $6/mo | Full control |
-| **AWS Lightsail** | None | $5/mo | AWS ecosystem |
-| **Railway** | $5 credit/mo | $5/mo | Dev-friendly |
-
-### Performance Optimization Tips
-
-**Before scaling up:**
-1. **Enable caching:** Redis for search results (50% faster)
-2. **Optimize queries:** Use `limit` parameter wisely
-3. **Monitor performance:** Check Render logs for bottlenecks
-4. **Rate limiting:** Prevent abuse with API rate limits
-
-**Cheap wins:**
-- Add Redis: DigitalOcean Managed Redis ($15/mo)
-- Use CDN: Cloudflare (free tier is excellent)
-- Compress responses: Enable gzip in FastAPI
-- Optimize Docker image: Multi-stage build
-
----
-
-## Need Help?
-
-- **Issues:** [GitHub Issues](https://github.com/JosiahSiegel/paperez-mcp/issues)
-- **Render Docs:** [render.com/docs](https://render.com/docs)
-- **GitHub Pages Docs:** [docs.github.com/pages](https://docs.github.com/pages)

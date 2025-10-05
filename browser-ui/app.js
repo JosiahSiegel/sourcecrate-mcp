@@ -41,15 +41,15 @@ function getApiUrl() {
     }
 
     if (currentPort === '3000') {
-        // UI on 3000, API on 8000 (standard dev setup)
-        return `${protocol}//${hostname}:8000`;
+        // UI on 3000, API on 9000 (standard dev setup)
+        return `${protocol}//${hostname}:9000`;
     } else if (currentPort === '3001') {
-        // UI forwarded to 3001, API likely on 8001 (VS Code port forwarding)
-        return `${protocol}//${hostname}:8001`;
+        // UI forwarded to 3001, API on 9000 (devcontainer)
+        return `${protocol}//${hostname}:9000`;
     }
 
     // 3. Default fallback
-    return 'http://localhost:8000';
+    return 'http://localhost:9000';
 }
 
 const API_BASE_URL = getApiUrl();
