@@ -322,7 +322,7 @@ def get_unpaywall_client(email: str | None = None) -> UnpaywallClient:
     global _unpaywall_client
     if _unpaywall_client is None:
         # Priority: parameter > environment variable > default
-        final_email = email or os.getenv("UNPAYWALL_EMAIL", "research@source-crate.org")
+        final_email = email or os.getenv("UNPAYWALL_EMAIL", "research@sourcecrate.org")
         _unpaywall_client = UnpaywallClient(email=final_email)
         logger.info(f"Initialized Unpaywall client with email: {final_email}")
     return _unpaywall_client
@@ -353,7 +353,7 @@ If you have questions about ToS compliance:
 1. Review this document
 2. Check `config.example.yaml` for detailed source information
 3. Consult individual source documentation (linked in configs)
-4. File an issue at https://github.com/JosiahSiegel/source-crate/issues
+4. File an issue at https://github.com/JosiahSiegel/sourcecrate/issues
 
 ---
 

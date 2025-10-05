@@ -189,7 +189,7 @@ python -c "from source_crate.config.manager import ConfigManager; print(ConfigMa
 
 Use the built-in tool for comprehensive help:
 ```
-"Help me configure source-crate"
+"Help me configure sourcecrate"
 ```
 
 This provides complete schemas, examples, and troubleshooting guidance.

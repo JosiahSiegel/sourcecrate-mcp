@@ -94,7 +94,7 @@ RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 # Note: Python dependencies are NOT pre-installed in the image
 # They are installed via uv when needed:
-# - MCP server: uvx --from git+https://github.com/JosiahSiegel/source-crate.git source-crate
+# - MCP server: uvx --from git+https://github.com/JosiahSiegel/sourcecrate.git sourcecrate
 # - HTTP server: uvx --from .[http] sourcecrate-http
 # - Development: uv pip install -e .[dev,http]
 # This keeps the image lean and ensures dependencies match pyproject.toml

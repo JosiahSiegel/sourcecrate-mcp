@@ -88,12 +88,12 @@ jobs:
         if command -v uvx >/dev/null 2>&1; then
           echo "✓ Testing uvx installation..."
           # Test that the package installs and responds to --help
-          uvx --from . source-crate --help > /dev/null
+          uvx --from . sourcecrate --help > /dev/null
           echo "✓ uvx installation working"
         elif [ -f "$HOME/.cargo/bin/uvx" ]; then
           echo "✓ Testing direct uvx path..."
           # Test that the package installs and responds to --help
-          "$HOME/.cargo/bin/uvx" --from . source-crate --help > /dev/null
+          "$HOME/.cargo/bin/uvx" --from . sourcecrate --help > /dev/null
           echo "✓ Direct uvx path working"
         else
           echo "❌ uvx not available - this is required for user installation"
@@ -107,13 +107,13 @@ jobs:
         if (Get-Command uvx -ErrorAction SilentlyContinue) {
           echo "✓ Testing uvx installation..."
           # Test that the package installs and responds to --help
-          uvx --from . source-crate --help | Out-Null
+          uvx --from . sourcecrate --help | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "uvx installation test failed" }
           echo "✓ uvx installation working"
         } elseif (Test-Path "$env:USERPROFILE\.cargo\bin\uvx.exe") {
           echo "✓ Testing direct uvx path..."
           # Test that the package installs and responds to --help
-          & "$env:USERPROFILE\.cargo\bin\uvx.exe" --from . source-crate --help | Out-Null
+          & "$env:USERPROFILE\.cargo\bin\uvx.exe" --from . sourcecrate --help | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "Direct uvx installation test failed" }
           echo "✓ Direct uvx path working"
         } else {

@@ -43,8 +43,8 @@
       "Bash(/home/node/.local/bin/uvx:*)",
       "Read(//workspace/**)",
       "Bash(export:*)",
-      "mcp__source-crate-local__get_status",
-      "mcp__source-crate-remote__get_status",
+      "mcp__sourcecrate-local__get_status",
+      "mcp__sourcecrate-remote__get_status",
       "Bash(git add:*)",
       "Bash(git log:*)",
       "Bash(git commit:*)",
@@ -104,8 +104,8 @@
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "source-crate-remote",
-    "source-crate-local",
+    "sourcecrate-remote",
+    "sourcecrate-local",
     "context7"
   ]
 }

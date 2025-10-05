@@ -10,14 +10,14 @@ Complete REST API reference for SourceCrate v1.1.0+
 
 ```bash
 # Direct from GitHub - no installation needed!
-uvx --from 'git+https://github.com/JosiahSiegel/source-crate.git[http]' sourcecrate-http
+uvx --from 'git+https://github.com/JosiahSiegel/sourcecrate.git[http]' sourcecrate-http
 ```
 
 **Alternative methods:**
 
 ```bash
 # From cloned repository
-cd /path/to/source-crate
+cd /path/to/sourcecrate
 uvx --from '.[http]' sourcecrate-http
 
 # Traditional pip install
@@ -70,7 +70,7 @@ Returns server health status.
 ```json
 {
   "status": "healthy",
-  "service": "source-crate"
+  "service": "sourcecrate"
 }
 ```
 

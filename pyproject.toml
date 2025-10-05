@@ -1,5 +1,5 @@
 [project]
-name = "source-crate"
+name = "sourcecrate"
 version = "2.0.0"
 description = "SourceCrate - Academic paper research made easy with full-text retrieval and multi-source search"
 authors = [{name = "Josiah Siegel"}]
@@ -44,13 +44,13 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/JosiahSiegel/source-crate"
-Repository = "https://github.com/JosiahSiegel/source-crate"
-Issues = "https://github.com/JosiahSiegel/source-crate/issues"
-Documentation = "https://github.com/JosiahSiegel/source-crate#readme"
+Homepage = "https://github.com/JosiahSiegel/sourcecrate"
+Repository = "https://github.com/JosiahSiegel/sourcecrate"
+Issues = "https://github.com/JosiahSiegel/sourcecrate/issues"
+Documentation = "https://github.com/JosiahSiegel/sourcecrate#readme"
 
 [project.scripts]
-source-crate = "source_crate.install_and_run:main"
+sourcecrate = "source_crate.install_and_run:main"
 sourcecrate-http = "source_crate.http_server:main"
 
 [project.optional-dependencies]

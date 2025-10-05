@@ -2,7 +2,7 @@
 
 **Effective Date:** January 7, 2025
 **Project:** SourceCrate
-**Repository:** <https://github.com/JosiahSiegel/source-crate>
+**Repository:** <https://github.com/JosiahSiegel/sourcecrate>
 
 ## 1. Acceptance of Terms
 
@@ -239,4 +239,4 @@ If any provision of these Terms is found to be unenforceable, the remaining prov
 ---
 
 **Last Updated:** January 7, 2025
-**Repository:** <https://github.com/JosiahSiegel/source-crate>
+**Repository:** <https://github.com/JosiahSiegel/sourcecrate>

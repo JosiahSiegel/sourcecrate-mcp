@@ -4,7 +4,7 @@
 
 SourceCrate is a comprehensive MCP server that makes academic research effortless. Get papers from multiple databases, extract full-text content, and convert PDFs to markdown - all with zero-installation via uvx.
 
-[![GitHub](https://img.shields.io/badge/GitHub-JosiahSiegel%2Fsource--crate-blue)](https://github.com/JosiahSiegel/source-crate)
+[![GitHub](https://img.shields.io/badge/GitHub-JosiahSiegel%2Fsource--crate-blue)](https://github.com/JosiahSiegel/sourcecrate)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -16,7 +16,7 @@ SourceCrate is a comprehensive MCP server that makes academic research effortles
 
 #### Option 1: Direct Install from GitHub
 ```bash
-claude mcp add -s project source-crate -- uvx --from git+https://github.com/JosiahSiegel/source-crate.git source-crate
+claude mcp add -s project sourcecrate -- uvx --from git+https://github.com/JosiahSiegel/sourcecrate.git sourcecrate
 ```
 
 #### Option 2: Using Cloned Repository
@@ -24,14 +24,14 @@ Perfect for development or offline use:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/JosiahSiegel/source-crate.git
-cd source-crate
+git clone https://github.com/JosiahSiegel/sourcecrate.git
+cd sourcecrate
 
 # 2. Connect Claude Code using our auto-installer
-claude mcp add -s project source-crate -- python /path/to/source-crate/install_and_run.py
+claude mcp add -s project sourcecrate -- python /path/to/sourcecrate/install_and_run.py
 
 # Or using uvx (also uses auto-installer):
-claude mcp add -s project source-crate -- uvx --from /path/to/source-crate source-crate
+claude mcp add -s project sourcecrate -- uvx --from /path/to/sourcecrate sourcecrate
 ```
 
 ### 🔧 **What the Auto-Installer Does:**
@@ -48,7 +48,7 @@ claude mcp add -s project source-crate -- uvx --from /path/to/source-crate sourc
 Ask Claude naturally:
 - "Download 3 machine learning papers"
 - "Convert this PDF to markdown: /path/to/paper.pdf"
-- "Help me configure source-crate"
+- "Help me configure sourcecrate"
 
 ### Available Tools (8 Functions)
 
@@ -73,15 +73,15 @@ SourceCrate now includes an HTTP/REST API server for browser-based and HTTP clie
 
 #### Option 1: Direct from GitHub
 ```bash
-uvx --from 'git+https://github.com/JosiahSiegel/source-crate.git[http]' sourcecrate-http
+uvx --from 'git+https://github.com/JosiahSiegel/sourcecrate.git[http]' sourcecrate-http
 # Server runs on http://localhost:8000
 ```
 
 #### Option 2: From Cloned Repository
 ```bash
 # 1. Clone the repository
-git clone https://github.com/JosiahSiegel/source-crate.git
-cd source-crate
+git clone https://github.com/JosiahSiegel/sourcecrate.git
+cd sourcecrate
 
 # 2. Run with uvx
 uvx --from '.[http]' sourcecrate-http
@@ -336,8 +336,8 @@ If you encounter problems with the automatic installation:
 2. **Check installation logs** - Look for dependency installation failures in the terminal
 3. **Manual fallback installation:**
    ```bash
-   # Navigate to the source-crate directory
-   cd /path/to/source-crate
+   # Navigate to the sourcecrate directory
+   cd /path/to/sourcecrate
 
    # Run the installer manually to see detailed output
    python install_and_run.py
@@ -354,10 +354,10 @@ If you encounter problems with the automatic installation:
 ```json
 {
   "mcpServers": {
-    "source-crate": {
+    "sourcecrate": {
       "type": "stdio",
       "command": "python",
-      "args": ["/path/to/source-crate/install_and_run.py"]
+      "args": ["/path/to/sourcecrate/install_and_run.py"]
     }
   }
 }

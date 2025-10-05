@@ -64,8 +64,8 @@ Complete guide for deploying SourceCrate HTTP API and Browser UI on Fly.io with 
 
 3. **Clone SourceCrate repository:**
    ```bash
-   git clone https://github.com/JosiahSiegel/source-crate.git
-   cd source-crate
+   git clone https://github.com/JosiahSiegel/sourcecrate.git
+   cd sourcecrate
    ```
 
 ---
@@ -858,7 +858,7 @@ fly scale count 3 --region iad,lhr,syd
 - **FastAPI on Fly.io:** <https://fly.io/docs/python/frameworks/fastapi>
 - **Fly.io Pricing:** <https://fly.io/docs/about/pricing>
 - **Fly.io CLI Reference:** <https://fly.io/docs/flyctl>
-- **SourceCrate GitHub:** <https://github.com/JosiahSiegel/source-crate>
+- **SourceCrate GitHub:** <https://github.com/JosiahSiegel/sourcecrate>
 
 ---
 
@@ -872,8 +872,8 @@ brew install flyctl  # or curl -L https://fly.io/install.sh | sh
 fly auth login
 
 # 3. Clone and navigate
-git clone https://github.com/JosiahSiegel/source-crate.git
-cd source-crate
+git clone https://github.com/JosiahSiegel/sourcecrate.git
+cd sourcecrate
 
 # 4. Create Dockerfile.flyio and fly.toml (see above)
 
