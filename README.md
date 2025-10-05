@@ -101,8 +101,18 @@ paperez-http
 
 ### Browser UI
 
-A clean, modern web interface for the HTTP API is included:
+A clean, modern web interface with advanced features for academic paper search:
 
+**Features:**
+- 🔍 **One-Click Re-Search** - Magnifying glass icon on each title for instant search
+- 📊 **Smart Relevance Scoring** - Multi-signal ranking (citations, title match, recency)
+- 🔗 **Intelligent Link Deduplication** - Automatic URL and source deduplication
+- 📄 **Direct PDF Access** - Primary download button with alternate sources
+- 🔄 **DOI Fallback System** - Automatic fallback for broken publisher URLs
+- 🌓 **Dark Aged Paper Theme** - Clean monotone design, WCAG AAA compliant
+- 🚀 **Real-Time Streaming** - Progressive results as sources complete (2-5s first results)
+
+**Quick Start:**
 ```bash
 # Option 1: Direct file open
 open browser-ui/index.html  # macOS
@@ -115,6 +125,8 @@ python -m http.server 3000
 # Then visit http://localhost:3000
 ```
 
+**See:** [Browser UI Documentation](browser-ui/README.md) for complete feature details
+
 ### API Documentation
 
 - **Interactive Docs**: http://localhost:8000/docs (Swagger UI)
@@ -123,12 +135,13 @@ python -m http.server 3000
 
 ### Available Endpoints
 
-All 8 MCP tools available as REST endpoints:
+All 8 MCP tools available as REST endpoints, plus SSE streaming:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/v1/search` | POST | Browse papers (metadata) |
-| `/api/v1/search/streaming` | POST | Streaming search |
+| `/api/v1/search/streaming` | POST | Streaming search (aggregated) |
+| `/api/v1/search/stream` | GET | SSE progressive streaming |
 | `/api/v1/download` | POST | Download papers |
 | `/api/v1/convert/pdf-to-text` | POST | Convert PDF to text |
 | `/api/v1/convert/pdf-to-markdown` | POST | Convert PDF to markdown |

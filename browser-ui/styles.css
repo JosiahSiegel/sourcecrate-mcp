@@ -246,13 +246,59 @@ section {
     transition: background-color 5000s ease-in-out 0s;
 }
 
-/* Classic Checkbox */
+/* Custom Styled Checkbox */
 .form-group input[type="checkbox"] {
-    margin-right: 0.75rem;
+    /* Hide default checkbox */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+    /* Custom styling */
     width: 20px;
     height: 20px;
+    margin-right: 0.75rem;
+    border: 2px solid var(--text-secondary);
+    border-radius: 3px;
+    background-color: var(--bg-primary);
     cursor: pointer;
-    accent-color: var(--accent-color);
+    position: relative;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+}
+
+.form-group input[type="checkbox"]:hover {
+    border-color: var(--accent-color);
+    background-color: rgba(166, 124, 82, 0.1);
+}
+
+.form-group input[type="checkbox"]:checked {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+/* Checkmark */
+.form-group input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--bg-primary);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.form-group input[type="checkbox"]:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+/* Better label styling for checkbox */
+.form-group label {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
 }
 
 /* Mobile: larger touch targets */
@@ -516,6 +562,42 @@ input[type="range"]::-moz-range-thumb:hover {
     letter-spacing: 0.02em; /* Improved readability */
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: flex-start; /* Align to first line */
+    gap: 0.75rem;
+}
+
+/* Title Search Icon - Magnifying Glass */
+.title-search-icon {
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    transition: all 0.15s ease-out;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 44px; /* WCAG touch target minimum */
+    min-height: 44px;
+    margin-top: -0.125rem; /* Fine-tune vertical alignment with first line */
+}
+
+.title-search-icon:hover {
+    color: var(--accent-color);
+    background-color: rgba(166, 124, 82, 0.1);
+    transform: scale(1.1);
+}
+
+.title-search-icon:active {
+    transform: scale(0.95);
+}
+
+/* Keyboard focus state */
+.title-search-icon:focus-visible {
+    outline: 3px solid var(--accent-color);
+    outline-offset: 2px;
 }
 
 .download-badge,

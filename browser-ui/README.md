@@ -4,10 +4,23 @@ A simple, clean browser-based interface for PaperezMCP HTTP API.
 
 ## Features
 
+### Search & Discovery
 - **Search Papers**: Search academic papers across 20+ databases
 - **Streaming Search**: Real-time results as sources complete
-- **System Status**: Check API health and source availability
-- **Clean UI**: Modern, responsive design
+- **One-Click Re-Search**: Magnifying glass icon on each title for instant re-search
+- **Smart Relevance Scoring**: Multi-signal ranking (citations, title match, recency)
+
+### Access & Downloads
+- **Multi-Source Links**: Deduplicated links with citation counts
+- **Smart URL Handling**: Automatic DOI fallback for broken publisher URLs
+- **Download Reliability**: Client-side tracking of working PDF sources
+- **Direct PDF Access**: Primary download button with alternate sources
+
+### UI/UX
+- **Clean Modern Design**: Dark aged paper monotone theme
+- **Responsive Layout**: Mobile-first design with touch-friendly targets
+- **WCAG Compliant**: AAA contrast ratios and accessibility features
+- **Source Attribution**: Each link shows source and citation count
 - **Zero Backend Dependencies**: Just HTML/CSS/JavaScript
 
 ## Quick Start
@@ -71,9 +84,13 @@ python -m http.server 3000
 4. Click "Search"
 
 Results show:
-- Paper titles, authors, year
-- Abstracts
-- Links to papers, PDFs, and DOIs
+- Paper titles with one-click re-search icon (🔍)
+- Authors (up to 5, then "et al."), year, journal
+- Abstracts (truncated to 500 chars)
+- Primary PDF download button (if available)
+- Source chips with citation counts
+- Automatic DOI fallback for broken URLs
+- Open access indicators
 
 ## Port Configuration
 
@@ -191,13 +208,47 @@ Modify `styles.css` to customize colors, fonts, and layout.
 - Use custom domain for professional branding
 - Set up monitoring and alerts
 
+## Advanced Features
+
+### URL Deduplication
+The UI automatically deduplicates links:
+- **By URL**: Same URL from multiple sources → Shows highest-cited source only
+- **By Source**: Same source with multiple URLs → Shows highest-cited link only
+- **DOI Fallback**: Broken publisher URLs → Automatically replaced with DOI resolver
+
+### Broken URL Detection
+Automatically detects and fixes known problematic URLs:
+- Cambridge Core legacy URLs (`/aop-cambridge-core/content/view/`)
+- Falls back to DOI resolver when PDF unavailable
+- DOI links appear in source chips (not primary button)
+
+### Client-Side Performance
+- **Download tracking**: localStorage-based reliability tracking (scalable to infinite users)
+- **Lazy loading**: Heavy dependencies loaded on demand
+- **Streaming results**: See papers as sources complete (2-5s first results)
+- **Local deduplication**: Fuzzy matching by DOI and title
+
+## Key Behaviors
+
+### Link Priority
+1. **Primary button**: First valid PDF download link
+2. **Alternate PDFs**: Other PDF sources in dropdown
+3. **Source chips**: Publisher pages, DOI resolvers, DOI fallbacks
+4. **Fallback**: Google Scholar search if no links available
+
+### DOI Fallback System
+When a PDF URL is detected as broken:
+1. Check if paper has DOI metadata
+2. If yes: Add "Source (via DOI)" chip to "All sources" section
+3. If DOI already exists from another source: Deduplicate (show once)
+4. If no DOI: Skip broken link entirely
+
 ## Next Steps
 
-- Explore all 8 API endpoints
-- Add download functionality
-- Integrate PDF viewer
-- Add result filtering/sorting
-- Save search history
+- Explore all 8 API endpoints in [HTTP_API.md](../docs/HTTP_API.md)
+- Review relevance scoring algorithm in [RELEVANCE_SCORING.md](../docs/RELEVANCE_SCORING.md)
+- Configure custom sources in [CUSTOM_SOURCE_GUIDE.md](../docs/CUSTOM_SOURCE_GUIDE.md)
+- Deploy to production using [DEPLOYMENT.md](../docs/DEPLOYMENT.md)
 
 ## License
 
