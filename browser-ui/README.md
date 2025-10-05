@@ -181,9 +181,15 @@ Modify `styles.css` to customize colors, fonts, and layout.
 ## Files
 
 - `index.html` - Main UI structure
-- `app.js` - API client logic
 - `styles.css` - UI styling
 - `config.js.example` - Example production configuration
+- `js/` - **Modular ES6 JavaScript** (see MODULARIZATION.md)
+  - `utils.js` - Pure utility functions (558 lines)
+  - `state.js` - State management & localStorage (207 lines)
+  - `api.js` - API client & SSE streaming (262 lines)
+  - `rendering.js` - UI rendering & paper cards (589 lines)
+  - `app.js` - Main entry point (102 lines)
+- `MODULARIZATION.md` - Module structure documentation
 - `README.md` - This file
 
 ## Production Deployment
