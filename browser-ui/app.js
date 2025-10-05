@@ -233,6 +233,7 @@ let totalSources = 0;
 let pdfOnlyFilter = false;
 let relevanceThreshold = 35; // Default 35% (permanent)
 let currentQuery = ''; // Store current search query for title matching
+let renderedPaperKeys = new Set(); // Track which papers are already rendered (prevents re-rendering)
 
 // ============================================================================
 // FILTERING AND SORTING UTILITIES
@@ -244,9 +245,16 @@ function applyFilters(results) {
 
     // Filter by PDF availability
     if (pdfOnlyFilter) {
-        filtered = filtered.filter(paper =>
-            isValidPdfUrl(paper.pdf_url) || isValidPdfUrl(paper.open_access_pdf)
-        );
+        filtered = filtered.filter(paper => {
+            // Check _source_links for actual PDF entries (modern approach)
+            if (paper._source_links && paper._source_links.length > 0) {
+                return paper._source_links.some(link =>
+                    link.type === 'pdf' && isValidPdfUrl(link.url)
+                );
+            }
+            // Fallback to legacy fields for backward compatibility
+            return isValidPdfUrl(paper.pdf_url) || isValidPdfUrl(paper.open_access_pdf);
+        });
     }
 
     // Filter by relevance threshold
@@ -414,6 +422,27 @@ function normalizeDoi(doi) {
         .replace('http://doi.org/', '')
         .replace('doi:', '')
         .trim();
+}
+
+/**
+ * Get full DOI URL from DOI string
+ * Converts any DOI format to full https://doi.org/ URL
+ * @param {string} doi - DOI string (may be partial or full URL)
+ * @returns {string|null} Full DOI URL or null
+ */
+function getFullDoiUrl(doi) {
+    if (!doi) return null;
+
+    // If already a full URL, return as-is
+    if (doi.startsWith('https://doi.org/') || doi.startsWith('http://doi.org/')) {
+        return doi.replace('http://', 'https://'); // Ensure https
+    }
+
+    // Remove 'doi:' prefix if present
+    const cleanDoi = doi.replace(/^doi:\s*/i, '').trim();
+
+    // Build full URL
+    return `https://doi.org/${cleanDoi}`;
 }
 
 /**
@@ -844,13 +873,65 @@ function buildHybridSourceLinks(paper) {
     // Combine pages and DOI fallbacks for "All sources" section
     const allPages = [...pages, ...doiFallbacks];
 
+    // Ensure DOI link is always included if paper has DOI (and normalize existing DOI URLs)
+    if (paper.doi) {
+        const fullDoiUrl = getFullDoiUrl(paper.doi);
+        const normalizedDoi = normalizeDoi(paper.doi);
+
+        // Only proceed if we have a valid DOI URL
+        if (fullDoiUrl && isValidUrl(fullDoiUrl)) {
+            // Check if any existing link is a DOI URL (compare normalized versions)
+            let doiLinkIndex = -1;
+            for (let i = 0; i < allPages.length; i++) {
+                const access = allPages[i];
+                if (access.url && access.url.includes('doi.org/')) {
+                    const existingNormalizedDoi = normalizeDoi(access.url);
+                    if (existingNormalizedDoi === normalizedDoi) {
+                        doiLinkIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            if (doiLinkIndex >= 0) {
+                // Found existing DOI link - update it to use full normalized URL
+                allPages[doiLinkIndex].url = fullDoiUrl;
+                allPages[doiLinkIndex].label = 'DOI';
+            } else {
+                // No DOI link exists - add it
+                allPages.push({
+                    type: 'page',
+                    url: fullDoiUrl,
+                    label: 'DOI',
+                    source: 'DOI',
+                    citation_count: 0,
+                    is_fallback: false
+                });
+            }
+        }
+    }
+
     // Deduplicate by URL (prevent same DOI appearing twice)
+    // For DOI URLs, use normalized DOI for comparison to catch all variants
     const uniquePages = [];
     const seenUrls = new Set();
+    const seenDois = new Set();
+
     allPages.forEach(access => {
-        if (!seenUrls.has(access.url)) {
-            seenUrls.add(access.url);
-            uniquePages.push(access);
+        // For DOI URLs, check normalized DOI
+        if (access.url && access.url.includes('doi.org/')) {
+            const normalizedDoi = normalizeDoi(access.url);
+            if (!seenDois.has(normalizedDoi)) {
+                seenDois.add(normalizedDoi);
+                seenUrls.add(access.url);
+                uniquePages.push(access);
+            }
+        } else {
+            // For non-DOI URLs, check exact URL
+            if (!seenUrls.has(access.url)) {
+                seenUrls.add(access.url);
+                uniquePages.push(access);
+            }
         }
     });
 
@@ -902,8 +983,16 @@ function buildHybridSourceLinks(paper) {
 
     // Source chips - show page links and DOI fallbacks (PDFs handled by button + dropdown above)
     if (uniquePages.length > 0) {
-        // Sort by citation count descending (left to right = highest to lowest)
+        // Sort: DOI first, then by citation count descending
         const sortedPages = [...uniquePages].sort((a, b) => {
+            const aIsDoi = a.url && a.url.includes('doi.org/');
+            const bIsDoi = b.url && b.url.includes('doi.org/');
+
+            // DOI links always come first
+            if (aIsDoi && !bIsDoi) return -1;
+            if (!aIsDoi && bIsDoi) return 1;
+
+            // If both DOI or both non-DOI, sort by citation count
             const countA = parseInt(a.citation_count) || 0;
             const countB = parseInt(b.citation_count) || 0;
             return countB - countA;
@@ -937,12 +1026,25 @@ function buildHybridSourceLinks(paper) {
             const isDoiUrl = access.url.includes('doi.org/');
             const chipClass = isDoiUrl ? 'source-chip-doi' : 'source-chip-page';
 
+            // Simplify label: show "Publisher" or "DOI" instead of database source names
+            let displayLabel = access.label;
+            if (isDoiUrl) {
+                displayLabel = 'DOI';
+            } else {
+                // Replace database source names with "Publisher"
+                const dbSources = ['crossref', 'semantic scholar', 'pubmed', 'arxiv', 'google scholar', 'europe pmc', 'doaj', 'core'];
+                const labelLower = access.label.toLowerCase();
+                if (dbSources.some(db => labelLower.includes(db))) {
+                    displayLabel = 'Publisher';
+                }
+            }
+
             html += `<a href="${access.url}"
                        target="_blank"
                        rel="noopener noreferrer"
                        class="source-chip ${chipClass}"
                        title="${isDoiUrl ? 'DOI Resolver' : 'Publisher page'}">
-                       ${access.label}${citationText}
+                       ${displayLabel}${citationText}
                      </a>`;
         });
 
@@ -1029,23 +1131,34 @@ function buildLegacyLinks(paper) {
         html += `<div class="all-sources-chips">
             <span class="sources-label">All sources:</span>`;
 
-        if (paper.url && isValidUrl(paper.url)) {
-            // Check if the URL is actually a DOI URL
-            const isDoiUrl = paper.url.includes('doi.org/');
-            const chipClass = isDoiUrl ? 'source-chip-doi' : 'source-chip-page';
+        // Always add DOI first if available (normalized)
+        if (paper.doi) {
+            const fullDoiUrl = getFullDoiUrl(paper.doi);
+            if (fullDoiUrl && isValidUrl(fullDoiUrl)) {
+                html += `<a href="${fullDoiUrl}"
+                           target="_blank"
+                           class="source-chip source-chip-doi"
+                           title="DOI Resolver">
+                           DOI${citationText}
+                         </a>`;
+            }
+        }
+
+        // Then add paper.url if it exists and is NOT a DOI (avoid duplicates)
+        if (paper.url && isValidUrl(paper.url) && !paper.url.includes('doi.org/')) {
+            // Simplify label
+            let displayLabel = paper.source || 'Unknown';
+            const dbSources = ['crossref', 'semantic scholar', 'pubmed', 'arxiv', 'google scholar', 'europe pmc', 'doaj', 'core'];
+            const labelLower = displayLabel.toLowerCase();
+            if (dbSources.some(db => labelLower.includes(db))) {
+                displayLabel = 'Publisher';
+            }
 
             html += `<a href="${paper.url}"
                        target="_blank"
-                       class="source-chip ${chipClass}"
-                       title="${isDoiUrl ? 'DOI Resolver' : 'Publisher page'}">
-                       ${paper.source || 'Unknown'}${citationText}
-                     </a>`;
-        } else if (paper.doi) {
-            html += `<a href="https://doi.org/${paper.doi}"
-                       target="_blank"
-                       class="source-chip source-chip-doi"
-                       title="DOI Resolver">
-                       ${paper.source || 'Unknown'}${citationText}
+                       class="source-chip source-chip-page"
+                       title="Publisher page">
+                       ${displayLabel}${citationText}
                      </a>`;
         }
 
@@ -1166,6 +1279,62 @@ function buildPaperCard(paper, index, showBadge = true) {
     // Escape title for safe onclick attribute
     const escapedTitle = (paper.title || 'Untitled').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
+    // Build research metadata badges
+    let metadataBadges = '';
+
+    // DOI Badge (highest priority) - Copy icon SVG
+    if (paper.doi) {
+        const fullDoiUrl = getFullDoiUrl(paper.doi);
+        metadataBadges += `<span class="metadata-badge badge-doi" title="Click to copy DOI URL"
+                                 onclick="navigator.clipboard.writeText('${fullDoiUrl}')"
+                                 style="cursor: pointer;">
+                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                             </svg>
+                             ${fullDoiUrl}
+                           </span>`;
+    }
+
+    // Open Access Badge - Lock icon SVG
+    const isOpenAccess = paper.is_open_access || paper.isOpenAccess || paper.open_access;
+    if (isOpenAccess) {
+        metadataBadges += `<span class="metadata-badge badge-open-access" title="Open Access - Free to read and reuse">
+                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                             </svg>
+                             Open Access
+                           </span>`;
+    }
+
+    // Preprint Detection (from source name) - Alert triangle icon SVG
+    const preprintSources = ['arxiv', 'biorxiv', 'medrxiv', 'socarxiv', 'osf preprints', 'preprint'];
+    const isPreprint = paper.source && preprintSources.some(ps => paper.source.toLowerCase().includes(ps));
+    if (isPreprint) {
+        metadataBadges += `<span class="metadata-badge badge-preprint" title="Preprint - Not peer-reviewed">
+                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                             </svg>
+                             Preprint
+                           </span>`;
+    }
+
+    // Citation Count Badge - Bar chart icon SVG
+    const citationCount = parseInt(paper.citation_count) || 0;
+    if (citationCount > 0) {
+        metadataBadges += `<span class="metadata-badge badge-citations" title="Number of citations">
+                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
+                                <line x1="18" y1="20" x2="18" y2="10"></line>
+                                <line x1="12" y1="20" x2="12" y2="4"></line>
+                                <line x1="6" y1="20" x2="6" y2="14"></line>
+                             </svg>
+                             ${citationCount.toLocaleString()} citation${citationCount !== 1 ? 's' : ''}
+                           </span>`;
+    }
+
     return `
         <div class="paper-card ${showBadge ? 'paper-card-streaming' : ''}">
             <div class="paper-header">
@@ -1185,6 +1354,7 @@ function buildPaperCard(paper, index, showBadge = true) {
                     </span>
                 </h3>
             </div>
+            ${metadataBadges ? `<div class="research-metadata-badges">${metadataBadges}</div>` : ''}
             <div class="paper-meta">
                 <span class="meta-item"><strong>Authors:</strong> ${authors}</span>
                 <span class="meta-item"><strong>Year:</strong> ${formatDate(paper.year)}</span>
@@ -1198,6 +1368,34 @@ function buildPaperCard(paper, index, showBadge = true) {
     `;
 }
 
+/**
+ * Update results summary without touching paper cards
+ * Prevents flash by only updating the summary section
+ */
+function updateResultsSummary(count) {
+    const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
+    const summaryHtml = `<p>Found <strong>${count}</strong> papers${pdfInfo} (${sourcesCompleted}/${totalSources || '?'} sources completed)</p>`;
+
+    let summaryDiv = document.getElementById('results-summary');
+
+    if (!summaryDiv) {
+        // Create summary on first run
+        summaryDiv = document.createElement('div');
+        summaryDiv.id = 'results-summary';
+        summaryDiv.className = 'results-summary';
+
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.insertBefore(summaryDiv, resultsDiv.firstChild);
+    }
+
+    // Update content (only summary, doesn't touch paper cards)
+    summaryDiv.innerHTML = summaryHtml;
+}
+
+/**
+ * Incremental rendering: Only add NEW papers to DOM
+ * Prevents flash by never touching existing cards
+ */
 function renderStreamingResults() {
     const resultsDiv = document.getElementById('results');
 
@@ -1218,17 +1416,51 @@ function renderStreamingResults() {
         filteredResults = sortByRelevance([...filteredResults]);
     }
 
-    // Build summary message (hide relevance info since it's permanent 35%)
-    const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
-    let html = `<div class="results-summary">
-        <p>Found <strong>${filteredResults.length}</strong> papers${pdfInfo} (${sourcesCompleted}/${totalSources || '?'} sources completed)</p>
-    </div>`;
+    // Update summary (separate from cards to avoid flash)
+    updateResultsSummary(filteredResults.length);
 
-    filteredResults.forEach((paper, index) => {
-        html += buildPaperCard(paper, index, true);
+    // Get existing results container or create it
+    let resultsContainer = document.getElementById('results-container');
+    if (!resultsContainer) {
+        // Clear "Searching..." message and create fresh container
+        resultsDiv.innerHTML = '';
+
+        resultsContainer = document.createElement('div');
+        resultsContainer.id = 'results-container';
+        resultsDiv.appendChild(resultsContainer);
+    }
+
+    // Identify new papers (not yet rendered)
+    const newPapers = filteredResults.filter(paper => {
+        const key = getPaperKey(paper);
+        return !renderedPaperKeys.has(key);
     });
 
-    resultsDiv.innerHTML = html;
+    if (newPapers.length === 0) return;  // No new papers, skip DOM update
+
+    // Create DocumentFragment for batch DOM insertion (faster)
+    const fragment = document.createDocumentFragment();
+
+    newPapers.forEach((paper, index) => {
+        const key = getPaperKey(paper);
+
+        // Create temporary wrapper for innerHTML parsing
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = buildPaperCard(paper, renderedPaperKeys.size + index, true);
+
+        // Get the actual card element (firstElementChild skips text nodes)
+        const cardElement = tempDiv.firstElementChild;
+        if (cardElement) {
+            cardElement.dataset.paperKey = key;  // Store key for future reference
+            fragment.appendChild(cardElement);
+
+            // Mark as rendered
+            renderedPaperKeys.add(key);
+        }
+    });
+
+    // Single DOM append (batched, efficient - only happens once per update)
+    resultsContainer.appendChild(fragment);
 }
 
 // ============================================================================
@@ -1245,6 +1477,7 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 35) {
     // Reset streaming state
     streamingResults = [];
     papersByKey.clear(); // Clear deduplication map for new search
+    renderedPaperKeys.clear(); // Clear rendered papers tracking for new search
     sourcesCompleted = 0;
     totalSources = 0;
     pdfOnlyFilter = pdfOnly;
@@ -1350,24 +1583,15 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 35) {
         eventSource.close();
         currentEventSource = null;
 
-        // Apply filters and sort for final render
-        let finalResults = applyFilters(streamingResults);
-        finalResults = sortByRelevance([...finalResults]);
+        // Update summary to show completion (no need to rebuild cards)
+        const summaryDiv = document.getElementById('results-summary');
+        if (summaryDiv) {
+            const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
+            summaryDiv.innerHTML = `<p>✅ Search complete! Found <strong>${streamingResults.length}</strong> papers${pdfInfo} from ${data.sources_searched} sources</p>`;
+            summaryDiv.className = 'results-summary results-summary-complete';
+        }
 
-        // Final render
-        const resultsDiv = document.getElementById('results');
-        const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
-        // Hide relevance info since it's permanent 35%
-        let html = `<div class="results-summary results-summary-complete">
-            <p>✅ Search complete! Found <strong>${finalResults.length}</strong> papers${pdfInfo} from ${data.sources_searched} sources</p>
-        </div>`;
-
-        finalResults.forEach((paper, index) => {
-            html += buildPaperCard(paper, index, false);
-        });
-
-        resultsDiv.innerHTML = html;
-        showStatus(`✅ Found ${finalResults.length} papers from ${data.sources_searched} sources`, 'success');
+        showStatus(`✅ Found ${streamingResults.length} papers from ${data.sources_searched} sources`, 'success');
     });
 
     // Error handling
@@ -1511,6 +1735,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Re-render results with new filter if we have results
         if (streamingResults.length > 0) {
+            // Reset rendering state to force full re-render with new filter
+            renderedPaperKeys.clear();
+
+            // Clear existing results container
+            const resultsContainer = document.getElementById('results-container');
+            if (resultsContainer) {
+                resultsContainer.innerHTML = '';
+            }
+
+            // Re-render all papers with new filter applied
             renderStreamingResults();
         }
     });

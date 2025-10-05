@@ -513,12 +513,24 @@ input[type="range"]::-moz-range-thumb:hover {
     margin-bottom: 1.25rem;
     background: var(--card-bg);
     transition: all 0.15s ease-out;
+    will-change: transform;  /* GPU acceleration hint */
+    contain: layout;         /* Isolate layout calculations */
 }
 
 .paper-card:hover {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 1px var(--accent-color);
     transform: translateY(-1px);
+}
+
+/* Prevent layout thrashing during streaming updates */
+#results-container {
+    contain: layout style;  /* CSS containment for better performance */
+}
+
+/* Smooth summary updates without flash */
+.results-summary {
+    transition: opacity 0.15s ease;
 }
 
 /* Tablet and up */
@@ -616,6 +628,52 @@ input[type="range"]::-moz-range-thumb:hover {
 
 .meta-item {
     padding: 0;
+}
+
+/* Research Metadata Badges */
+.research-metadata-badges {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+    flex-wrap: wrap;
+}
+
+.metadata-badge {
+    padding: 0.3rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.2s ease;
+}
+
+.badge-doi {
+    background: rgba(166, 124, 82, 0.2);
+    color: var(--text-primary);
+    border: 1px solid var(--text-secondary);
+}
+
+.badge-doi:hover {
+    background: rgba(166, 124, 82, 0.3);
+    transform: translateY(-1px);
+}
+
+.badge-open-access {
+    background: var(--success-color);
+    color: white;
+}
+
+.badge-preprint {
+    background: var(--warning-color);
+    color: var(--bg-primary);
+}
+
+.badge-citations {
+    background: rgba(166, 124, 82, 0.2);
+    color: var(--text-primary);
+    border: 1px solid var(--text-secondary);
 }
 
 /* Access status badges */
@@ -1099,16 +1157,18 @@ footer a:hover {
 }
 
 .paper-card-streaming {
-    animation: fadeIn 0.4s ease-out;
+    animation: slideInFade 0.3s ease-out;
 }
 
-/* Simple fade-in animation */
-@keyframes fadeIn {
+/* Smooth slide and fade animation for new cards */
+@keyframes slideInFade {
     from {
         opacity: 0;
+        transform: translateY(-8px);
     }
     to {
         opacity: 1;
+        transform: translateY(0);
     }
 }
 
