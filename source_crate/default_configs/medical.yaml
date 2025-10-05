@@ -1,0 +1,249 @@
+# Medical & Biomedical Research Configuration
+# Sources and categories for medical, clinical, and life sciences research
+
+# Medical-specific sources
+sources:
+  pubmed:
+    name: pubmed
+    type: builtin
+    enabled: true
+    function_name: search_pubmed
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: Biomedical literature database
+      coverage: life sciences, biomedical research
+    capabilities:
+      medical_focus: true
+      stem_focus: false
+      humanities_focus: false
+      social_science_focus: false
+      preprint_server: false
+      field_search: true
+      phrase_search: true
+      boolean_search: true
+      wildcard_search: false
+      high_pdf_availability: false
+      open_access_only: false
+      subscription_content: true
+      prefers_simple_queries: false
+      prefers_natural_language: false
+      prefers_quoted_phrases: true
+      historical_depth: very_high
+      update_frequency: daily
+      average_response_time: 1.5
+      pdf_url_patterns: []
+      pdf_validation_required: true
+      search_priority: 9
+      topic_routing_weight: 1.5
+
+  pubmed_central:
+    name: pubmed_central
+    type: builtin
+    enabled: true
+    function_name: search_pubmed_central
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: Full-text biomedical literature repository
+      coverage: open access medical and life science articles
+      # PDF patterns for PMC URL extraction
+      pdf_patterns:
+        pattern: 'pmc/articles/PMC(\d+)'
+        pdf_url: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC{}/pdf/"
+    capabilities:
+      medical_focus: true
+      stem_focus: false
+      humanities_focus: false
+      social_science_focus: false
+      preprint_server: false
+      field_search: true
+      phrase_search: true
+      boolean_search: true
+      wildcard_search: false
+      high_pdf_availability: true
+      open_access_only: true
+      subscription_content: false
+      prefers_simple_queries: false
+      prefers_natural_language: false
+      prefers_quoted_phrases: true
+      historical_depth: high
+      update_frequency: daily
+      average_response_time: 1.8
+      pdf_url_patterns:
+        - "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC([0-9]+)/pdf/"
+      pdf_validation_required: false
+      search_priority: 10
+      topic_routing_weight: 1.5
+
+  europe_pmc:
+    name: europe_pmc
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: Europe PMC - Life sciences database with 39M+ abstracts
+      coverage: biomedical and life sciences literature
+      base_url: https://www.ebi.ac.uk/europepmc/webservices/rest
+      search_path: /search
+      query_param: query
+      limit_param: pageSize
+      response_format: json
+      results_path: resultList.result
+      extra_params:
+        format: json
+        resultType: core
+      field_mappings:
+        title: title
+        authors: authorString
+        abstract: abstractText
+        journal: journalTitle
+        year: pubYear
+        doi: doi
+        # Smart URL selection: Prefer Europe PMC/DOI over potentially dead publisher links
+        url:
+          alternatives:
+            - path: fullTextUrlList.fullTextUrl
+              filter_by: {field: site, values: ["Europe_PMC"]}
+              extract: url
+            - path: fullTextUrlList.fullTextUrl
+              filter_by: {field: site, values: ["DOI"]}
+              extract: url
+            - path: fullTextUrlList.fullTextUrl.0.url
+            - template: "https://europepmc.org/article/MED/{pmcid}"
+            - template: "https://doi.org/{doi}"
+        # Smart PDF selection: Only show PDF if actual PDF file is available
+        pdf_url:
+          alternatives:
+            - path: fullTextUrlList.fullTextUrl
+              filter_by: {field: documentStyle, values: ["pdf"]}
+              extract: url
+            - path: fullTextUrlList.fullTextUrl
+              filter_by: {field: documentStyle, values: ["PDF"]}
+              extract: url
+        citation_count: citedByCount
+      rate_limit_delay: 0.2
+
+  clinicaltrials:
+    name: clinicaltrials
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: Clinical trials database
+      coverage: clinical studies, medical trials
+      base_url: https://clinicaltrials.gov/api/v2
+      search_path: /studies
+      query_param: query.term
+      limit_param: pageSize
+      response_format: json
+      results_path: studies
+      extra_params:
+        format: json
+        fields: NCTId,BriefTitle,OfficialTitle,Condition,Intervention,Phase,StudyType,PrimaryCompletionDate,LastUpdateSubmitDate,LeadSponsorName,OverallStatus,EnrollmentCount,EligibilityCriteria,StudyFirstSubmitDate,BriefSummary
+      field_mappings:
+        title: protocolSection.identificationModule.briefTitle
+        authors: protocolSection.sponsorCollaboratorsModule.leadSponsor.name
+        abstract: protocolSection.descriptionModule.briefSummary
+        journal: source
+        year: protocolSection.statusModule.primaryCompletionDateStruct.date
+        url: protocolSection.identificationModule.nctId
+        citation_count: "0"
+      rate_limit_delay: 0.2
+
+  openalex:
+    name: openalex
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Open catalog with extensive medical/biomedical coverage
+      coverage: comprehensive multidisciplinary including medical research
+      base_url: https://api.openalex.org
+      search_path: /works
+      query_param: search
+      limit_param: per-page
+      response_format: json
+      results_path: results
+      extra_params:
+        mailto: research@sourcecrate.org  # Gets polite pool access (higher rate limits)
+      field_mappings:
+        title: title
+        authors: authorships
+        abstract: abstract_inverted_index
+        journal: primary_location.source.display_name
+        year: publication_year
+        doi: doi
+        url: primary_location.landing_page_url
+        pdf_url: open_access.oa_url
+        citation_count: cited_by_count
+      rate_limit_delay: 0.1
+
+  plos:
+    name: plos
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: PLOS - Public Library of Science open access journals (FREE, CC BY, no auth)
+      coverage: biology, medicine, open access peer-reviewed research
+      base_url: http://api.plos.org
+      search_path: /search
+      query_param: q
+      limit_param: rows
+      response_format: json
+      results_path: response.docs
+      extra_params:
+        wt: json  # Response format (JSON)
+        fl: id,title,author,abstract,publication_date,journal,article_type
+      field_mappings:
+        title: title
+        authors: author
+        doi: id
+        abstract: abstract
+        journal: journal
+        year: publication_date
+        url: id  # DOI can be converted to URL
+        pdf_url: ""  # PLOS provides HTML, PDF URLs need to be constructed from DOI
+        citation_count: "0"  # PLOS API doesn't provide citation counts
+      rate_limit_delay: 0.5  # Unlimited with reasonable use, max 100 rows per request
+      # NOTE: Free, no authentication required
+      # PLOS uses Solr search API
+      # All articles are open access with CC BY license
+      # Rate limit: No official limit, but keep requests reasonable (max 100 rows)
+    capability_profile: medical
+
+# Medical research categories
+categories:
+  medical:
+    name: medical
+    display_name: Medical & Biomedical Research
+    description: Specialized medical and healthcare research
+    type: standard
+    sources:
+      - pubmed
+      - pubmed_central
+      - plos  # Added: Open access medical/biology journals
+      - openalex
+      - clinicaltrials
+      - europe_pmc
+    max_results_per_source: 6
+    parallel_search: true
+
+# GAPS IDENTIFIED - NEED MORE SOURCES:
+# - Psychology research databases
+# - Nursing research
+# - Pharmacy/drug research
+# - Medical device research
+# - Health policy databases
+# - Epidemiology sources

@@ -39,7 +39,7 @@ def test_pdf_processor_functions() -> bool:
     sys.path.insert(0, ".")
 
     try:
-        from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
+        from source_crate.utils.pdf_processor import extract_pdf_text_from_local_file
 
         _ = extract_pdf_text_from_local_file  # Verify it's callable
         print("  ✓ extract_pdf_text_from_local_file imported")

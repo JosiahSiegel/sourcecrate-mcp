@@ -4,7 +4,7 @@
 
 ### 1. Add to Configuration
 
-Create or edit `.paperez/config/my_sources.yaml`:
+Create or edit `.sourcecrate/config/my_sources.yaml`:
 
 ```yaml
 sources:
@@ -34,7 +34,7 @@ sources:
 ```bash
 python3 -c "
 import asyncio
-from paperez_mcp.config.manager import get_current_config
+from source_crate.config.manager import get_current_config
 config = get_current_config()
 print('✅ Loaded' if 'my_api' in config.sources else '❌ Failed')
 "
@@ -42,7 +42,7 @@ print('✅ Loaded' if 'my_api' in config.sources else '❌ Failed')
 
 ### 3. Use
 
-Your source is now available in all PaperezMCP tools!
+Your source is now available in all SourceCrate tools!
 
 ## Common Patterns
 

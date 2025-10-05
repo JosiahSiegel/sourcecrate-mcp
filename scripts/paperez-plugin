@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """
-PaperezMCP Plugin CLI - The simplest way to add new academic sources.
+SourceCrate Plugin CLI - The simplest way to add new academic sources.
 
 Usage:
-    paperez-plugin create <source_name>    # Create a new plugin template
-    paperez-plugin install <plugin_file>   # Install a plugin
-    paperez-plugin list                    # List installed plugins
-    paperez-plugin example <source_name>   # Create a working example
+    sourcecrate-plugin create <source_name>    # Create a new plugin template
+    sourcecrate-plugin install <plugin_file>   # Install a plugin
+    sourcecrate-plugin list                    # List installed plugins
+    sourcecrate-plugin example <source_name>   # Create a working example
 
 Examples:
-    paperez-plugin create ieee_xplore
-    paperez-plugin install ieee_xplore_plugin.py
-    paperez-plugin example researchgate
+    sourcecrate-plugin create ieee_xplore
+    sourcecrate-plugin install ieee_xplore_plugin.py
+    sourcecrate-plugin example researchgate
 """
 
 import sys
 from pathlib import Path
 
-from paperez_mcp.plugins.simple import create_plugin, list_plugins, register_plugin
+from sourcecrate_mcp.plugins.simple import create_plugin, list_plugins, register_plugin
 
-# Add paperez_mcp to path
+# Add sourcecrate_mcp to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
@@ -42,7 +42,7 @@ async def _perform_search(self, query: str, limit: int, **kwargs) -> List[Dict[s
             await asyncio.sleep(1)
 
             response = await client.get(url, headers={
-                "User-Agent": "PaperezMCP Academic Research Tool"
+                "User-Agent": "SourceCrate Academic Research Tool"
             })
 
             if response.status_code != 200:
@@ -246,13 +246,13 @@ def main() -> None:
     try:
         if command == "create":
             if len(sys.argv) < 3:
-                print("Usage: paperez-plugin create <source_name>")
+                print("Usage: sourcecrate-plugin create <source_name>")
                 sys.exit(1)
             create_plugin(sys.argv[2])
 
         elif command == "install":
             if len(sys.argv) < 3:
-                print("Usage: paperez-plugin install <plugin_file>")
+                print("Usage: sourcecrate-plugin install <plugin_file>")
                 sys.exit(1)
             register_plugin(sys.argv[2])
 
@@ -265,11 +265,11 @@ def main() -> None:
                     print(f"     📁 {info['file']}")
             else:
                 print("📋 No plugins installed yet.")
-                print("💡 Create one with: paperez-plugin create <source_name>")
+                print("💡 Create one with: sourcecrate-plugin create <source_name>")
 
         elif command == "example":
             if len(sys.argv) < 3:
-                print("Usage: paperez-plugin example <source_name>")
+                print("Usage: sourcecrate-plugin example <source_name>")
                 print("Available examples: researchgate, ieee_xplore, institutional")
                 sys.exit(1)
             create_example(sys.argv[2])

@@ -1,6 +1,6 @@
-# PaperezMCP Browser UI Example
+# SourceCrate Browser UI Example
 
-A simple, clean browser-based interface for PaperezMCP HTTP API.
+A simple, clean browser-based interface for SourceCrate HTTP API.
 
 ## Features
 
@@ -31,11 +31,11 @@ A simple, clean browser-based interface for PaperezMCP HTTP API.
 
 ```bash
 # Direct from GitHub (no installation needed!)
-uvx --from 'git+https://github.com/JosiahSiegel/paperez-mcp.git[http]' paperez-http
+uvx --from 'git+https://github.com/JosiahSiegel/sourcecrate-mcp.git[http]' sourcecrate-http
 
 # Or from cloned repository
-cd /path/to/paperez-mcp
-uvx --from '.[http]' paperez-http
+cd /path/to/sourcecrate-mcp
+uvx --from '.[http]' sourcecrate-http
 ```
 
 #### Alternative Methods
@@ -43,10 +43,10 @@ uvx --from '.[http]' paperez-http
 ```bash
 # Traditional pip install
 pip install -e ".[http]"
-paperez-http
+sourcecrate-http
 
 # Or using Python module
-python -m paperez_mcp.http_server
+python -m sourcecrate_mcp.http_server
 ```
 
 The server runs on `http://localhost:9000`.
@@ -105,7 +105,7 @@ The UI automatically detects the API URL based on how you're running it:
 | Custom deployment | Varies | Varies | Use `config.js` override |
 
 **How it works:**
-1. UI checks for `window.PAPEREZ_API_URL` from `config.js` (highest priority)
+1. UI checks for `window.SOURCECRATE_API_URL` from `config.js` (highest priority)
 2. Auto-detects based on current page port (for local dev)
 3. Falls back to `http://localhost:9000` (default local API)
 
@@ -132,7 +132,7 @@ If testing from `file://` protocol, you may encounter CORS issues.
    python -m http.server 3000
    ```
 
-2. **Configure CORS** in `paperez_mcp/http_server.py`:
+2. **Configure CORS** in `sourcecrate_mcp/http_server.py`:
    ```python
    app.add_middleware(
        CORSMiddleware,
@@ -153,7 +153,7 @@ cp config.js.example config.js
 
 Edit `config.js`:
 ```javascript
-window.PAPEREZ_API_URL = 'https://your-api-server.com';
+window.SOURCECRATE_API_URL = 'https://your-api-server.com';
 ```
 
 Add to `index.html` before `app.js`:
@@ -165,7 +165,7 @@ Add to `index.html` before `app.js`:
 **Option 2: Inline in HTML**
 Add to `index.html`:
 ```html
-<script>window.PAPEREZ_API_URL = 'https://your-api-server.com';</script>
+<script>window.SOURCECRATE_API_URL = 'https://your-api-server.com';</script>
 <script src="app.js"></script>
 ```
 

@@ -88,12 +88,12 @@ jobs:
         if command -v uvx >/dev/null 2>&1; then
           echo "✓ Testing uvx installation..."
           # Test that the package installs and responds to --help
-          uvx --from . paperez-mcp --help > /dev/null
+          uvx --from . source-crate --help > /dev/null
           echo "✓ uvx installation working"
         elif [ -f "$HOME/.cargo/bin/uvx" ]; then
           echo "✓ Testing direct uvx path..."
           # Test that the package installs and responds to --help
-          "$HOME/.cargo/bin/uvx" --from . paperez-mcp --help > /dev/null
+          "$HOME/.cargo/bin/uvx" --from . source-crate --help > /dev/null
           echo "✓ Direct uvx path working"
         else
           echo "❌ uvx not available - this is required for user installation"
@@ -107,13 +107,13 @@ jobs:
         if (Get-Command uvx -ErrorAction SilentlyContinue) {
           echo "✓ Testing uvx installation..."
           # Test that the package installs and responds to --help
-          uvx --from . paperez-mcp --help | Out-Null
+          uvx --from . source-crate --help | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "uvx installation test failed" }
           echo "✓ uvx installation working"
         } elseif (Test-Path "$env:USERPROFILE\.cargo\bin\uvx.exe") {
           echo "✓ Testing direct uvx path..."
           # Test that the package installs and responds to --help
-          & "$env:USERPROFILE\.cargo\bin\uvx.exe" --from . paperez-mcp --help | Out-Null
+          & "$env:USERPROFILE\.cargo\bin\uvx.exe" --from . source-crate --help | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "Direct uvx installation test failed" }
           echo "✓ Direct uvx path working"
         } else {
@@ -127,7 +127,7 @@ jobs:
         python -m pip install fastmcp scholarly httpx aiohttp requests tenacity diskcache asyncio-throttle fake-useragent arxiv pymed semanticscholar free-proxy PyMuPDF pymupdf4llm pdfplumber lxml beautifulsoup4 pytest pytest-asyncio black ruff mypy types-PyYAML types-requests types-beautifulsoup4
 
         # Test direct module import
-        python -c "import sys; sys.path.insert(0, '.'); from paperez_mcp import server; print('✓ Direct server import successful')"
+        python -c "import sys; sys.path.insert(0, '.'); from source_crate import server; print('✓ Direct server import successful')"
 
     - name: Validate dependencies using shared script
       run: |
@@ -140,7 +140,7 @@ jobs:
     - name: Test configuration loading
       run: |
         python -c "
-        from paperez_mcp.config.manager import ConfigManager
+        from source_crate.config.manager import ConfigManager
         config = ConfigManager().get_config()
         print(f'Loaded {len(config.sources)} sources and {len(config.categories)} categories')
         assert len(config.sources) > 0, 'No sources loaded'
@@ -170,7 +170,7 @@ jobs:
             raise
 
         # Create a minimal test
-        from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
+        from source_crate.utils.pdf_processor import extract_pdf_text_from_local_file
         print('✓ PDF processor functions available')
         "
 
@@ -192,7 +192,7 @@ jobs:
             raise
 
         # Create a minimal test
-        from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
+        from source_crate.utils.pdf_processor import extract_pdf_text_from_local_file
         print('✓ PDF processor functions available')
         "
 
@@ -205,8 +205,8 @@ jobs:
         python -c "
         import sys
         sys.path.insert(0, '.')
-        from paperez_mcp.utils.query_intent import QueryIntentDetector
-        from paperez_mcp.config.manager import ConfigManager
+        from source_crate.utils.query_intent import QueryIntentDetector
+        from source_crate.config.manager import ConfigManager
 
         # Test query intent detector
         detector = QueryIntentDetector()
@@ -218,7 +218,7 @@ jobs:
         print(f'✓ Found {len(config.sources)} sources for testing')
 
         # Test that smart search functionality is available
-        from paperez_mcp.utils.smart_search import smart_downloadable_search
+        from source_crate.utils.smart_search import smart_downloadable_search
         print('✓ Smart search function imported successfully')
         "
 
@@ -234,7 +234,7 @@ jobs:
         async def test_server_startup():
             try:
                 # Import and test basic MCP server setup
-                from paperez_mcp.server import mcp
+                from source_crate.server import mcp
                 print('✓ MCP server module loaded successfully')
 
                 # Test that tools are properly registered
@@ -275,7 +275,7 @@ jobs:
         async def test_server_startup():
             try:
                 # Import and test basic MCP server setup
-                from paperez_mcp.server import mcp
+                from source_crate.server import mcp
                 print('✓ MCP server module loaded successfully')
 
                 # Test that tools are properly registered

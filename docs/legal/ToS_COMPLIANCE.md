@@ -3,7 +3,7 @@
 **Last Updated:** October 5, 2025
 **Last Review:** October 5, 2025
 
-This document verifies ToS compliance for all academic data sources used in PaperezMCP.
+This document verifies ToS compliance for all academic data sources used in SourceCrate.
 
 ---
 
@@ -14,11 +14,11 @@ All sources now work **without environment variables** using hardcoded fallback 
 ### Optional for Enhanced Functionality:
 ```bash
 # OpenAlex - Unlimited rate limits with polite pool (optional)
-# Uses research@paperez.org if not set
+# Uses research@sourcecrate.org if not set
 fly secrets set OPENALEX_EMAIL=your.email@example.com
 
 # Unpaywall - 30M+ open access PDF discovery (optional)
-# Uses research@paperez.org if not set
+# Uses research@sourcecrate.org if not set
 fly secrets set UNPAYWALL_EMAIL=your.email@example.com
 ```
 
@@ -131,9 +131,9 @@ All sources below are **enabled by default** and verified for ToS compliance:
 - **ToS:** CC0 public domain, commercial use explicitly allowed
 - **Rate Limits:** 100K calls/day
 - **Coverage:** 20M+ open access papers with free PDF links
-- **Configuration:** Hardcoded email `research@paperez.org` (override with `UNPAYWALL_EMAIL` env var)
-- **Search Integration:** `paperez_mcp/default_configs/scientific.yaml`
-- **PDF Integration:** `paperez_mcp/utils/unpaywall_client.py`
+- **Configuration:** Hardcoded email `research@sourcecrate.org` (override with `UNPAYWALL_EMAIL` env var)
+- **Search Integration:** `source_crate/default_configs/scientific.yaml`
+- **PDF Integration:** `source_crate/utils/unpaywall_client.py`
 - **Usage:**
   - **Search**: Returns papers with open access PDF URLs
   - **PDF Enhancement**: Finds free PDFs when downloads fail (403/404 errors)
@@ -144,7 +144,7 @@ All sources below are **enabled by default** and verified for ToS compliance:
 - **Rate Limits:** Unlimited with reasonable use
 - **Coverage:** 40M+ DOI metadata records for research datasets and publications
 - **Configuration:** Built-in, no authentication required
-- **Integration:** `paperez_mcp/default_configs/scientific.yaml`
+- **Integration:** `source_crate/default_configs/scientific.yaml`
 - **Status:** ✅ Fully compliant
 
 ### 16. Zenodo
@@ -152,7 +152,7 @@ All sources below are **enabled by default** and verified for ToS compliance:
 - **Rate Limits:** 60 requests/minute (guests), 100 requests/minute (authenticated)
 - **Coverage:** 10M+ research datasets and publications from CERN
 - **Configuration:** Built-in, no authentication required
-- **Integration:** `paperez_mcp/default_configs/scientific.yaml`
+- **Integration:** `source_crate/default_configs/scientific.yaml`
 - **Status:** ✅ Fully compliant
 
 ### 17. PLOS (Public Library of Science)
@@ -160,7 +160,7 @@ All sources below are **enabled by default** and verified for ToS compliance:
 - **Rate Limits:** Unlimited with reasonable use (max 100 rows per request)
 - **Coverage:** Open access peer-reviewed biology and medicine journals
 - **Configuration:** Built-in, uses Solr search API
-- **Integration:** `paperez_mcp/default_configs/medical.yaml`
+- **Integration:** `source_crate/default_configs/medical.yaml`
 - **Attribution Requirement:** Must cite author and original source when using content
 - **Status:** ✅ Fully compliant
 
@@ -175,7 +175,7 @@ All sources below are **enabled by default** and verified for ToS compliance:
 1. When a PDF download fails (403/404), the system checks if a DOI is available
 2. If DOI exists, queries Unpaywall API for open access alternatives
 3. Tries each alternative PDF URL with proper headers
-4. Uses `UNPAYWALL_EMAIL` from environment variable or `research@paperez.org` default
+4. Uses `UNPAYWALL_EMAIL` from environment variable or `research@sourcecrate.org` default
 5. Falls back gracefully if no open access version found
 
 ---
@@ -249,7 +249,7 @@ fly secrets set CORE_API_KEY=your_key_here
 ## 🚀 Implementation Details
 
 ### Environment Variable Substitution
-**File:** `paperez_mcp/api_clients/generic_http_client.py`
+**File:** `source_crate/api_clients/generic_http_client.py`
 
 ```python
 def _expand_env_vars(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -281,7 +281,7 @@ def _expand_env_vars(self, params: dict[str, Any]) -> dict[str, Any]:
 ```
 
 ### OpenAlex Configuration
-**File:** `paperez_mcp/default_configs/medical.yaml` and `scientific.yaml`
+**File:** `source_crate/default_configs/medical.yaml` and `scientific.yaml`
 
 ```yaml
 openalex:
@@ -292,12 +292,12 @@ openalex:
     extra_params:
       # Hardcoded default for zero-setup deployment
       # Users can override with OPENALEX_EMAIL environment variable
-      mailto: research@paperez.org
+      mailto: research@sourcecrate.org
 ```
 
 ### Unpaywall Configuration
 
-**Search Source:** `paperez_mcp/default_configs/scientific.yaml`
+**Search Source:** `source_crate/default_configs/scientific.yaml`
 ```yaml
 unpaywall:
   name: unpaywall
@@ -307,10 +307,10 @@ unpaywall:
     extra_params:
       # Email is REQUIRED by Unpaywall API
       # Uses hardcoded default for zero-setup deployment
-      email: research@paperez.org
+      email: research@sourcecrate.org
 ```
 
-**PDF Discovery Service:** `paperez_mcp/utils/unpaywall_client.py`
+**PDF Discovery Service:** `source_crate/utils/unpaywall_client.py`
 ```python
 def get_unpaywall_client(email: str | None = None) -> UnpaywallClient:
     """Get or create global Unpaywall client instance.
@@ -322,7 +322,7 @@ def get_unpaywall_client(email: str | None = None) -> UnpaywallClient:
     global _unpaywall_client
     if _unpaywall_client is None:
         # Priority: parameter > environment variable > default
-        final_email = email or os.getenv("UNPAYWALL_EMAIL", "research@paperez-mcp.org")
+        final_email = email or os.getenv("UNPAYWALL_EMAIL", "research@source-crate.org")
         _unpaywall_client = UnpaywallClient(email=final_email)
         logger.info(f"Initialized Unpaywall client with email: {final_email}")
     return _unpaywall_client
@@ -336,7 +336,7 @@ def get_unpaywall_client(email: str | None = None) -> UnpaywallClient:
 - [x] All default sources have publicly documented APIs
 - [x] All rate limits are respected via built-in delays
 - [x] Attribution requirements met via User-Agent headers and PLOS citation guidance
-- [x] **Zero-setup deployment**: Hardcoded email defaults (research@paperez.org)
+- [x] **Zero-setup deployment**: Hardcoded email defaults (research@sourcecrate.org)
 - [x] Optional environment variable support for OpenAlex polite pool
 - [x] Optional environment variable support for Unpaywall email
 - [x] Automatic fallback when env vars not set
@@ -353,7 +353,7 @@ If you have questions about ToS compliance:
 1. Review this document
 2. Check `config.example.yaml` for detailed source information
 3. Consult individual source documentation (linked in configs)
-4. File an issue at https://github.com/JosiahSiegel/paperez-mcp/issues
+4. File an issue at https://github.com/JosiahSiegel/source-crate/issues
 
 ---
 

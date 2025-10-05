@@ -15,7 +15,7 @@ sys.path.insert(0, str(project_root))
 def test_configuration_loading():
     """Test that all configuration files load successfully."""
     try:
-        from paperez_mcp.config.manager import ConfigManager
+        from source_crate.config.manager import ConfigManager
 
         print("🔧 Testing configuration loading...")
 
@@ -117,7 +117,7 @@ def test_configuration_loading():
 def test_yaml_file_discovery():
     """Test that YAML files are discovered correctly."""
     try:
-        from paperez_mcp.config.manager import ConfigManager
+        from source_crate.config.manager import ConfigManager
 
         print("📁 Testing YAML file discovery...")
 
@@ -153,8 +153,8 @@ def test_yaml_file_discovery():
 def test_search_analyzer():
     """Test search analysis functionality."""
     try:
-        from paperez_mcp.utils.enhanced_classifier import EnhancedTopicClassifier
-        from paperez_mcp.utils.query_intent import QueryIntentDetector
+        from source_crate.utils.enhanced_classifier import EnhancedTopicClassifier
+        from source_crate.utils.query_intent import QueryIntentDetector
 
         print("🔍 Testing search analysis tools...")
 
@@ -206,7 +206,7 @@ def test_search_analyzer():
 def main():
     """Run all CI configuration tests."""
     print("=" * 60)
-    print("PaperezMCP CI Configuration Validation")
+    print("SourceCrate CI Configuration Validation")
     print("=" * 60)
 
     tests = [

@@ -1,6 +1,6 @@
 # Relevance Scoring Algorithm
 
-This document details the multi-signal relevance scoring algorithm used in the PaperezMCP browser UI to rank academic papers.
+This document details the multi-signal relevance scoring algorithm used in the SourceCrate browser UI to rank academic papers.
 
 ## Overview
 

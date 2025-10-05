@@ -1,22 +1,22 @@
 # Terms of Service
 
 **Effective Date:** January 7, 2025
-**Project:** PaperezMCP
-**Repository:** <https://github.com/JosiahSiegel/paperez-mcp>
+**Project:** SourceCrate
+**Repository:** <https://github.com/JosiahSiegel/source-crate>
 
 ## 1. Acceptance of Terms
 
-By using, downloading, or configuring PaperezMCP ("the Software"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the Software.
+By using, downloading, or configuring SourceCrate ("the Software"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the Software.
 
 ## 2. Description of Service
 
-PaperezMCP is a Model Context Protocol (MCP) server that provides access to academic research databases and PDF processing capabilities. The Software includes default configurations that access only legally compliant academic data sources.
+SourceCrate is a Model Context Protocol (MCP) server that provides access to academic research databases and PDF processing capabilities. The Software includes default configurations that access only legally compliant academic data sources.
 
 ## 3. Default Source Compliance
 
 ### 3.1 Legally Compliant Default Sources
 
-PaperezMCP's default configuration includes only sources that:
+SourceCrate's default configuration includes only sources that:
 - Have official public APIs designed for academic research
 - Allow programmatic access under their Terms of Service
 - Comply with applicable rate limiting requirements
@@ -38,7 +38,7 @@ All default sources have been verified for Terms of Service compliance and API a
 
 ### 3.3 Domain Coverage Limitations
 
-While PaperezMCP includes comprehensive free academic sources, certain research domains have inherently limited coverage in open-access databases. This is a fundamental constraint of free academic resources, not a limitation of the Software.
+While SourceCrate includes comprehensive free academic sources, certain research domains have inherently limited coverage in open-access databases. This is a fundamental constraint of free academic resources, not a limitation of the Software.
 
 **Domains with Limited Free Coverage:**
 
@@ -118,7 +118,7 @@ The Software will:
 
 **Disclaimer:**
 
-The maintainers of PaperezMCP:
+The maintainers of SourceCrate:
 - Do not guarantee the availability or terms of third-party API services
 - Are not responsible for changes to API terms, rate limits, or pricing
 - Recommend users review each API provider's Terms of Service before signup
@@ -150,7 +150,7 @@ Users who modify the default configuration or add custom sources assume full leg
 
 ### 5.1 Scope of Responsibility
 
-**PaperezMCP provides legal compliance warranties only for the default configuration as distributed.** The maintainers disclaim all liability for:
+**SourceCrate provides legal compliance warranties only for the default configuration as distributed.** The maintainers disclaim all liability for:
 - User modifications to the configuration
 - Custom sources added by users
 - Third-party API changes or Terms of Service updates
@@ -158,7 +158,7 @@ Users who modify the default configuration or add custom sources assume full leg
 
 ### 5.2 No Warranty for Custom Configurations
 
-Users who modify the Software's configuration or add custom data sources do so entirely at their own risk and legal responsibility. PaperezMCP maintainers provide no warranties, express or implied, regarding the legality of custom configurations.
+Users who modify the Software's configuration or add custom data sources do so entirely at their own risk and legal responsibility. SourceCrate maintainers provide no warranties, express or implied, regarding the legality of custom configurations.
 
 ## 6. User Obligations
 
@@ -182,17 +182,17 @@ Users may not:
 
 ### 7.1 Software License
 
-PaperezMCP is licensed under the MIT License. See the LICENSE file for complete terms.
+SourceCrate is licensed under the MIT License. See the LICENSE file for complete terms.
 
 ### 7.2 Third-Party Content
 
-Content accessed through PaperezMCP remains subject to the intellectual property rights and Terms of Service of the respective data sources. Users are responsible for compliance with all such terms.
+Content accessed through SourceCrate remains subject to the intellectual property rights and Terms of Service of the respective data sources. Users are responsible for compliance with all such terms.
 
 ## 8. Privacy and Data Handling
 
 ### 8.1 Local Processing
 
-PaperezMCP processes data locally and does not transmit user queries or results to third parties except as necessary to access configured data sources according to their APIs.
+SourceCrate processes data locally and does not transmit user queries or results to third parties except as necessary to access configured data sources according to their APIs.
 
 ### 8.2 Caching
 
@@ -202,7 +202,7 @@ The Software may cache API responses locally to improve performance and reduce l
 
 ### 9.1 No Guarantee of Availability
 
-PaperezMCP depends on third-party APIs and services. We do not guarantee continuous availability of any data source and are not responsible for outages or changes to third-party services.
+SourceCrate depends on third-party APIs and services. We do not guarantee continuous availability of any data source and are not responsible for outages or changes to third-party services.
 
 ### 9.2 Updates and Changes
 
@@ -210,7 +210,7 @@ We may update the default configuration to maintain legal compliance, including 
 
 ## 10. Indemnification
 
-Users agree to indemnify and hold harmless the PaperezMCP maintainers from any claims, damages, or legal issues arising from:
+Users agree to indemnify and hold harmless the SourceCrate maintainers from any claims, damages, or legal issues arising from:
 - User modifications to the Software configuration
 - Use of custom or unauthorized data sources
 - Violation of third-party Terms of Service
@@ -239,4 +239,4 @@ If any provision of these Terms is found to be unenforceable, the remaining prov
 ---
 
 **Last Updated:** January 7, 2025
-**Repository:** <https://github.com/JosiahSiegel/paperez-mcp>
+**Repository:** <https://github.com/JosiahSiegel/source-crate>

@@ -1,7 +1,7 @@
 [project]
-name = "paperez-mcp"
-version = "1.1.0"
-description = "PaperezMCP - Academic paper research made easy with full-text retrieval and multi-source search"
+name = "source-crate"
+version = "2.0.0"
+description = "SourceCrate - Academic paper research made easy with full-text retrieval and multi-source search"
 authors = [{name = "Josiah Siegel"}]
 readme = "README.md"
 license = {text = "MIT"}
@@ -44,14 +44,14 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/JosiahSiegel/paperez-mcp"
-Repository = "https://github.com/JosiahSiegel/paperez-mcp"
-Issues = "https://github.com/JosiahSiegel/paperez-mcp/issues"
-Documentation = "https://github.com/JosiahSiegel/paperez-mcp#readme"
+Homepage = "https://github.com/JosiahSiegel/source-crate"
+Repository = "https://github.com/JosiahSiegel/source-crate"
+Issues = "https://github.com/JosiahSiegel/source-crate/issues"
+Documentation = "https://github.com/JosiahSiegel/source-crate#readme"
 
 [project.scripts]
-paperez-mcp = "paperez_mcp.install_and_run:main"
-paperez-http = "paperez_mcp.http_server:main"
+source-crate = "source_crate.install_and_run:main"
+sourcecrate-http = "source_crate.http_server:main"
 
 [project.optional-dependencies]
 dev = [
@@ -73,22 +73,22 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["paperez_mcp"]
+packages = ["source_crate"]
 
 [tool.hatch.build]
 include = [
-    "paperez_mcp/**/*.py",
-    "paperez_mcp/**/*.yaml",
-    "paperez_mcp/**/*.yml",
+    "source_crate/**/*.py",
+    "source_crate/**/*.yaml",
+    "source_crate/**/*.yml",
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["paperez_mcp*"]
+include = ["source_crate*"]
 
 [tool.setuptools.package-data]
-"paperez_mcp.default_configs" = ["*.yaml", "*.yml"]
-"paperez_mcp" = ["default_configs/*.yaml", "default_configs/*.yml"]
+"source_crate.default_configs" = ["*.yaml", "*.yml"]
+"source_crate" = ["default_configs/*.yaml", "default_configs/*.yml"]
 
 [tool.black]
 line-length = 88

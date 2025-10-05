@@ -1,0 +1,188 @@
+# Historical & Archive Research Configuration
+# Sources and categories for historical documents, government archives, and policy research
+
+# Historical/archive sources
+sources:
+  # CORE - Open access aggregator with historical content
+  # NOTE: Free API key required - register at https://core.ac.uk/services/api
+  # Provides access to 335M+ open access articles including historical research
+  core_repository:
+    name: core_repository
+    type: http_api
+    enabled: false  # Enable after registering for free API key at https://core.ac.uk/services/api
+    disabled_reason: Requires free API key - register at https://core.ac.uk/services/api
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: CORE - World's largest aggregator of open access research (335M+ articles)
+      coverage: comprehensive open access including historical research, archaeology, ancient civilizations
+      base_url: https://api.core.ac.uk/v3
+      search_path: /search/works
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: results
+      # API key configuration - add your key after registering
+      auth_type: ApiKey
+      auth_param: apiKey
+      # api_key: "YOUR_CORE_API_KEY"  # Add your API key here after registration
+      field_mappings:
+        title: title
+        authors: authors
+        doi: doi
+        abstract: abstract
+        journal: publisher
+        year: yearPublished
+        url: downloadUrl
+        pdf_url: downloadUrl
+      rate_limit_delay: 0.2  # Free tier: 1 batch or 5 single requests per 10 seconds
+
+  # CrossRef - Primary academic publisher database
+  crossref:
+    name: crossref
+    type: http_api
+    enabled: true
+    timeout: 45
+    max_retries: 5
+    cache_expire: 7200
+    config:
+      description: Primary academic publisher database with extensive historical coverage
+      base_url: https://api.crossref.org
+      search_path: /works
+      query_param: query
+      limit_param: rows
+      response_format: json
+      results_path: message.items
+      extra_params:
+        sort: relevance
+        order: desc
+        mailto: research@sourcecrate.org
+      field_mappings:
+        title: title.0
+        authors: author
+        doi: DOI
+        abstract: abstract
+        journal: container-title.0
+        year: published-print.date-parts.0.0
+        url: URL
+        citation_count: is-referenced-by-count
+      rate_limit_delay: 0.05
+
+  # OpenAlex - Comprehensive open catalog (from scientific.yaml reference)
+  openalex:
+    name: openalex
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Open catalog with 250M+ works including historical & archaeological research
+      coverage: comprehensive multidisciplinary including history, archaeology, ancient civilizations
+      base_url: https://api.openalex.org
+      search_path: /works
+      query_param: search
+      limit_param: per-page
+      response_format: json
+      results_path: results
+      field_mappings:
+        title: title
+        authors: authorships
+        doi: doi
+        abstract: abstract_inverted_index
+        journal: primary_location.source.display_name
+        year: publication_year
+        url: id
+        pdf_url: open_access.oa_url
+        citation_count: cited_by_count
+      rate_limit_delay: 0.1  # OpenAlex allows 10 RPS for free tier
+
+  hathitrust:
+    name: hathitrust
+    type: http_api
+    enabled: false  # Disabled: No keyword search API available, only item lookup by OCLC/ID
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: HathiTrust Digital Library - Historical books and documents
+      coverage: historical books, government documents, archives
+      base_url: https://catalog.hathitrust.org
+      search_path: /api/volumes/brief/json
+      query_param: q
+      limit_param: limit
+      response_format: json
+      results_path: records
+      field_mappings:
+        title: title
+        authors: author
+        year: publishDate
+        journal: publisher
+        url: url
+        abstract: description
+      rate_limit_delay: 1.0
+
+  internet_archive:
+    name: internet_archive
+    type: http_api
+    enabled: false  # Disabled: API configuration needs fixes (fl[] syntax, field mappings)
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Internet Archive - Historical documents, books, and archives
+      coverage: historical documents, government archives, books, ancient texts
+      base_url: https://archive.org
+      search_path: /advancedsearch.php
+      query_param: q
+      limit_param: rows
+      response_format: json
+      results_path: response.docs
+      extra_params:
+        output: json
+        fl[]: title,creator,year,publisher,identifier,description
+      field_mappings:
+        title: title
+        authors: creator
+        year: year
+        journal: publisher
+        url: identifier
+        abstract: description
+      # IMPORTANT: Respect Internet Archive rate limits for research use
+      # Their access policy supports educational and research purposes
+      # Contact info@archive.org for high-volume research needs
+      rate_limit_delay: 1.0  # Conservative 1 second delay between requests
+
+# Historical research categories
+categories:
+  historical:
+    name: historical
+    display_name: Historical & Archive Sources
+    description: Focus on historical and archival content including archaeology and ancient civilizations
+    type: standard
+    sources:
+      - doaj  # Directory of Open Access Journals - actually hosts PDFs
+      # Metadata-only sources removed from defaults (openalex, crossref)
+      # These don't host PDFs, just link to paywalled publishers
+      # Users can add them to custom configs for browse_papers use case
+      #
+      # Note: Humanities/archaeology have limited open-access infrastructure
+      # compared to STEM fields. DOAJ provides what open-access content exists.
+    max_results_per_source: 10
+    parallel_search: true
+
+# GAPS IDENTIFIED - NEED MORE SOURCES:
+# - Federal Register/GovInfo (US government documents)
+# - National Archives databases
+# - Library of Congress collections
+# - UNESCO archives
+# - European government document repositories
+# - Regional historical societies
+# - Digitized newspaper archives
+# - Museum collection databases
+# - Local government archives
+# - International organization archives (UN, etc.)
+#
+# NOTE: Currently 2 working sources (HathiTrust disabled due to no keyword search API)
+# Priority: HIGH - Need more dedicated historical/archival sources

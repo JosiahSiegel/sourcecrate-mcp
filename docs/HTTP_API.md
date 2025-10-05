@@ -1,6 +1,6 @@
-# PaperezMCP HTTP API Reference
+# SourceCrate HTTP API Reference
 
-Complete REST API reference for PaperezMCP v1.1.0+
+Complete REST API reference for SourceCrate v1.1.0+
 
 ## Quick Start
 
@@ -10,27 +10,27 @@ Complete REST API reference for PaperezMCP v1.1.0+
 
 ```bash
 # Direct from GitHub - no installation needed!
-uvx --from 'git+https://github.com/JosiahSiegel/paperez-mcp.git[http]' paperez-http
+uvx --from 'git+https://github.com/JosiahSiegel/source-crate.git[http]' sourcecrate-http
 ```
 
 **Alternative methods:**
 
 ```bash
 # From cloned repository
-cd /path/to/paperez-mcp
-uvx --from '.[http]' paperez-http
+cd /path/to/source-crate
+uvx --from '.[http]' sourcecrate-http
 
 # Traditional pip install
 pip install -e ".[http]"
-paperez-http
+sourcecrate-http
 
 # Using Python module
-python -m paperez_mcp.http_server
+python -m source_crate.http_server
 ```
 
 Server runs on:
 - **Port 9000** when using `local-manager.sh` script (recommended for development)
-- **Port 8000** when running directly via `paperez-http` or Python module
+- **Port 8000** when running directly via `sourcecrate-http` or Python module
 
 ## Base URL
 
@@ -70,7 +70,7 @@ Returns server health status.
 ```json
 {
   "status": "healthy",
-  "service": "paperez-mcp"
+  "service": "source-crate"
 }
 ```
 
@@ -84,7 +84,7 @@ Returns API version and available endpoints.
 **Response:**
 ```json
 {
-  "service": "PaperezMCP HTTP API",
+  "service": "SourceCrate HTTP API",
   "version": "1.1.0",
   "description": "Academic paper research made easy",
   "docs": "/docs",
@@ -323,7 +323,7 @@ Download full papers and convert to markdown/PDF.
 {
   "query": "climate change",
   "limit": 5,
-  "output_dir": ".paperez",
+  "output_dir": ".sourcecrate",
   "force_category": null,
   "convert_to_markdown": true,
   "debug": false
@@ -333,7 +333,7 @@ Download full papers and convert to markdown/PDF.
 **Parameters:**
 - `query` (string, required): Search query
 - `limit` (integer, optional): Max papers to download, 1-20, default 5
-- `output_dir` (string, optional): Output directory, default ".paperez"
+- `output_dir` (string, optional): Output directory, default ".sourcecrate"
 - `force_category` (string, optional): Force specific source category
 - `convert_to_markdown` (boolean, optional): Convert PDFs to markdown, default true
 - `debug` (boolean, optional): Include diagnostic information
@@ -353,7 +353,7 @@ Download full papers and convert to markdown/PDF.
   ],
   "total_found": 5,
   "downloaded_count": 5,
-  "output_directory": ".paperez"
+  "output_directory": ".sourcecrate"
 }
 ```
 
@@ -513,8 +513,8 @@ Get configuration guidance and help.
 {
   "config_guide": "Configuration instructions...",
   "file_paths": {
-    "user_config": "~/.paperez/config/config.yaml",
-    "project_config": "./.paperez/config/config.yaml"
+    "user_config": "~/.sourcecrate/config/config.yaml",
+    "project_config": "./.sourcecrate/config/config.yaml"
   },
   "schema_info": { ... },
   "examples": [ ... ]

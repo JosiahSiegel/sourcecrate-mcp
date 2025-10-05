@@ -74,7 +74,7 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // console.log('PaperezMCP Browser UI initialized');
+    // console.log('SourceCrate Browser UI initialized');
     // console.log('API Server:', API_BASE_URL);
 
     // Get filter UI elements

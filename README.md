@@ -1,10 +1,10 @@
-# PaperezMCP 📚🚀
+# SourceCrate 📚🚀
 
 > **Academic paper research made easy through the Model Context Protocol (MCP)**
 
-PaperezMCP is a comprehensive MCP server that makes academic research effortless. Get papers from multiple databases, extract full-text content, and convert PDFs to markdown - all with zero-installation via uvx.
+SourceCrate is a comprehensive MCP server that makes academic research effortless. Get papers from multiple databases, extract full-text content, and convert PDFs to markdown - all with zero-installation via uvx.
 
-[![GitHub](https://img.shields.io/badge/GitHub-JosiahSiegel%2Fpaperz--mcp-blue)](https://github.com/JosiahSiegel/paperez-mcp)
+[![GitHub](https://img.shields.io/badge/GitHub-JosiahSiegel%2Fsource--crate-blue)](https://github.com/JosiahSiegel/source-crate)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -16,7 +16,7 @@ PaperezMCP is a comprehensive MCP server that makes academic research effortless
 
 #### Option 1: Direct Install from GitHub
 ```bash
-claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp
+claude mcp add -s project source-crate -- uvx --from git+https://github.com/JosiahSiegel/source-crate.git source-crate
 ```
 
 #### Option 2: Using Cloned Repository
@@ -24,14 +24,14 @@ Perfect for development or offline use:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/JosiahSiegel/paperez-mcp.git
-cd paperez-mcp
+git clone https://github.com/JosiahSiegel/source-crate.git
+cd source-crate
 
 # 2. Connect Claude Code using our auto-installer
-claude mcp add -s project paperez-mcp -- python /path/to/paperez-mcp/install_and_run.py
+claude mcp add -s project source-crate -- python /path/to/source-crate/install_and_run.py
 
 # Or using uvx (also uses auto-installer):
-claude mcp add -s project paperez-mcp -- uvx --from /path/to/paperez-mcp paperez-mcp
+claude mcp add -s project source-crate -- uvx --from /path/to/source-crate source-crate
 ```
 
 ### 🔧 **What the Auto-Installer Does:**
@@ -48,7 +48,7 @@ claude mcp add -s project paperez-mcp -- uvx --from /path/to/paperez-mcp paperez
 Ask Claude naturally:
 - "Download 3 machine learning papers"
 - "Convert this PDF to markdown: /path/to/paper.pdf"
-- "Help me configure paperez-mcp"
+- "Help me configure source-crate"
 
 ### Available Tools (8 Functions)
 
@@ -65,7 +65,7 @@ Ask Claude naturally:
 
 ## 🌐 HTTP Server (NEW in v1.1.0)
 
-PaperezMCP now includes an HTTP/REST API server for browser-based and HTTP client access!
+SourceCrate now includes an HTTP/REST API server for browser-based and HTTP client access!
 
 ### ✨ Zero-Setup Installation (Recommended)
 
@@ -73,18 +73,18 @@ PaperezMCP now includes an HTTP/REST API server for browser-based and HTTP clien
 
 #### Option 1: Direct from GitHub
 ```bash
-uvx --from 'git+https://github.com/JosiahSiegel/paperez-mcp.git[http]' paperez-http
+uvx --from 'git+https://github.com/JosiahSiegel/source-crate.git[http]' sourcecrate-http
 # Server runs on http://localhost:8000
 ```
 
 #### Option 2: From Cloned Repository
 ```bash
 # 1. Clone the repository
-git clone https://github.com/JosiahSiegel/paperez-mcp.git
-cd paperez-mcp
+git clone https://github.com/JosiahSiegel/source-crate.git
+cd source-crate
 
 # 2. Run with uvx
-uvx --from '.[http]' paperez-http
+uvx --from '.[http]' sourcecrate-http
 # Server runs on http://localhost:8000
 ```
 
@@ -95,7 +95,7 @@ uvx --from '.[http]' paperez-http
 pip install -e ".[http]"
 
 # Start the HTTP server
-paperez-http
+sourcecrate-http
 # Server runs on http://localhost:8000
 ```
 
@@ -223,19 +223,19 @@ The system uses consistent ports across all environments:
 
 ## 📋 Scope & Use Cases
 
-### What PaperezMCP Does
-PaperezMCP finds **academic research papers**:
+### What SourceCrate Does
+SourceCrate finds **academic research papers**:
 - ✅ Journal articles, preprints, conference papers
 - ✅ Papers **about** topics (scholarly analysis, research)
 - ✅ Metadata + PDFs + markdown conversion
 
-### What PaperezMCP Doesn't Do
+### What SourceCrate Doesn't Do
 - ❌ Primary literary texts/books (use [Project Gutenberg](https://gutenberg.org))
 - ❌ General books (use [Google Books](https://books.google.com))
 - ❌ Non-scholarly content
 
 ### Example: Humanities Research
-**✅ Correct:** "scholarship on Arthurian legend" → PaperezMCP finds academic papers ABOUT the topic
+**✅ Correct:** "scholarship on Arthurian legend" → SourceCrate finds academic papers ABOUT the topic
 **❌ Incorrect:** "Le Morte d'Arthur full text" → Use Project Gutenberg for the actual book
 
 **For primary texts, use:**
@@ -260,16 +260,16 @@ export NCBI_API_KEY="your_ncbi_api_key"  # Recommended: 10 RPS vs 3 RPS default
 
 ### Custom Configuration Files
 
-PaperezMCP supports **multiple configuration files** organized by research domain. Create any YAML file in `.paperez/config/` directory:
+SourceCrate supports **multiple configuration files** organized by research domain. Create any YAML file in `.sourcecrate/config/` directory:
 
 #### Option 1: Single Custom Config
 ```bash
-mkdir -p .paperez/config/
-# Create .paperez/config/my_custom.yaml
+mkdir -p .sourcecrate/config/
+# Create .sourcecrate/config/my_custom.yaml
 ```
 
 ```yaml
-# .paperez/config/my_custom.yaml
+# .sourcecrate/config/my_custom.yaml
 version: "1.0"
 use_default_sources: true
 sources:
@@ -304,12 +304,12 @@ categories:
 #### Option 2: Domain-Specific Files
 ```bash
 # Create specialized config files by domain
-.paperez/config/chemistry.yaml      # Chemistry sources
-.paperez/config/engineering.yaml    # Engineering databases
-.paperez/config/local_sources.yaml  # Institution-specific APIs
+.sourcecrate/config/chemistry.yaml      # Chemistry sources
+.sourcecrate/config/engineering.yaml    # Engineering databases
+.sourcecrate/config/local_sources.yaml  # Institution-specific APIs
 ```
 
-All YAML files in `.paperez/config/` are automatically loaded and merged with built-in sources.
+All YAML files in `.sourcecrate/config/` are automatically loaded and merged with built-in sources.
 
 Use `get_help` tool for complete configuration schemas and examples.
 
@@ -336,8 +336,8 @@ If you encounter problems with the automatic installation:
 2. **Check installation logs** - Look for dependency installation failures in the terminal
 3. **Manual fallback installation:**
    ```bash
-   # Navigate to the paperez-mcp directory
-   cd /path/to/paperez-mcp
+   # Navigate to the source-crate directory
+   cd /path/to/source-crate
 
    # Run the installer manually to see detailed output
    python install_and_run.py
@@ -354,10 +354,10 @@ If you encounter problems with the automatic installation:
 ```json
 {
   "mcpServers": {
-    "paperez-mcp": {
+    "source-crate": {
       "type": "stdio",
       "command": "python",
-      "args": ["/path/to/paperez-mcp/install_and_run.py"]
+      "args": ["/path/to/source-crate/install_and_run.py"]
     }
   }
 }
@@ -421,7 +421,7 @@ If you encounter problems with the automatic installation:
 **Compliance measures (verified 2025):**
 - ✅ **ToS verification completed** for all 15+ enabled sources as of 2025
 - ✅ **Strict rate limiting** per each source's requirements (0.05s to 1.0s delays)
-- ✅ **Email contact** configured where required (CrossRef: <research@paperez.org>)
+- ✅ **Email contact** configured where required (CrossRef: <research@sourcecrate.org>)
 - ✅ **Academic research use only** - all sources designed for scholarly access
 - ✅ **Attribution requirements** met with proper source citation
 - ✅ **Government databases** prioritized for public domain content
@@ -429,11 +429,11 @@ If you encounter problems with the automatic installation:
 - ✅ **Proactive compliance monitoring** - sources disabled if ToS change
 
 **Legal Disclaimer - Custom Source Liability:**
-- PaperezMCP provides legal compliance only for default configuration sources
+- SourceCrate provides legal compliance only for default configuration sources
 - Users who modify configurations assume full legal responsibility for compliance
 - Custom source additions are solely under user control and legal liability
 - Users must independently verify Terms of Service compliance for any modifications
-- PaperezMCP disclaims all responsibility for user-configured sources outside defaults
+- SourceCrate disclaims all responsibility for user-configured sources outside defaults
 - Institutional and legal compliance for custom sources is the user's sole responsibility
 
 ## 🤝 Contributing

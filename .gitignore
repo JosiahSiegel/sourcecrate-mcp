@@ -101,7 +101,7 @@ logs/
 .fastmcp/
 
 test_*.json
-.paperez/*
+.sourcecrate/*
 *.txt
 test_*
 *.png

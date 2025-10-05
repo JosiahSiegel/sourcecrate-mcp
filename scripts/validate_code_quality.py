@@ -15,8 +15,8 @@ def check_syntax():
     print("🔍 Checking Python syntax...")
 
     python_files = [
-        Path("paperez_mcp/server.py"),
-        *list(Path("paperez_mcp").rglob("*.py")),
+        Path("source_crate/server.py"),
+        *list(Path("source_crate").rglob("*.py")),
     ]
 
     failed_files = []
@@ -44,7 +44,7 @@ def run_ruff():
 
     try:
         result = subprocess.run(
-            ["ruff", "check", "paperez_mcp/"],
+            ["ruff", "check", "source_crate/"],
             capture_output=True,
             text=True,
             check=False,
@@ -73,7 +73,7 @@ def run_mypy():
 
     try:
         result = subprocess.run(
-            ["mypy", "paperez_mcp/", "--ignore-missing-imports"],
+            ["mypy", "source_crate/", "--ignore-missing-imports"],
             capture_output=True,
             text=True,
             check=False,
@@ -102,7 +102,7 @@ def run_black_check():
 
     try:
         result = subprocess.run(
-            ["black", "--check", "paperez_mcp/", "scripts/"],
+            ["black", "--check", "source_crate/", "scripts/"],
             capture_output=True,
             text=True,
             check=False,
@@ -114,7 +114,7 @@ def run_black_check():
         else:
             print("❌ Black formatting issues found:")
             print(result.stdout)
-            print("Run 'black paperez_mcp/ scripts/' to fix formatting")
+            print("Run 'black source_crate/ scripts/' to fix formatting")
             return False
 
     except FileNotFoundError:
