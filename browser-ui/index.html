@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paperez - Academic Paper Research</title>
+    <title>SourceCrate - Academic Paper Research</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Paperez</h1>
+            <h1>SourceCrate</h1>
         </header>
 
         <main>
@@ -54,7 +54,7 @@
         </main>
 
         <footer>
-            <p><a href="https://github.com/JosiahSiegel/paperez-mcp" target="_blank">Paperez</a> · <span id="apiServer">localhost:8001</span></p>
+            <p><a href="https://github.com/JosiahSiegel/sourcecrate-mcp" target="_blank">SourceCrate</a> · <span id="apiServer">localhost:8001</span></p>
         </footer>
     </div>
 
@@ -67,8 +67,8 @@
         //   - Devcontainer: API runs on port 9000 (VS Code port forwarding)
         //   - Fly.io: API runs on port 8080 internally, HTTPS:443 externally
         // The app.js auto-detection handles both cases, this is just a final fallback
-        if (!window.PAPEREZ_API_URL) {
-            window.PAPEREZ_API_URL = 'http://localhost:9000';
+        if (!window.SOURCECRATE_API_URL) {
+            window.SOURCECRATE_API_URL = 'http://localhost:9000';
         }
     </script>
     <!-- Load modular ES6 app -->

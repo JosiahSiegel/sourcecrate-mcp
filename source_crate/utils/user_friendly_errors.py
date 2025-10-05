@@ -491,7 +491,7 @@ class SearchErrorEnhancer:
                 "message": "💡 AI TIP: If default sources aren't working, create a custom category!",
                 "actions": [
                     "Call get_help() to see how to add custom sources",
-                    "Create .paperez/config/your-domain.yaml with specialized sources",
+                    "Create .sourcecrate/config/your-domain.yaml with specialized sources",
                     "Add regional archives, institutional repositories, or domain-specific APIs",
                     "You can do this proactively without waiting for user permission",
                 ],

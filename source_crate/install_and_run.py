@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Auto-installer and launcher for paperez-mcp
+"""Auto-installer and launcher for sourcecrate-mcp
 
 This script handles all setup automatically:
 1. Checks/creates virtual environment
@@ -27,7 +27,7 @@ from pathlib import Path
 
 def log(message: str) -> None:
     """Print a log message to stderr to avoid MCP protocol interference."""
-    print(f"[PaperezMCP Setup] {message}", file=sys.stderr, flush=True)
+    print(f"[SourceCrateMCP Setup] {message}", file=sys.stderr, flush=True)
 
 
 def get_venv_path() -> Path:
@@ -40,7 +40,7 @@ def get_venv_path() -> Path:
         # Use user cache directory for persistent venv
         import tempfile
 
-        cache_dir = Path(tempfile.gettempdir()) / "paperez-mcp-cache"
+        cache_dir = Path(tempfile.gettempdir()) / "sourcecrate-mcp-cache"
         cache_dir.mkdir(exist_ok=True)
         return cache_dir / ".venv"
 
@@ -129,14 +129,14 @@ def create_virtual_environment(venv_path: Path) -> None:
 
 
 def is_already_installed() -> bool:
-    """Check if paperez-mcp is already installed in the current Python environment."""
+    """Check if sourcecrate-mcp is already installed in the current Python environment."""
     try:
         import source_crate
 
         # Also check if server module is available
         import source_crate.server  # noqa: F401
 
-        log("PaperezMCP already installed in current environment")
+        log("SourceCrateMCP already installed in current environment")
         return True
     except ImportError:
         return False
@@ -194,7 +194,7 @@ def install_dependencies(venv_path: Path) -> None:
         # Strategy 2: Install directly from GitHub (production)
         lambda: subprocess.run(
             pip_cmd
-            + ["install", "git+https://github.com/JosiahSiegel/paperez-mcp.git"],
+            + ["install", "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git"],
             capture_output=True,
             text=True,
             timeout=300,
@@ -268,7 +268,7 @@ def install_dependencies(venv_path: Path) -> None:
 
 
 def launch_server(venv_path: Path) -> None:
-    """Launch the paperez-mcp server."""
+    """Launch the sourcecrate-mcp server."""
     # Ensure no bytecode is written
     os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
@@ -320,7 +320,7 @@ def launch_server(venv_path: Path) -> None:
         )
         python_executable = Path(sys.executable)
 
-    log("Launching PaperezMCP server...")
+    log("Launching SourceCrateMCP server...")
 
     # Set up environment with cache prevention
     env = os.environ.copy()

@@ -57,7 +57,7 @@ sources:
       extra_params:
         sort: relevance
         order: desc
-        mailto: research@paperez.org
+        mailto: research@sourcecrate.org
       field_mappings:
         title: title.0
         authors: author

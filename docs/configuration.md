@@ -2,18 +2,18 @@
 
 ## Overview
 
-SourceCrate uses a **flexible multi-file configuration system** where you can create any number of YAML files in the `.paperez/config/` directory. All files are automatically loaded and merged.
+SourceCrate uses a **flexible multi-file configuration system** where you can create any number of YAML files in the `.sourcecrate/config/` directory. All files are automatically loaded and merged.
 
 ## Quick Setup
 
 ### Basic Configuration
 ```bash
-mkdir -p .paperez/config/
+mkdir -p .sourcecrate/config/
 ```
 
 Create any YAML file (name doesn't matter):
 ```yaml
-# .paperez/config/my_config.yaml
+# .sourcecrate/config/my_config.yaml
 version: "1.0"
 use_default_sources: true
 default_category: null  # Uses intelligent BM25 routing
@@ -24,9 +24,9 @@ global_cache_enabled: true
 ### Domain-Specific Organization
 ```bash
 # Organize by research domain
-.paperez/config/medical_sources.yaml      # Medical databases
-.paperez/config/engineering_apis.yaml     # Engineering sources
-.paperez/config/institution_db.yaml       # University databases
+.sourcecrate/config/medical_sources.yaml      # Medical databases
+.sourcecrate/config/engineering_apis.yaml     # Engineering sources
+.sourcecrate/config/institution_db.yaml       # University databases
 ```
 
 ## Available Categories

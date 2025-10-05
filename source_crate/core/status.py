@@ -1,5 +1,5 @@
 """
-Core status and help functionality for PaperezMCP.
+Core status and help functionality for SourceCrateMCP.
 
 This module contains protocol-agnostic system status and help functions that can
 be called from any interface (MCP, HTTP, CLI, etc.).
@@ -48,7 +48,7 @@ async def get_status_core(
 
 async def get_help_core() -> dict[str, Any]:
     """
-    Get comprehensive configuration guidance and help for PaperezMCP.
+    Get comprehensive configuration guidance and help for SourceCrateMCP.
 
     Provides detailed instructions on how to create configuration files, including
     file paths, schemas, available options, and examples for customizing the system.

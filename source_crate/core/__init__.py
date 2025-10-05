@@ -1,5 +1,5 @@
 """
-Core business logic for PaperezMCP.
+Core business logic for SourceCrateMCP.
 
 This module contains the core functionality that can be used by both
 the MCP server (stdio) and the HTTP server (REST API).

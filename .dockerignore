@@ -60,7 +60,7 @@ docs/
 *.log
 .trunk/
 test.txt
-paperez_data/
-.paperez/
+sourcecrate_data/
+.sourcecrate/
 examples/
 tests/

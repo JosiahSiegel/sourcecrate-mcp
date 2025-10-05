@@ -56,7 +56,7 @@ sources:
       response_format: json
       results_path: results
       extra_params:
-        mailto: research@paperez.org
+        mailto: research@sourcecrate.org
       field_mappings:
         title: title
         authors: authorships

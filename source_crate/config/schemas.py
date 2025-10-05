@@ -1,5 +1,5 @@
 """
-Configuration schemas for PaperezMCP - Type-safe configuration validation.
+Configuration schemas for SourceCrateMCP - Type-safe configuration validation.
 Supports custom categories, source providers, and meta-categories.
 """
 
@@ -288,8 +288,8 @@ class QueryRoutingConfig(BaseModel):
     )
 
 
-class PaperezConfig(BaseModel):
-    """Main PaperezMCP configuration."""
+class SourceCrateConfig(BaseModel):
+    """Main SourceCrateMCP configuration."""
 
     version: str = Field("1.0", description="Configuration schema version")
 
@@ -329,7 +329,9 @@ class PaperezConfig(BaseModel):
     global_cache_expire: int = Field(3600, description="Default cache expiration")
 
     # File management
-    default_output_dir: str = Field(".paperez", description="Default output directory")
+    default_output_dir: str = Field(
+        ".sourcecrate", description="Default output directory"
+    )
     cleanup_temp_files: bool = Field(True, description="Clean up temporary files")
 
     # User control options
@@ -350,7 +352,7 @@ class PaperezConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_paperez_config(self) -> "PaperezConfig":
+    def validate_sourcecrate_config(self) -> "SourceCrateConfig":
         """Validate configuration consistency and expand capability profiles."""
         # Expand capability profiles for sources that reference them
         if self.capability_profiles:

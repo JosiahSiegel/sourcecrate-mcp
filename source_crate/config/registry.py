@@ -1,5 +1,5 @@
 """
-Service registry for PaperezMCP - Dynamic source loading and category resolution.
+Service registry for SourceCrateMCP - Dynamic source loading and category resolution.
 Manages both built-in and plugin sources with configuration-driven registration.
 """
 
@@ -9,7 +9,7 @@ from collections.abc import Callable
 from typing import Any
 
 from .manager import get_current_config
-from .schemas import CategoryConfig, PaperezConfig, SourceProviderConfig
+from .schemas import CategoryConfig, SourceCrateConfig, SourceProviderConfig
 
 logger = logging.getLogger(__name__)
 
@@ -264,7 +264,7 @@ class ConfigurableSearchService:
         self.source_registry.register_all_sources()
         logger.info("Configurable search service initialized")
 
-    def _on_config_reload(self, new_config: PaperezConfig) -> None:
+    def _on_config_reload(self, new_config: SourceCrateConfig) -> None:
         """Handle configuration reload."""
         logger.info("Reloading search service configuration...")
         self.source_registry.register_all_sources()

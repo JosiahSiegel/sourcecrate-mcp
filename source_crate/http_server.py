@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-PaperezMCP HTTP Server - REST API for Academic Paper Research
+SourceCrateMCP HTTP Server - REST API for Academic Paper Research
 
 This HTTP server exposes the same functionality as the MCP server via REST API,
-allowing browser-based and HTTP-based clients to access PaperezMCP.
+allowing browser-based and HTTP-based clients to access SourceCrateMCP.
 
 All 8 core functions are available:
 - POST /api/v1/search - Browse papers (metadata only)
@@ -16,9 +16,9 @@ All 8 core functions are available:
 - GET /api/v1/help - Configuration help
 
 Usage:
-    python -m paperez_mcp.http_server
+    python -m sourcecrate_mcp.http_server
     # or
-    paperez-http  (if installed)
+    sourcecrate-http  (if installed)
 
 The server runs on http://localhost:8000 by default.
 OpenAPI docs available at http://localhost:8000/docs
@@ -61,7 +61,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="PaperezMCP HTTP API",
+    title="SourceCrateMCP HTTP API",
     description="Academic paper research made easy - REST API for searching, downloading, and converting research papers",
     version="1.1.0",
     docs_url="/docs",
@@ -97,7 +97,7 @@ class DownloadRequest(BaseModel):
 
     query: str = Field(..., description="Search query (keywords, DOI, author, title)")
     limit: int = Field(5, ge=1, le=20, description="Maximum papers to download")
-    output_dir: str = Field(".paperez", description="Output directory for files")
+    output_dir: str = Field(".sourcecrate", description="Output directory for files")
     force_category: str | None = Field(
         None, description="Force specific source category"
     )
@@ -145,7 +145,7 @@ class StatusRequest(BaseModel):
 async def root() -> dict[str, Any]:
     """Root endpoint with API information"""
     return {
-        "service": "PaperezMCP HTTP API",
+        "service": "SourceCrateMCP HTTP API",
         "version": "1.1.0",
         "description": "Academic paper research made easy",
         "docs": "/docs",
@@ -166,7 +166,7 @@ async def root() -> dict[str, Any]:
 @app.get("/health")
 async def health_check() -> dict[str, str]:
     """Health check endpoint"""
-    return {"status": "healthy", "service": "paperez-mcp"}
+    return {"status": "healthy", "service": "sourcecrate-mcp"}
 
 
 @app.post("/api/v1/search")
@@ -317,11 +317,16 @@ async def search_papers_sse(
             # Send search start event
             yield {
                 "event": "search_start",
-                "data": json.dumps({'query': query, 'limit': limit, 'timestamp': time.time()})
+                "data": json.dumps(
+                    {"query": query, "limit": limit, "timestamp": time.time()}
+                ),
             }
 
             # Get search functions and API status
-            from source_crate.server import _lazy_import_search_functions, get_api_status
+            from source_crate.server import (
+                _lazy_import_search_functions,
+                get_api_status,
+            )
             from source_crate.utils.result_streaming import (
                 create_streaming_search,
                 result_streamer,
@@ -336,7 +341,7 @@ async def search_papers_sse(
             if not search_funcs:
                 yield {
                     "event": "error",
-                    "data": json.dumps({'error': 'No search functions available'})
+                    "data": json.dumps({"error": "No search functions available"}),
                 }
                 return
 
@@ -377,7 +382,13 @@ async def search_papers_sse(
                     )
                     yield {
                         "event": "error",
-                        "data": json.dumps({'error': 'Connection timeout', 'elapsed': elapsed, 'fatal': True})
+                        "data": json.dumps(
+                            {
+                                "error": "Connection timeout",
+                                "elapsed": elapsed,
+                                "fatal": True,
+                            }
+                        ),
                     }
                     break
 
@@ -401,7 +412,13 @@ async def search_papers_sse(
                                 delivered_result_ids.add(result_id)
                                 yield {
                                     "event": "results",
-                                    "data": json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})
+                                    "data": json.dumps(
+                                        {
+                                            "source": result.source,
+                                            "papers": [result.data],
+                                            "total_so_far": len(all_results),
+                                        }
+                                    ),
                                 }
 
                 elif update_type == "source_complete":
@@ -417,7 +434,14 @@ async def search_papers_sse(
                     )
                     yield {
                         "event": "source_complete",
-                        "data": json.dumps({'source': source_name, 'count': result_count, 'completed': sources_completed, 'total': total_sources})
+                        "data": json.dumps(
+                            {
+                                "source": source_name,
+                                "count": result_count,
+                                "completed": sources_completed,
+                                "total": total_sources,
+                            }
+                        ),
                     }
 
                     # Send progress update
@@ -425,7 +449,14 @@ async def search_papers_sse(
                         progress_pct = (sources_completed / total_sources) * 100
                         yield {
                             "event": "progress",
-                            "data": json.dumps({'completed': sources_completed, 'total': total_sources, 'percentage': progress_pct, 'results_count': len(all_results)})
+                            "data": json.dumps(
+                                {
+                                    "completed": sources_completed,
+                                    "total": total_sources,
+                                    "percentage": progress_pct,
+                                    "results_count": len(all_results),
+                                }
+                            ),
                         }
 
                 elif update_type == "error":
@@ -433,7 +464,13 @@ async def search_papers_sse(
                     error_msg = update.error or "Unknown error"
                     yield {
                         "event": "error",
-                        "data": json.dumps({'source': update.source, 'error': error_msg, 'fatal': False})
+                        "data": json.dumps(
+                            {
+                                "source": update.source,
+                                "error": error_msg,
+                                "fatal": False,
+                            }
+                        ),
                     }
 
                 elif update_type == "final":
@@ -449,14 +486,27 @@ async def search_papers_sse(
                                 delivered_result_ids.add(result_id)
                                 yield {
                                     "event": "results",
-                                    "data": json.dumps({'source': result.source, 'papers': [result.data], 'total_so_far': len(all_results)})
+                                    "data": json.dumps(
+                                        {
+                                            "source": result.source,
+                                            "papers": [result.data],
+                                            "total_so_far": len(all_results),
+                                        }
+                                    ),
                                 }
                     break
 
             # Send completion event
             yield {
                 "event": "complete",
-                "data": json.dumps({'total_results': len(all_results), 'sources_searched': total_sources, 'query': query, 'timestamp': time.time()})
+                "data": json.dumps(
+                    {
+                        "total_results": len(all_results),
+                        "sources_searched": total_sources,
+                        "query": query,
+                        "timestamp": time.time(),
+                    }
+                ),
             }
 
         except asyncio.CancelledError:
@@ -475,7 +525,7 @@ async def search_papers_sse(
             traceback.print_exc()
             yield {
                 "event": "error",
-                "data": json.dumps({'error': str(e), 'fatal': True})
+                "data": json.dumps({"error": str(e), "fatal": True}),
             }
 
         finally:
@@ -632,7 +682,7 @@ async def get_help() -> dict[str, Any]:
     """
     Get configuration guidance and help.
 
-    Returns comprehensive instructions on how to configure PaperezMCP,
+    Returns comprehensive instructions on how to configure SourceCrateMCP,
     including file paths, schemas, and examples.
     """
     try:
@@ -807,9 +857,10 @@ async def internal_error_handler(request: Any, exc: Any) -> JSONResponse:
 def main() -> None:
     """Main entry point for HTTP server"""
     import argparse
+
     import uvicorn
 
-    parser = argparse.ArgumentParser(description="PaperezMCP HTTP Server")
+    parser = argparse.ArgumentParser(description="SourceCrateMCP HTTP Server")
     parser.add_argument(
         "--port",
         type=int,
@@ -824,7 +875,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    logger.info("Starting PaperezMCP HTTP server...")
+    logger.info("Starting SourceCrateMCP HTTP server...")
     logger.info(f"OpenAPI docs: http://localhost:{args.port}/docs")
     logger.info(f"ReDoc docs: http://localhost:{args.port}/redoc")
 

@@ -31,7 +31,7 @@ except ImportError:
     Observer = None  # type: ignore[assignment,misc]
     FileSystemEventHandler = None  # type: ignore[assignment,misc]
 
-from .schemas import PaperezConfig
+from .schemas import SourceCrateConfig
 
 logger = logging.getLogger(__name__)
 
@@ -69,11 +69,11 @@ class ConfigManager:
     Loads ALL YAML files from configuration directories for organized config management.
 
     Configuration priority (highest to lowest):
-    1. Environment variables (PAPEREZ_*)
-    2. Environment config file (PAPEREZ_CONFIG_PATH)
-    3. Local project config directory (./.paperez/config/*.yaml) - OVERRIDE
-    4. User home config directory (~/.paperez/config/*.yaml) - OVERRIDE
-    5. Repository defaults directory (.paperez/config/*.yaml) - OPTIONAL
+    1. Environment variables (SOURCECRATE_*)
+    2. Environment config file (SOURCECRATE_CONFIG_PATH)
+    3. Local project config directory (./.sourcecrate/config/*.yaml) - OVERRIDE
+    4. User home config directory (~/.sourcecrate/config/*.yaml) - OVERRIDE
+    5. Repository defaults directory (.sourcecrate/config/*.yaml) - OPTIONAL
     6. Embedded package defaults (source_crate/default_configs/*.yaml) - ALWAYS AVAILABLE
 
     All YAML files in each directory are loaded and merged together.
@@ -91,10 +91,10 @@ class ConfigManager:
             enable_hot_reload = False
 
         self.enable_hot_reload = enable_hot_reload
-        self._config: PaperezConfig | None = None
+        self._config: SourceCrateConfig | None = None
         self._config_lock = threading.RLock()
         self._observers: list = []  # List[Observer] when watchdog available
-        self._reload_callbacks: list[Callable[[PaperezConfig], None]] = []
+        self._reload_callbacks: list[Callable[[SourceCrateConfig], None]] = []
         self._failed_configs: list[dict[str, str]] = []  # Track failed config loads
         self._source_origins: dict[str, str] = (
             {}
@@ -102,18 +102,18 @@ class ConfigManager:
         self._config_loaded = False  # Lazy loading flag
 
         # Configuration directory paths (load ALL YAML files from these directories)
-        # Get the root directory of the paperez-mcp package with fallback search
+        # Get the root directory of the sourcecrate-mcp package with fallback search
         package_root = self._find_package_root()
         self.config_directories = {
-            "mcp_default": package_root / ".paperez" / "config",
-            "user_home": Path.home() / ".paperez" / "config",
-            "project_local": Path.cwd() / ".paperez" / "config",
+            "mcp_default": package_root / ".sourcecrate" / "config",
+            "user_home": Path.home() / ".sourcecrate" / "config",
+            "project_local": Path.cwd() / ".sourcecrate" / "config",
         }
 
         # Single file paths and environment override
         self.config_paths = {
             "environment": self._get_env_config_path(),
-            "user_home": Path.home() / ".paperez" / "config" / "config.yaml",
+            "user_home": Path.home() / ".sourcecrate" / "config" / "config.yaml",
         }
 
         # Lazy loading: Config will be loaded on first access
@@ -129,7 +129,7 @@ class ConfigManager:
         """
         # Start with the standard calculation
         standard_root = Path(__file__).parent.parent.parent
-        config_dir = standard_root / ".paperez" / "config"
+        config_dir = standard_root / ".sourcecrate" / "config"
 
         # If the standard path has the config directory, use it
         if config_dir.exists():
@@ -141,21 +141,21 @@ class ConfigManager:
             Path.cwd(),  # Current working directory
             Path.cwd().parent,  # Parent of current directory
             Path("/app"),  # Docker container location
-            Path.home() / "paperez-mcp",  # User home location
+            Path.home() / "sourcecrate-mcp",  # User home location
         ]
 
         # Also search mounted drives and common development paths
-        if "paperez-mcp" in str(standard_root):
+        if "sourcecrate-mcp" in str(standard_root):
             import glob
 
-            # Search for paperez-mcp directories in common locations
+            # Search for sourcecrate-mcp directories in common locations
             search_patterns = [
-                "/mnt/*/repos/paperez-mcp",  # WSL mounted drives
-                "/mnt/*/*/paperez-mcp",  # Deep mounted paths
-                "/home/*/paperez-mcp",  # User directories
-                "/opt/paperez-mcp",  # System installation
-                "/usr/local/paperez-mcp",  # Local installation
-                "*/paperez-mcp",  # Any parent directory
+                "/mnt/*/repos/sourcecrate-mcp",  # WSL mounted drives
+                "/mnt/*/*/sourcecrate-mcp",  # Deep mounted paths
+                "/home/*/sourcecrate-mcp",  # User directories
+                "/opt/sourcecrate-mcp",  # System installation
+                "/usr/local/sourcecrate-mcp",  # Local installation
+                "*/sourcecrate-mcp",  # Any parent directory
             ]
             for pattern in search_patterns:
                 try:
@@ -166,15 +166,15 @@ class ConfigManager:
                     continue  # Skip patterns that fail
 
         for potential_root in potential_roots:
-            config_dir = potential_root / ".paperez" / "config"
+            config_dir = potential_root / ".sourcecrate" / "config"
             if config_dir.exists() and config_dir.is_dir():
                 logger.info(f"Found config directory via fallback search: {config_dir}")
                 return potential_root
 
-        # Fallback 2: Look for any .paperez/config directory in parent directories
+        # Fallback 2: Look for any .sourcecrate/config directory in parent directories
         current_path = Path(__file__).resolve()
         for parent in current_path.parents:
-            config_dir = parent / ".paperez" / "config"
+            config_dir = parent / ".sourcecrate" / "config"
             if config_dir.exists() and config_dir.is_dir():
                 logger.info(f"Found config directory in parent directory: {config_dir}")
                 return parent
@@ -187,7 +187,7 @@ class ConfigManager:
 
     def _get_env_config_path(self) -> Path | None:
         """Get configuration path from environment variable."""
-        env_path = os.getenv("PAPEREZ_CONFIG_PATH")
+        env_path = os.getenv("SOURCECRATE_CONFIG_PATH")
         return Path(env_path) if env_path else None
 
     def _load_embedded_configs(self) -> dict[str, Any]:
@@ -430,7 +430,7 @@ class ConfigManager:
                     config_dict = self._load_embedded_configs()
                     self._track_source_origins(config_dict, "embedded_package")
 
-                    # Then, try to load from .paperez/config directory if it exists (backward compatibility)
+                    # Then, try to load from .sourcecrate/config directory if it exists (backward compatibility)
                     mcp_default_dir = self.config_directories["mcp_default"]
                     if mcp_default_dir.exists():
                         dir_config = self._load_yaml_directory(mcp_default_dir)
@@ -496,7 +496,7 @@ class ConfigManager:
                     logger.info("Applied environment variable overrides")
 
                 # Validate and create Pydantic model
-                self._config = PaperezConfig(**config_dict)
+                self._config = SourceCrateConfig(**config_dict)
 
                 # Validate configuration and log warnings
                 warnings = self._config.validate_configuration()
@@ -514,7 +514,7 @@ class ConfigManager:
                     "sources": {},
                     "categories": {},
                 }
-                self._config = PaperezConfig(**fallback_config)
+                self._config = SourceCrateConfig(**fallback_config)
 
     def _load_yaml_file(self, file_path: Path) -> dict[str, Any]:
         """Load YAML configuration file."""
@@ -596,12 +596,12 @@ class ConfigManager:
 
         # Map environment variables to config paths
         env_mappings = {
-            "PAPEREZ_DEFAULT_CATEGORY": ["default_category"],
-            "PAPEREZ_CACHE_ENABLED": ["global_cache_enabled"],
-            "PAPEREZ_CACHE_EXPIRE": ["global_cache_expire"],
-            "PAPEREZ_OUTPUT_DIR": ["default_output_dir"],
-            "PAPEREZ_MAX_CONCURRENT": ["max_concurrent_searches"],
-            "PAPEREZ_USE_DEFAULT_SOURCES": ["use_default_sources"],
+            "SOURCECRATE_DEFAULT_CATEGORY": ["default_category"],
+            "SOURCECRATE_CACHE_ENABLED": ["global_cache_enabled"],
+            "SOURCECRATE_CACHE_EXPIRE": ["global_cache_expire"],
+            "SOURCECRATE_OUTPUT_DIR": ["default_output_dir"],
+            "SOURCECRATE_MAX_CONCURRENT": ["max_concurrent_searches"],
+            "SOURCECRATE_USE_DEFAULT_SOURCES": ["use_default_sources"],
         }
 
         for env_var, config_path in env_mappings.items():
@@ -675,7 +675,7 @@ class ConfigManager:
 
         logger.info("Configuration reloaded successfully")
 
-    def get_config(self) -> PaperezConfig:
+    def get_config(self) -> SourceCrateConfig:
         """Get current configuration."""
         # Trigger lazy loading if not already loaded
         self.ensure_loaded()
@@ -716,11 +716,15 @@ class ConfigManager:
         with self._config_lock:
             return self._source_origins.copy()
 
-    def add_reload_callback(self, callback: Callable[[PaperezConfig], None]) -> None:
+    def add_reload_callback(
+        self, callback: Callable[[SourceCrateConfig], None]
+    ) -> None:
         """Add callback to be called when configuration is reloaded."""
         self._reload_callbacks.append(callback)
 
-    def remove_reload_callback(self, callback: Callable[[PaperezConfig], None]) -> None:
+    def remove_reload_callback(
+        self, callback: Callable[[SourceCrateConfig], None]
+    ) -> None:
         """Remove reload callback."""
         if callback in self._reload_callbacks:
             self._reload_callbacks.remove(callback)
@@ -808,6 +812,6 @@ def get_config_manager(enable_hot_reload: bool = True) -> ConfigManager:
     return _config_manager
 
 
-def get_current_config() -> PaperezConfig:
+def get_current_config() -> SourceCrateConfig:
     """Get the current configuration."""
     return get_config_manager().get_config()

@@ -295,7 +295,7 @@ Follow the GitHub Pages instructions from [DEPLOYMENT.md](./DEPLOYMENT.md), usin
 
 ```javascript
 // browser-ui/config.js
-window.PAPEREZ_API_URL = 'https://sourcecrate-api.fly.dev';
+window.SOURCECRATE_API_URL = 'https://sourcecrate-api.fly.dev';
 ```
 
 ---
@@ -478,7 +478,7 @@ fly machine restart <machine-id>
 
 1. **Create Upstash Redis:**
    ```bash
-   fly ext redis create --name paperez-cache
+   fly ext redis create --name sourcecrate-cache
    ```
 
 2. **Update Dockerfile.flyio:**

@@ -53,7 +53,7 @@ If Windows port 9000 is taken by another service:
 
 1. Stop the API: `bash scripts/local-manager.sh http-stop`
 2. Start on different port: `HTTP_PORT=9001 bash scripts/local-manager.sh http-start`
-3. Update browser-ui: `cd browser-ui && echo "window.PAPEREZ_API_URL = 'http://localhost:9001';" > config.js`
+3. Update browser-ui: `cd browser-ui && echo "window.SOURCECRATE_API_URL = 'http://localhost:9001';" > config.js`
 4. Refresh browser
 
 ## Common Issues

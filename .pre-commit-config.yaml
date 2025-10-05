@@ -6,7 +6,7 @@ repos:
         entry: python3
         args: ["scripts/validate_all.py"]
         language: system
-        files: ^paperez_mcp/.*\.py$
+        files: ^sourcecrate_mcp/.*\.py$
         pass_filenames: false
         verbose: true
 
@@ -27,5 +27,5 @@ repos:
         entry: python3
         args: ["scripts/validate_imports.py"]
         language: system
-        files: \.paperez/config/.*\.ya?ml$
+        files: \.sourcecrate/config/.*\.ya?ml$
         pass_filenames: false

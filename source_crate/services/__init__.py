@@ -1,5 +1,5 @@
 """
-Service layer for PaperezMCP - business logic abstraction.
+Service layer for SourceCrateMCP - business logic abstraction.
 """
 
 from .paper_processor import process_papers

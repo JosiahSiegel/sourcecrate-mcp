@@ -1332,7 +1332,7 @@ wheels = [
 ]
 
 [[package]]
-name = "paperez-mcp"
+name = "sourcecrate-mcp"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [

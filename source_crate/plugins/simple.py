@@ -1,5 +1,5 @@
 """
-Ultra-simple plugin system for PaperezMCP.
+Ultra-simple plugin system for SourceCrateMCP.
 
 This provides the absolute simplest way to add new academic sources:
 1. Generate template: create_plugin("my_source")
@@ -40,7 +40,7 @@ def create_plugin(source_name: str, output_dir: str = ".") -> str:
 
     # Generate simple template
     template = f'''"""
-{class_name} plugin for PaperezMCP.
+{class_name} plugin for SourceCrateMCP.
 
 This plugin adds {source_name} as an academic source.
 Edit the search method below to implement your API logic.
@@ -50,7 +50,7 @@ import asyncio
 import logging
 from typing import Any, Dict, List
 
-# Import the base client from PaperezMCP
+# Import the base client from SourceCrateMCP
 from source_crate.api_clients.base_client import BaseAPIClient
 
 logger = logging.getLogger(__name__)
@@ -273,7 +273,7 @@ def register_plugin(plugin_file: str) -> bool:
         source_name = plugin_info["name"]
 
         # Copy plugin to user's plugin directory
-        user_plugins_dir = Path.home() / ".paperez" / "plugins"
+        user_plugins_dir = Path.home() / ".sourcecrate" / "plugins"
         user_plugins_dir.mkdir(parents=True, exist_ok=True)
 
         plugin_dest = user_plugins_dir / f"{source_name}_plugin.py"
@@ -283,7 +283,7 @@ def register_plugin(plugin_file: str) -> bool:
         shutil.copy2(plugin_path, plugin_dest)
 
         # Update user configuration
-        config_file = Path.home() / ".paperez" / "config" / "config.yaml"
+        config_file = Path.home() / ".sourcecrate" / "config" / "config.yaml"
 
         # Ensure config directory exists
         config_file.parent.mkdir(parents=True, exist_ok=True)
@@ -323,7 +323,7 @@ def register_plugin(plugin_file: str) -> bool:
         print("")
         print("⚠️  Don't forget to:")
         print(f"   1. Add your API credentials to {config_file}")
-        print("   2. Restart PaperezMCP to load the new plugin")
+        print("   2. Restart SourceCrateMCP to load the new plugin")
 
         return True
 
@@ -342,7 +342,7 @@ def list_plugins() -> dict[str, dict[str, Any]]:
     plugins: dict[str, Any] = {}
 
     try:
-        user_plugins_dir = Path.home() / ".paperez" / "plugins"
+        user_plugins_dir = Path.home() / ".sourcecrate" / "plugins"
 
         if not user_plugins_dir.exists():
             return plugins
@@ -382,9 +382,9 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  python -m paperez_mcp.plugins.simple create <source_name>")
-        print("  python -m paperez_mcp.plugins.simple register <plugin_file>")
-        print("  python -m paperez_mcp.plugins.simple list")
+        print("  python -m sourcecrate_mcp.plugins.simple create <source_name>")
+        print("  python -m sourcecrate_mcp.plugins.simple register <plugin_file>")
+        print("  python -m sourcecrate_mcp.plugins.simple list")
         sys.exit(1)
 
     command = sys.argv[1]

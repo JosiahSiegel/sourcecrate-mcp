@@ -1,5 +1,5 @@
 """
-Configuration system for PaperezMCP - Comprehensive configuration management.
+Configuration system for SourceCrateMCP - Comprehensive configuration management.
 
 This module provides the YAML-based configuration system:
 - Type-safe configuration schemas with Pydantic validation
@@ -27,14 +27,14 @@ from .registry import (
 # Configurable system schemas
 from .schemas import (
     CategoryConfig,
-    PaperezConfig,
     QueryRoutingConfig,
+    SourceCrateConfig,
     SourceProviderConfig,
 )
 
 __all__ = [
     # Configuration schemas
-    "PaperezConfig",
+    "SourceCrateConfig",
     "SourceProviderConfig",
     "CategoryConfig",
     "QueryRoutingConfig",
@@ -76,7 +76,7 @@ def initialize_configuration_system(
 
 
 def create_example_config_file(
-    output_path: str = "paperez.config.example.yaml",
+    output_path: str = "sourcecrate.config.example.yaml",
 ) -> None:
     """Create an example configuration file for users."""
     from pathlib import Path

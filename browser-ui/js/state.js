@@ -4,14 +4,14 @@
 
 /**
  * Smart API URL detection with fallback chain:
- * 1. Explicit window.PAPEREZ_API_URL (highest priority)
+ * 1. Explicit window.SOURCECRATE_API_URL (highest priority)
  * 2. Auto-detect based on current page port (dev container friendly)
  * 3. Default to localhost:9000
  */
 function getApiUrl() {
     // 1. Check explicit config (highest priority)
-    if (window.PAPEREZ_API_URL) {
-        return window.PAPEREZ_API_URL;
+    if (window.SOURCECRATE_API_URL) {
+        return window.SOURCECRATE_API_URL;
     }
 
     // 2. Auto-detect based on current page URL (dev container friendly)
@@ -37,7 +37,7 @@ function getApiUrl() {
 }
 
 export const API_BASE_URL = getApiUrl();
-// console.log(`[Paperez] Using API URL: ${API_BASE_URL}`);
+// console.log(`[SourceCrate] Using API URL: ${API_BASE_URL}`);
 
 // ============================================================================
 // Download Reliability Tracking (Client-Side localStorage)
@@ -49,7 +49,7 @@ export const API_BASE_URL = getApiUrl();
  * Scales to infinite users - zero server load.
  */
 export const DownloadReliability = {
-    PREFIX: 'paperez_reliability_',
+    PREFIX: 'sourcecrate_reliability_',
     TTL: 24 * 60 * 60 * 1000, // 24 hours
     MAX_ENTRIES: 1000, // Prevent localStorage bloat
 

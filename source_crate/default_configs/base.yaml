@@ -40,7 +40,7 @@ default_category: null  # Use intelligent BM25 routing (cascade through all sour
 max_concurrent_searches: 15  # Higher concurrency for comprehensive setup
 global_cache_enabled: true
 global_cache_expire: 7200  # Longer cache for comprehensive setup
-default_output_dir: .paperez
+default_output_dir: .sourcecrate
 cleanup_temp_files: true
 
 # User control options

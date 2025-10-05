@@ -1,5 +1,5 @@
 """
-Performance benchmarking utilities for PaperezMCP.
+Performance benchmarking utilities for SourceCrateMCP.
 Provides timing, profiling, and performance measurement tools.
 """
 
@@ -331,7 +331,7 @@ general_benchmark = PerformanceBenchmark("general")
 async def run_comprehensive_benchmark(
     search_func: Callable | None = None,
     pdf_convert_func: Callable | None = None,
-    output_dir: str = ".paperez/benchmarks",
+    output_dir: str = ".sourcecrate/benchmarks",
 ) -> dict[str, BenchmarkReport]:
     """Run a comprehensive performance benchmark suite."""
     logger.info("🚀 Starting comprehensive performance benchmark")

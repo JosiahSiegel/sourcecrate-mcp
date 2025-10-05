@@ -1,5 +1,5 @@
 """
-Configuration singleton manager for PaperezMCP.
+Configuration singleton manager for SourceCrateMCP.
 
 This module implements a thread-safe singleton pattern for configuration management,
 following industry best practices to ensure reliable initialization across all environments.
@@ -10,7 +10,7 @@ import threading
 from typing import Any, Optional
 
 from source_crate.config.manager import get_current_config
-from source_crate.config.schemas import PaperezConfig
+from source_crate.config.schemas import SourceCrateConfig
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ class ConfigurationManager:
             if self._initialized:
                 return
 
-            self._config: PaperezConfig | None = None
+            self._config: SourceCrateConfig | None = None
             self._search_service: Any | None = None
             self._api_status: dict[str, bool] = {}
             self._search_functions: dict[str, Any] = {}
@@ -68,7 +68,7 @@ class ConfigurationManager:
                 return True
 
             try:
-                logger.info("Initializing PaperezMCP configuration system...")
+                logger.info("Initializing SourceCrateMCP configuration system...")
 
                 # Get configuration
                 self._config = get_current_config()
@@ -172,7 +172,7 @@ class ConfigurationManager:
         logger.info(f"Set defaults with {len(self._search_functions)} search functions")
 
     @property
-    def config(self) -> PaperezConfig | None:
+    def config(self) -> SourceCrateConfig | None:
         """Get configuration, initializing if needed."""
         if self._config is None:
             self.initialize()

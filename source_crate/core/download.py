@@ -1,5 +1,5 @@
 """
-Core download functionality for PaperezMCP.
+Core download functionality for SourceCrateMCP.
 
 This module contains protocol-agnostic download functions that can be called
 from any interface (MCP, HTTP, CLI, etc.).
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 async def download_papers_core(
     query: str,
     limit: int = 5,
-    output_dir: str = ".paperez",
+    output_dir: str = ".sourcecrate",
     force_category: str | None = None,
     convert_to_markdown: bool = True,
     debug: bool = False,

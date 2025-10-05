@@ -14,11 +14,11 @@ All sources now work **without environment variables** using hardcoded fallback 
 ### Optional for Enhanced Functionality:
 ```bash
 # OpenAlex - Unlimited rate limits with polite pool (optional)
-# Uses research@paperez.org if not set
+# Uses research@sourcecrate.org if not set
 fly secrets set OPENALEX_EMAIL=your.email@example.com
 
 # Unpaywall - 30M+ open access PDF discovery (optional)
-# Uses research@paperez.org if not set
+# Uses research@sourcecrate.org if not set
 fly secrets set UNPAYWALL_EMAIL=your.email@example.com
 ```
 
@@ -131,7 +131,7 @@ All sources below are **enabled by default** and verified for ToS compliance:
 - **ToS:** CC0 public domain, commercial use explicitly allowed
 - **Rate Limits:** 100K calls/day
 - **Coverage:** 20M+ open access papers with free PDF links
-- **Configuration:** Hardcoded email `research@paperez.org` (override with `UNPAYWALL_EMAIL` env var)
+- **Configuration:** Hardcoded email `research@sourcecrate.org` (override with `UNPAYWALL_EMAIL` env var)
 - **Search Integration:** `source_crate/default_configs/scientific.yaml`
 - **PDF Integration:** `source_crate/utils/unpaywall_client.py`
 - **Usage:**
@@ -175,7 +175,7 @@ All sources below are **enabled by default** and verified for ToS compliance:
 1. When a PDF download fails (403/404), the system checks if a DOI is available
 2. If DOI exists, queries Unpaywall API for open access alternatives
 3. Tries each alternative PDF URL with proper headers
-4. Uses `UNPAYWALL_EMAIL` from environment variable or `research@paperez.org` default
+4. Uses `UNPAYWALL_EMAIL` from environment variable or `research@sourcecrate.org` default
 5. Falls back gracefully if no open access version found
 
 ---
@@ -292,7 +292,7 @@ openalex:
     extra_params:
       # Hardcoded default for zero-setup deployment
       # Users can override with OPENALEX_EMAIL environment variable
-      mailto: research@paperez.org
+      mailto: research@sourcecrate.org
 ```
 
 ### Unpaywall Configuration
@@ -307,7 +307,7 @@ unpaywall:
     extra_params:
       # Email is REQUIRED by Unpaywall API
       # Uses hardcoded default for zero-setup deployment
-      email: research@paperez.org
+      email: research@sourcecrate.org
 ```
 
 **PDF Discovery Service:** `source_crate/utils/unpaywall_client.py`
@@ -336,7 +336,7 @@ def get_unpaywall_client(email: str | None = None) -> UnpaywallClient:
 - [x] All default sources have publicly documented APIs
 - [x] All rate limits are respected via built-in delays
 - [x] Attribution requirements met via User-Agent headers and PLOS citation guidance
-- [x] **Zero-setup deployment**: Hardcoded email defaults (research@paperez.org)
+- [x] **Zero-setup deployment**: Hardcoded email defaults (research@sourcecrate.org)
 - [x] Optional environment variable support for OpenAlex polite pool
 - [x] Optional environment variable support for Unpaywall email
 - [x] Automatic fallback when env vars not set

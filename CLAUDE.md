@@ -91,7 +91,7 @@ python -c "from source_crate_server import browse_papers; import asyncio; print(
 2. **Configuration System** (`source_crate/config/`)
    - **Dual configuration approach**: Legacy (settings.py) + New configurable system (YAML-based)
    - **Multi-tier loading**: Built-in → User → Project → Environment overrides
-   - **Configuration files**: `.paperez/config/config.yaml` (main), `.paperez/config/minimal_config.yaml` (fallback)
+   - **Configuration files**: `.sourcecrate/config/config.yaml` (main), `.sourcecrate/config/minimal_config.yaml` (fallback)
    - **Dynamic source registration**: Both built-in and plugin sources supported
 
 3. **API Clients** (`source_crate/api_clients/`)
@@ -125,9 +125,9 @@ python -c "from source_crate_server import browse_papers; import asyncio; print(
 ## Configuration Management
 
 ### Configuration Hierarchy
-1. Built-in defaults (`.paperez/config/config.yaml`)
-2. User home config (`~/.paperez/config/config.yaml`)
-3. Project local config (`./paperez/config/config.yaml`)
+1. Built-in defaults (`.sourcecrate/config/config.yaml`)
+2. User home config (`~/.sourcecrate/config/config.yaml`)
+3. Project local config (`./sourcecrate/config/config.yaml`)
 4. Environment variables
 
 ### Key Configuration Sections
@@ -169,6 +169,6 @@ python -c "from source_crate_server import browse_papers; import asyncio; print(
 ## File Structure Notes
 
 - **Main entry point**: `source_crate_server.py` (contains all 8 MCP tools)
-- **Config files**: `.paperez/config/` directory (not `.paperez/` root)
+- **Config files**: `.sourcecrate/config/` directory (not `.sourcecrate/` root)
 - **Source plugins**: Extensible via `source_crate/plugins/`
 - **Configuration**: YAML-based configuration system with multi-tier loading

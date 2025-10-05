@@ -44,7 +44,7 @@ sources:
         📝 TO ENABLE:
         1. Visit https://core.ac.uk/services/api and sign up (free)
         2. Copy your API key
-        3. In your custom .paperez/config/philosophy.yaml:
+        3. In your custom .sourcecrate/config/philosophy.yaml:
            - Set: enabled: true
            - Add: api_key: YOUR_KEY_HERE (in extra_params section)
 

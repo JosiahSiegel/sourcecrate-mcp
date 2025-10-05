@@ -115,7 +115,7 @@ async def try_download_with_adaptive_strategies(
 
 async def download_pdf(
     pdf_url: str,
-    output_dir: str = ".paperez",
+    output_dir: str = ".sourcecrate",
     title: str | None = None,
     paper_url: str | None = None,
     doi: str | None = None,

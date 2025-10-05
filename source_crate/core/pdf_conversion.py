@@ -1,5 +1,5 @@
 """
-Core PDF conversion functionality for PaperezMCP.
+Core PDF conversion functionality for SourceCrateMCP.
 
 This module contains protocol-agnostic PDF processing functions that can be called
 from any interface (MCP, HTTP, CLI, etc.).

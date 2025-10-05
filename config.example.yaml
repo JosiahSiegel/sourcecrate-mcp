@@ -1,6 +1,6 @@
 # SourceCrate Example Custom Configuration
-# Copy this file to ~/.paperez/config/config.yaml to use it
-# Or set PAPEREZ_CONFIG_PATH environment variable to point to your config
+# Copy this file to ~/.sourcecrate/config/config.yaml to use it
+# Or set SOURCECRATE_CONFIG_PATH environment variable to point to your config
 #
 # Last ToS review: 2025-01-07
 
@@ -26,7 +26,7 @@ default_category: null  # Use intelligent BM25 routing
 max_concurrent_searches: 15
 global_cache_enabled: true
 global_cache_expire: 7200  # 2 hours
-default_output_dir: .paperez
+default_output_dir: .sourcecrate
 cleanup_temp_files: true
 use_default_sources: true  # Inherit all built-in sources
 
@@ -42,7 +42,7 @@ sources:
     enabled: true
 
   # All other default sources are already ToS-compliant
-  # See paperez_mcp/default_configs/base.yaml for full list
+  # See sourcecrate_mcp/default_configs/base.yaml for full list
 
 # ============================================================================
 # OPTIONAL: CORE Repository (Requires free API key)
@@ -100,10 +100,10 @@ sources:
 # DEPLOYMENT INSTRUCTIONS
 # ============================================================================
 # Local usage:
-#   1. Copy this file to ~/.paperez/config/config.yaml
+#   1. Copy this file to ~/.sourcecrate/config/config.yaml
 #   2. Set environment variables: export OPENALEX_EMAIL=your@email.com
 #
 # Fly.io deployment:
 #   1. Set secrets: fly secrets set OPENALEX_EMAIL=your@email.com
 #   2. Secrets automatically populate ${OPENALEX_EMAIL} in configs
-#   3. Deploy: fly deploy -a paperez-api
+#   3. Deploy: fly deploy -a sourcecrate-api

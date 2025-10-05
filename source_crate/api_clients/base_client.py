@@ -14,7 +14,7 @@ from ..utils.metadata_normalizer import metadata_normalizer
 from ..utils.pdf_validator import pdf_validator
 
 # Create cache instance directly
-cache = Cache("/tmp/paperez-mcp-cache", size_limit=1e9)  # 1GB cache
+cache = Cache("/tmp/sourcecrate-mcp-cache", size_limit=1e9)  # 1GB cache
 
 logger = logging.getLogger(__name__)
 

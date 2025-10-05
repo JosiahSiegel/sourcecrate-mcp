@@ -4,7 +4,7 @@
 
 **This directory contains ONLY generic, configuration-driven clients. NO provider-specific code should exist here.**
 
-All source behavior is determined entirely by YAML configuration files in `paperez_mcp/default_configs/`.
+All source behavior is determined entirely by YAML configuration files in `sourcecrate_mcp/default_configs/`.
 
 ## Architecture
 
@@ -34,7 +34,7 @@ All source behavior is determined entirely by YAML configuration files in `paper
 
 2. **Generic client reads configuration**:
    - For `type: http_api` → Uses `GenericHTTPClient`
-   - For `type: builtin` → Uses built-in search functions from `paperez_mcp/search_functions/`
+   - For `type: builtin` → Uses built-in search functions from `sourcecrate_mcp/search_functions/`
 
 3. **All behavior is configurable**:
    - URL patterns and transformations
@@ -64,7 +64,7 @@ To add a new academic source:
 
 ## User Customization
 
-Users can override ANY source configuration by creating `.paperez/config/config.yaml`:
+Users can override ANY source configuration by creating `.sourcecrate/config/config.yaml`:
 
 ```yaml
 sources:

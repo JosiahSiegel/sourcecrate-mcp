@@ -30,7 +30,7 @@ sources:
       extra_params:
         sort: relevance
         order: desc
-        mailto: research@paperez.org
+        mailto: research@sourcecrate.org
       field_mappings:
         title: title.0
         authors: author
@@ -233,7 +233,7 @@ sources:
       response_format: json
       results_path: results
       extra_params:
-        mailto: research@paperez.org
+        mailto: research@sourcecrate.org
       field_mappings:
         title: title
         authors: authorships
@@ -305,7 +305,7 @@ sources:
       response_format: json
       results_path: results
       extra_params:
-        email: research@paperez.org  # Use your email for better rate limits
+        email: research@sourcecrate.org  # Use your email for better rate limits
         is_oa: true  # Only return open access papers
       field_mappings:
         title: response.title
@@ -319,7 +319,7 @@ sources:
         is_open_access: response.is_oa
         citation_count: "0"  # Unpaywall doesn't provide citation counts
       rate_limit_delay: 1.0  # 100K calls/day, conservative delay
-      # NOTE: Email is required by Unpaywall API (uses default research@paperez.org)
+      # NOTE: Email is required by Unpaywall API (uses default research@sourcecrate.org)
       # Users can override by setting a custom email in their config file
       # Rate limit: 100K calls/day for free tier
     capability_profile: open_access

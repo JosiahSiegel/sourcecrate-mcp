@@ -1,5 +1,5 @@
 """
-Core search functionality for PaperezMCP.
+Core search functionality for SourceCrateMCP.
 
 This module contains protocol-agnostic search functions that can be called
 from any interface (MCP, HTTP, CLI, etc.).

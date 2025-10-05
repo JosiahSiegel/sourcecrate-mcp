@@ -1,7 +1,7 @@
 """
-Simple Plugin System for PaperezMCP
+Simple Plugin System for SourceCrateMCP
 
-The easiest way to add new academic sources to PaperezMCP.
+The easiest way to add new academic sources to SourceCrateMCP.
 
 Usage:
     from source_crate.plugins.simple import create_plugin, register_plugin
@@ -13,8 +13,8 @@ Usage:
     register_plugin("my_source_plugin.py")
 
 Or use the CLI:
-    ./scripts/paperez-plugin create my_source
-    ./scripts/paperez-plugin install my_source_plugin.py
+    ./scripts/sourcecrate-plugin create my_source
+    ./scripts/sourcecrate-plugin install my_source_plugin.py
 """
 
 from .simple import create_plugin, list_plugins, register_plugin

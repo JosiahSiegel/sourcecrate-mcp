@@ -65,7 +65,7 @@ async def search_pubmed(query: str, limit: int = 5) -> list[dict[str, Any]]:
         from pymed import PubMed  # type: ignore[import-untyped]
 
         def _search() -> list[dict[str, Any]]:
-            pubmed = PubMed(tool="paperez-mcp", email="research@example.com")
+            pubmed = PubMed(tool="sourcecrate-mcp", email="research@example.com")
             results = []
 
             for article in pubmed.query(query, max_results=limit):

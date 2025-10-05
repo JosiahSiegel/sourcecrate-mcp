@@ -4,7 +4,7 @@
 
 ### 1. Add to Configuration
 
-Create or edit `.paperez/config/my_sources.yaml`:
+Create or edit `.sourcecrate/config/my_sources.yaml`:
 
 ```yaml
 sources:

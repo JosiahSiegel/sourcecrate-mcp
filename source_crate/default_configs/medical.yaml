@@ -174,7 +174,7 @@ sources:
       response_format: json
       results_path: results
       extra_params:
-        mailto: research@paperez.org  # Gets polite pool access (higher rate limits)
+        mailto: research@sourcecrate.org  # Gets polite pool access (higher rate limits)
       field_mappings:
         title: title
         authors: authorships

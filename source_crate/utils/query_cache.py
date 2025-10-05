@@ -12,7 +12,7 @@ from typing import Any
 from diskcache import Cache  # type: ignore
 
 # Create cache instance directly
-cache = Cache("/tmp/paperez-mcp-cache", size_limit=1e9)  # 1GB cache
+cache = Cache("/tmp/sourcecrate-mcp-cache", size_limit=1e9)  # 1GB cache
 
 logger = logging.getLogger(__name__)
 

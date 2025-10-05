@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PaperezMCP - Academic Paper Research Made Easy
+SourceCrateMCP - Academic Paper Research Made Easy
 
 A comprehensive academic research server with multi-source fallback,
 robust caching, and graceful error handling. Built with modular architecture.
@@ -46,7 +46,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize FastMCP server
-mcp = FastMCP("PaperezMCP - Academic Paper Research Made Easy")
+mcp = FastMCP("SourceCrateMCP - Academic Paper Research Made Easy")
 
 
 # Lazy import helpers - Google Scholar setup removed for ToS compliance
@@ -343,7 +343,7 @@ async def browse_papers(
     ❌ "docs on how to use React" → Library documentation (use context7)
 
     💡 DISAMBIGUATION RULE:
-    - Research topic/historical event/scientific concept → USE paperez-mcp
+    - Research topic/historical event/scientific concept → USE sourcecrate-mcp
     - Software library/framework/API → Use context7 or official documentation
 
     ✅ USE THIS TOOL WHEN USER ASKS:
@@ -449,7 +449,7 @@ async def browse_papers(
     - Google Books: books.google.com (book search)
 
     💡 EXAMPLE:
-    ✅ "scholarship on Arthurian legend" → Use paperez (finds academic papers)
+    ✅ "scholarship on Arthurian legend" → Use sourcecrate (finds academic papers)
     ❌ "Le Morte d'Arthur full text" → Use Project Gutenberg (finds the book)
 
     Args:
@@ -911,7 +911,7 @@ async def browse_papers_streaming(
     ❌ "docs on how to use React" → Library documentation (use context7)
 
     💡 DISAMBIGUATION RULE:
-    - Research topic/historical event/scientific concept → USE paperez-mcp
+    - Research topic/historical event/scientific concept → USE sourcecrate-mcp
     - Software library/framework/API → Use context7 or official documentation
 
     ✅ USE THIS TOOL WHEN USER ASKS:
@@ -1019,7 +1019,7 @@ async def browse_papers_streaming(
     - Google Books: books.google.com (book search)
 
     💡 EXAMPLE:
-    ✅ "scholarship on Arthurian legend" → Use paperez (finds academic papers)
+    ✅ "scholarship on Arthurian legend" → Use sourcecrate (finds academic papers)
     ❌ "Le Morte d'Arthur full text" → Use Project Gutenberg (finds the book)
 
     Args:
@@ -1358,7 +1358,7 @@ async def browse_papers_streaming(
 async def download_papers(
     query: str,
     limit: int = 5,
-    output_dir: str = ".paperez",
+    output_dir: str = ".sourcecrate",
     force_category: str | None = None,
     convert_to_markdown: bool = True,
     debug: bool = False,
@@ -1378,7 +1378,7 @@ async def download_papers(
     ❌ "docs on how to use React" → Library documentation (use context7)
 
     💡 DISAMBIGUATION RULE:
-    - Research topic/historical event/scientific concept → USE paperez-mcp
+    - Research topic/historical event/scientific concept → USE sourcecrate-mcp
     - Software library/framework/API → Use context7 or official documentation
 
     ✅ USE THIS TOOL WHEN USER ASKS:
@@ -1476,13 +1476,13 @@ async def download_papers(
     - Google Books: books.google.com (book search)
 
     💡 EXAMPLE:
-    ✅ "scholarship on Arthurian legend" → Use paperez (finds academic papers)
+    ✅ "scholarship on Arthurian legend" → Use sourcecrate (finds academic papers)
     ❌ "Le Morte d'Arthur full text" → Use Project Gutenberg (finds the book)
 
     Args:
         query: Search query (keywords, DOI, title, or author)
         limit: Maximum papers to download (default: 5, recommended: 5-10)
-        output_dir: Directory to save files (default: ".paperez")
+        output_dir: Directory to save files (default: ".sourcecrate")
         force_category: 🎯 FORCE SPECIFIC SOURCE TYPES (optional, overrides smart routing)
                        - "preprints" → arXiv, SocArXiv, OSF (latest research, not peer-reviewed)
                        - "journals" → CrossRef, PubMed, DOAJ (peer-reviewed publications)
@@ -1692,7 +1692,7 @@ async def convert_pdf_to_text(
         # Generate output path if not provided
         if output_path is None:
             base_name = Path(file_path).stem
-            output_path = f".paperez/{base_name}_full.txt"
+            output_path = f".sourcecrate/{base_name}_full.txt"
 
         # Ensure output directory exists
         output_dir = os.path.dirname(output_path)
@@ -1786,9 +1786,9 @@ async def _convert_pdf_to_markdown_internal(
         if output_path:
             markdown_path = output_path
         else:
-            # Default to .paperez directory with same name as PDF
+            # Default to .sourcecrate directory with same name as PDF
             filename = Path(file_path).stem + "_full.md"
-            markdown_path = os.path.join(".paperez", filename)
+            markdown_path = os.path.join(".sourcecrate", filename)
 
         # Create output directory if it doesn't exist
         os.makedirs(os.path.dirname(markdown_path), exist_ok=True)
@@ -2578,7 +2578,7 @@ async def get_status(
 @mcp.tool
 async def get_help() -> dict[str, Any]:
     """
-    Get comprehensive configuration guidance and help for PaperezMCP.
+    Get comprehensive configuration guidance and help for SourceCrateMCP.
 
     ⚠️ AI USERS: You can call this proactively! Don't wait to be asked.
     If you need a custom category or source for any research topic, create it.
@@ -2607,7 +2607,7 @@ async def get_help() -> dict[str, Any]:
     help_info = {
         "config_guide": {
             "overview": (
-                "PaperezMCP uses YAML configuration files to customize sources, categories, and behavior.\n\n"
+                "SourceCrateMCP uses YAML configuration files to customize sources, categories, and behavior.\n\n"
                 "📁 CONFIG FILE CHANGES: Detected dynamically - NO restart needed!\n"
                 "🔧 MCP SERVER CODE CHANGES: Require pushing to GitHub + restarting Claude Code.\n\n"
                 "💡 When to restart: Only when the Python code (.py files) changes. "
@@ -2616,17 +2616,17 @@ async def get_help() -> dict[str, Any]:
             "setup_approaches": {
                 "single_file": {
                     "description": "Traditional single config.yaml approach",
-                    "path": ".paperez/config/config.yaml",
+                    "path": ".sourcecrate/config/config.yaml",
                     "use_case": "Complete custom configuration",
                 },
                 "multi_file": {
                     "description": "RECOMMENDED: Individual YAML files for different purposes",
-                    "path": ".paperez/config/my-custom-category.yaml",
+                    "path": ".sourcecrate/config/my-custom-category.yaml",
                     "use_case": "Adding custom categories without complex source definitions",
                 },
             },
             "setup_steps": [
-                "1. Create the configuration directory: mkdir -p .paperez/config/",
+                "1. Create the configuration directory: mkdir -p .sourcecrate/config/",
                 "2. Choose approach: single config.yaml OR individual .yaml files",
                 "3. Create your configuration file(s) using examples below",
                 "4. Use get_status() immediately to verify - changes are detected instantly!",
@@ -2635,7 +2635,7 @@ async def get_help() -> dict[str, Any]:
             "important_notes": [
                 "🔥 DYNAMIC LOADING: Changes take effect immediately - no restart needed!",
                 "📁 MULTI-FILE SUPPORT: Create separate .yaml files for different categories",
-                "🔄 SMART MERGING: All .yaml files in .paperez/config/ are automatically merged",
+                "🔄 SMART MERGING: All .yaml files in .sourcecrate/config/ are automatically merged",
                 "✅ INSTANT VERIFICATION: Use get_status() to see your changes immediately",
                 "⚠️ SOURCE VALIDATION: Only reference sources that exist (see available_sources below)",
             ],
@@ -2649,15 +2649,15 @@ async def get_help() -> dict[str, Any]:
         },
         "file_paths": {
             "user_config_path": str(
-                Path.home() / ".paperez" / "config" / "config.yaml"
+                Path.home() / ".sourcecrate" / "config" / "config.yaml"
             ),
             "project_config_path": str(
-                Path.cwd() / ".paperez" / "config" / "config.yaml"
+                Path.cwd() / ".sourcecrate" / "config" / "config.yaml"
             ),
-            "config_directory": ".paperez/config/",
+            "config_directory": ".sourcecrate/config/",
             "create_commands": [
-                "mkdir -p .paperez/config/",
-                "touch .paperez/config/config.yaml",
+                "mkdir -p .sourcecrate/config/",
+                "touch .sourcecrate/config/config.yaml",
             ],
         },
         "schema_info": {
@@ -2672,7 +2672,7 @@ async def get_help() -> dict[str, Any]:
                 "max_concurrent_searches": "Integer - max parallel searches (default: 15)",
                 "global_cache_enabled": "Boolean - enable caching (default: true)",
                 "global_cache_expire": "Integer - cache expiration in seconds (default: 7200)",
-                "default_output_dir": "String - default output directory (default: '.paperez')",
+                "default_output_dir": "String - default output directory (default: '.sourcecrate')",
                 "cleanup_temp_files": "Boolean - clean temporary files (default: true)",
             },
             "source_structure": {
@@ -2696,7 +2696,7 @@ async def get_help() -> dict[str, Any]:
         },
         "examples": {
             "custom_category_only": {
-                "description": "RECOMMENDED: Add custom category using existing sources (file: .paperez/config/my-research.yaml)",
+                "description": "RECOMMENDED: Add custom category using existing sources (file: .sourcecrate/config/my-research.yaml)",
                 "content": """# Custom Research Category
 # This creates a new category without defining sources
 # Uses existing sources: arxiv, semantic_scholar, crossref
@@ -2715,7 +2715,7 @@ categories:
     parallel_search: true""",
             },
             "multiple_custom_categories": {
-                "description": "Add multiple categories in one file (file: .paperez/config/research-categories.yaml)",
+                "description": "Add multiple categories in one file (file: .sourcecrate/config/research-categories.yaml)",
                 "content": """# Multiple Custom Categories
 # Each category uses different combinations of existing sources
 
@@ -2744,7 +2744,7 @@ categories:
     parallel_search: true""",
             },
             "minimal_config": {
-                "description": "Complete custom configuration (file: .paperez/config/config.yaml)",
+                "description": "Complete custom configuration (file: .sourcecrate/config/config.yaml)",
                 "content": """version: "1.0"
 use_default_sources: false
 sources:
@@ -3107,7 +3107,7 @@ categories:
         "troubleshooting": {
             "validation_errors": {
                 "sources_must_be_dict": {
-                    "error": "1 validation error for PaperezConfig: sources - Input should be a valid dictionary",
+                    "error": "1 validation error for SourceCrateConfig: sources - Input should be a valid dictionary",
                     "cause": "Empty or missing sources section when using category-only config",
                     "solution": "Remove 'sources:' line completely OR use existing sources in categories",
                     "example": "Instead of defining new sources, reference existing ones like: sources: [arxiv, crossref]",
@@ -3146,7 +3146,7 @@ categories:
             },
             "config_not_loading": [
                 "✅ FIRST: Run get_status() - config loads dynamically, check 'configuration_loaded' field",
-                "📁 Check file path: .paperez/config/ directory with .yaml extension",
+                "📁 Check file path: .sourcecrate/config/ directory with .yaml extension",
                 "📝 Validate YAML syntax (use online YAML validator)",
                 "🔍 Check 'categories.total_categories' in get_status() - should increase with your additions",
                 "⚠️ Ensure source names match exactly those in 'available_sources' below",
@@ -3165,7 +3165,7 @@ categories:
                 "🧪 Test immediately with get_status() after each change",
             ],
             "verification_workflow": [
-                "1. Create your .yaml file in .paperez/config/",
+                "1. Create your .yaml file in .sourcecrate/config/",
                 "2. Immediately run get_status() - no restart needed!",
                 "3. Check 'config.categories.total_categories' increased",
                 "4. Find your category in 'config.categories.category_details'",
@@ -3253,8 +3253,8 @@ categories:
             },
         },
         "scope_and_use_cases": {
-            "what_paperez_does": {
-                "description": "Paperez finds ACADEMIC RESEARCH PAPERS",
+            "what_sourcecrate_does": {
+                "description": "SourceCrate finds ACADEMIC RESEARCH PAPERS",
                 "supported_content": [
                     "Journal articles (Nature, Science, PLOS)",
                     "Preprints (arXiv, bioRxiv, SocArXiv)",
@@ -3265,8 +3265,8 @@ categories:
                 ],
                 "what_you_get": "Metadata (title, authors, abstract, DOI) + PDF download + markdown conversion",
             },
-            "what_paperez_does_not_do": {
-                "description": "Paperez does NOT provide primary literary texts or full books",
+            "what_sourcecrate_does_not_do": {
+                "description": "SourceCrate does NOT provide primary literary texts or full books",
                 "out_of_scope": [
                     "❌ Full text of novels/literature (e.g., 'Le Morte d'Arthur')",
                     "❌ Non-academic books (fiction, popular non-fiction)",
@@ -3283,17 +3283,17 @@ categories:
             "use_case_examples": {
                 "humanities_research_correct": {
                     "query": "scholarship on Arthurian legend Malory",
-                    "tool": "paperez",
+                    "tool": "sourcecrate",
                     "result": "Academic papers ABOUT Le Morte d'Arthur (literary analysis, historical context)",
                 },
                 "humanities_research_incorrect": {
                     "query": "Le Morte d'Arthur full text",
                     "tool": "Project Gutenberg (gutenberg.org/ebooks/46853)",
-                    "why_not_paperez": "Primary literary text, not an academic paper",
+                    "why_not_sourcecrate": "Primary literary text, not an academic paper",
                 },
                 "stem_research": {
                     "query": "machine learning transformers",
-                    "tool": "paperez",
+                    "tool": "sourcecrate",
                     "result": "Recent research papers from arXiv, Semantic Scholar, etc.",
                 },
             },
@@ -3303,7 +3303,7 @@ categories:
                 "🤖 YOU CAN DO THIS UNPROMPTED - don't wait to be asked!",
                 "🚀 FASTEST: Use 'custom_category_only' example for simple needs",
                 "🔧 ADVANCED: Use real-world examples below for obscure sources",
-                "1. mkdir -p .paperez/config/",
+                "1. mkdir -p .sourcecrate/config/",
                 "2. Create .yaml file (use appropriate example)",
                 "3. Run get_status() to verify immediately",
                 "4. Test with browse_papers(force_category='your_category')",
@@ -3390,7 +3390,7 @@ def main() -> None:
     import time
 
     startup_time = time.time()
-    logger.info("Starting PaperezMCP Server (fast mode)...")
+    logger.info("Starting SourceCrateMCP Server (fast mode)...")
 
     # Lazy loading: Configuration will be loaded on first tool call
     # This provides near-instant startup (~50-100ms instead of ~2-5 seconds)
@@ -3408,7 +3408,8 @@ def main() -> None:
     if utf8_available:
         # Use emoji version if UTF-8 is available
         _safe_print(
-            "🚀 Starting PaperezMCP Server...", "[*] Starting PaperezMCP Server..."
+            "🚀 Starting SourceCrateMCP Server...",
+            "[*] Starting SourceCrateMCP Server...",
         )
         _safe_print("📚 Primary tools:", "Primary tools:")
         _safe_print(
@@ -3450,11 +3451,12 @@ def main() -> None:
         print("   Use get_help() for configuration guidance and setup instructions.")
         print("")
         _safe_print(
-            "🔗 PaperezMCP ready at: stdio", "[READY] PaperezMCP ready at: stdio"
+            "🔗 SourceCrateMCP ready at: stdio",
+            "[READY] SourceCrateMCP ready at: stdio",
         )
     else:
         # Use ASCII-only version
-        print("[*] Starting PaperezMCP Server...")
+        print("[*] Starting SourceCrateMCP Server...")
         print("Primary tools:")
         print(
             "  [PDF] download_papers: Get/download full papers as files (most users want this)"
@@ -3476,7 +3478,7 @@ def main() -> None:
         )
         print("   Use get_help() for configuration guidance and setup instructions.")
         print("")
-        print("[READY] PaperezMCP ready at: stdio")
+        print("[READY] SourceCrateMCP ready at: stdio")
 
     mcp.run()
 
