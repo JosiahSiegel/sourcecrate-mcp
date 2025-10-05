@@ -1,34 +1,31 @@
 /* PaperezMCP Browser UI - Styles */
 
 :root {
-    /* Dark Aged Paper Monotone Palette - Refined 2025 */
-    --bg-color: #1c1612;
-    --card-bg: #26221b;
-    --surface-color: #2f2a23;
-    --border-color: #433d33;
+    /* Minimal Brutalism Theme - Bold, raw, unapologetic */
+    --bg-color: #1a1512;
+    --card-bg: #2d2420;
+    --surface-color: #2d2420;
+    --border-color: #c0a392;
 
-    /* Text Colors - Enhanced Contrast
-       Contrast Ratios (WCAG AAA requires 7:1, ideal 15.8:1):
-       - text-color on bg-color: ~14.2:1 (Excellent)
-       - text-secondary on bg-color: ~9.5:1 (Very Good)
-       - text-tertiary on bg-color: ~6.8:1 (Good for secondary text)
+    /* Text Colors - Brutalist
+       High contrast for maximum readability
     */
-    --text-color: #ede4d3;
-    --text-secondary: #b5a792;
-    --text-tertiary: #968976;
+    --text-color: #fdf8f6;
+    --text-secondary: #c0a392;
+    --text-tertiary: #a18072;
 
-    /* Accents - Warm Sepia + Modern Touch */
-    --accent-color: #a67c52;
-    --accent-hover: #8b6f47;
+    /* Accents - Brutalist */
+    --accent-color: #c0a392;
+    --accent-hover: #d4b5a5;
     --success-color: #7a9b76;
     --error-color: #a67c6f;
     --warning-color: #b89968;
-    --accent-teal: #7b9a92; /* Subtle modern micro-accent */
+    --accent-teal: #7b9a92;
 
-    /* Refined Shadows - Softer, 2025 Minimalist */
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-    --shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
-    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.35);
+    /* Brutalist Shadows - Strong, defined */
+    --shadow-sm: 4px 4px 0 rgba(166, 124, 82, 0.3);
+    --shadow: 6px 6px 0 rgba(166, 124, 82, 0.4);
+    --shadow-lg: 8px 8px 0 rgba(166, 124, 82, 0.5);
 }
 
 * {
@@ -37,42 +34,33 @@
     box-sizing: border-box;
 }
 
-/* WCAG 2.1 SC 1.4.11 compliant focus states (3:1 contrast minimum) */
+/* Brutalist focus states - Bold and obvious */
 a:focus-visible,
 button:focus-visible,
 details:focus-visible,
 input:focus-visible,
 .source-chip:focus-visible {
     outline: 3px solid var(--accent-color);
-    outline-offset: 3px;
-    border-radius: 4px;
+    outline-offset: 2px;
+    border-radius: 0;
 }
 
 body {
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
-    line-height: 1.75; /* WCAG requires 1.5 minimum */
+    line-height: 1.5;
     min-height: 100vh;
-    font-size: 16px; /* WCAG AAA minimum for readability */
-    font-weight: 400;
-    letter-spacing: 0.015em; /* Improved readability */
-    word-spacing: 0.16em; /* WCAG spacing recommendation */
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0;
+    word-spacing: 0;
     position: relative;
 }
 
-/* Subtle aged paper texture overlay */
+/* Remove texture overlay for brutalist clean look */
 body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    opacity: 0.03;
-    pointer-events: none;
-    z-index: -1;
+    display: none;
 }
 
 .container {
@@ -94,46 +82,49 @@ body::before {
     }
 }
 
-/* Header - Minimalist Style */
+/* Header - Brutalist Style */
 header {
     text-align: center;
-    margin-bottom: 1.5rem;
-    padding: 1.5rem 0 1rem;
-    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    border: 3px solid var(--border-color);
+    background: var(--card-bg);
+    border-radius: 0;
 }
 
 header h1 {
-    font-size: 1.5rem;
-    font-weight: 500;
+    font-size: 1.75rem;
+    font-weight: 900;
     color: var(--text-color);
-    letter-spacing: 0.12em;
+    letter-spacing: -0.02em;
     text-transform: uppercase;
 }
 
 /* Tablet and up */
 @media (min-width: 640px) {
     header h1 {
-        font-size: 1.75rem;
-        font-weight: 600;
+        font-size: 2.5rem;
+        font-weight: 900;
     }
 }
 
 /* Desktop */
 @media (min-width: 1024px) {
     header h1 {
-        font-size: 2rem;
-        font-weight: 600;
-        letter-spacing: 0.15em;
+        font-size: 3rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
     }
 }
 
-/* Sections - Minimalist */
+/* Sections - Brutalist */
 section {
     background: var(--card-bg);
-    border-radius: 4px;
+    border-radius: 0;
     padding: 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid var(--border-color);
+    margin-bottom: 1.5rem;
+    border: 3px solid var(--border-color);
+    box-shadow: var(--shadow);
 }
 
 /* Tablet and up */
@@ -162,7 +153,7 @@ section {
     display: block;
 }
 
-/* Forms - Minimalist */
+/* Forms - Brutalist */
 .form-group {
     margin-bottom: 1rem;
 }
@@ -170,26 +161,29 @@ section {
 .form-group label {
     display: block;
     margin-bottom: 0.5rem;
-    font-weight: 400;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-color);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-/* Search Input - Simple */
+/* Search Input - Brutalist */
 .search-input {
     margin-bottom: 1rem;
 }
 
 .search-input input {
     width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
+    padding: 1rem;
+    border: 3px solid var(--border-color);
+    border-radius: 0;
     font-size: 1rem;
-    transition: border-color 0.2s;
+    transition: none;
     background: var(--surface-color);
     color: var(--text-color);
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 600;
 }
 
 .search-input input:focus {
@@ -199,6 +193,9 @@ section {
 
 .search-input input::placeholder {
     color: var(--text-tertiary);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.05em;
 }
 
 /* Override browser autofill styling */
@@ -373,20 +370,19 @@ input[type="range"]::-moz-range-thumb:hover {
     }
 }
 
-/* Buttons - Classic Style */
+/* Buttons - Brutalist Style */
 .btn {
-    padding: 0.875rem 1.75rem;
-    border: none;
-    border-radius: 6px;
+    padding: 1rem 2rem;
+    border: 3px solid var(--bg-color);
+    border-radius: 0;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 900;
     cursor: pointer;
-    transition: background-color 0.2s, box-shadow 0.2s;
+    transition: none;
     text-decoration: none;
     display: inline-block;
-    font-family: Georgia, 'Times New Roman', serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     text-transform: uppercase;
-    font-variant: small-caps;
     letter-spacing: 0.05em;
     box-shadow: var(--shadow);
 }
@@ -398,49 +394,25 @@ input[type="range"]::-moz-range-thumb:hover {
 
 .btn-primary:hover {
     background: var(--accent-hover);
-    box-shadow: var(--shadow-lg);
+    transform: translate(2px, 2px);
+    box-shadow: 4px 4px 0 rgba(166, 124, 82, 0.4);
 }
 
 .btn-primary:active {
-    box-shadow: var(--shadow-sm);
+    transform: translate(4px, 4px);
+    box-shadow: 2px 2px 0 rgba(166, 124, 82, 0.3);
 }
 
 .btn-secondary {
-    background: var(--surface-color);
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--accent-color);
+    border: 3px solid var(--accent-color);
 }
 
 .btn-secondary:hover {
-    background: var(--card-bg);
-    border-color: var(--accent-color);
-}
-
-.btn-small {
-    padding: 0.625rem 1.25rem;
-    font-size: 0.875rem;
-    margin-right: 0.5rem;
-    margin-bottom: 0.5rem;
-    background: var(--accent-color);
-    color: var(--bg-color);
-    border: 1px solid var(--accent-color);
-}
-
-.btn-small:hover {
-    background: var(--accent-hover);
-    border-color: var(--accent-hover);
-    box-shadow: var(--shadow-lg);
-}
-
-.btn-pdf {
-    background: var(--error-color);
-    color: var(--text-color);
-    border: 1px solid var(--error-color);
-}
-
-.btn-pdf:hover {
-    background: #8b6a5f;
-    border-color: #8b6a5f;
+    background: var(--surface-color);
+    transform: translate(2px, 2px);
+    box-shadow: 4px 4px 0 rgba(166, 124, 82, 0.4);
 }
 
 /* Mobile: larger touch targets */
@@ -507,20 +479,19 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 .paper-card {
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 1.25rem;
-    margin-bottom: 1.25rem;
+    border: 3px solid var(--border-color);
+    border-radius: 0;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
     background: var(--card-bg);
-    transition: all 0.15s ease-out;
-    will-change: transform;  /* GPU acceleration hint */
-    contain: layout;         /* Isolate layout calculations */
+    transition: none;
+    box-shadow: var(--shadow);
+    position: relative;
 }
 
 .paper-card:hover {
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 1px var(--accent-color);
-    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
 }
 
 /* Prevent layout thrashing during streaming updates */
@@ -536,15 +507,16 @@ input[type="range"]::-moz-range-thumb:hover {
 /* Tablet and up */
 @media (min-width: 640px) {
     .paper-card {
-        padding: 1.5rem;
+        padding: 1.75rem;
+        margin-bottom: 2.25rem;
     }
 }
 
 /* Desktop */
 @media (min-width: 1024px) {
     .paper-card {
-        padding: 1.75rem;
-        margin-bottom: 1.5rem;
+        padding: 2rem;
+        margin-bottom: 2.5rem;
     }
 }
 
@@ -567,15 +539,16 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 .paper-header h3 {
-    font-size: 1.25rem;
-    font-weight: 500;
-    line-height: 1.5; /* WCAG minimum for headings */
+    font-size: 1.3rem;
+    font-weight: 900;
+    line-height: 1.3;
     color: var(--text-color);
-    letter-spacing: 0.02em; /* Improved readability */
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
     flex: 1;
     min-width: 0;
     display: flex;
-    align-items: flex-start; /* Align to first line */
+    align-items: flex-start;
     gap: 0.75rem;
 }
 
@@ -639,146 +612,60 @@ input[type="range"]::-moz-range-thumb:hover {
 }
 
 .metadata-badge {
-    padding: 0.3rem 0.75rem;
-    border-radius: 4px;
-    font-size: 0.8125rem;
-    font-weight: 500;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
-    transition: all 0.2s ease;
+    transition: none;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .badge-doi {
-    background: rgba(166, 124, 82, 0.2);
-    color: var(--text-primary);
-    border: 1px solid var(--text-secondary);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
 }
 
 .badge-doi:hover {
-    background: rgba(166, 124, 82, 0.3);
-    transform: translateY(-1px);
+    background: var(--surface-color);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
 }
 
 .badge-open-access {
     background: var(--success-color);
-    color: white;
+    color: var(--bg-color);
+    border: 2px solid var(--success-color);
 }
 
 .badge-preprint {
     background: var(--warning-color);
-    color: var(--bg-primary);
+    color: var(--bg-color);
+    border: 2px solid var(--warning-color);
 }
 
 .badge-citations {
-    background: rgba(166, 124, 82, 0.2);
-    color: var(--text-primary);
-    border: 1px solid var(--text-secondary);
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
 }
 
-/* Access status badges */
-.access-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.25rem 0.625rem;
-    border-radius: 3px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    border: 1px solid;
-}
-
-.access-badge-open-access {
-    background-color: rgba(122, 155, 118, 0.15);
-    border-color: var(--success-color);
-    color: var(--success-color);
-}
-
-.access-badge-paywalled {
-    background-color: rgba(184, 153, 104, 0.15);
-    border-color: var(--warning-color);
-    color: var(--warning-color);
-}
-
-.access-badge-check-access {
-    background-color: rgba(135, 169, 204, 0.15);
-    border-color: #87a9cc;
-    color: #5c8ab3;
-}
-
-.access-badge-unknown {
-    background-color: rgba(139, 125, 107, 0.15);
-    border-color: var(--text-tertiary);
-    color: var(--text-tertiary);
-}
-
-.access-badge-icon {
-    font-style: normal;
-    font-size: 0.875rem;
-}
-
-/* Merged sources indicator */
-.meta-item-merged {
-    background: linear-gradient(135deg, rgba(227, 242, 253, 0.3) 0%, rgba(243, 229, 245, 0.3) 100%);
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid rgba(25, 118, 210, 0.2);
-}
-
-.merged-indicator {
-    background: var(--accent-color);
-    color: white;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
-    margin-left: 6px;
-    font-weight: 500;
-}
-
-/* Alternate PDFs dropdown */
-.alternate-pdfs {
-    display: inline-block;
-    margin-left: 8px;
-    vertical-align: middle;
-}
-
-.alternate-pdfs details {
-    display: inline;
-    position: relative;
-}
-
-.alternate-pdfs summary {
-    cursor: pointer;
-    color: var(--accent-color);
-    font-size: 0.875rem;
-    list-style: none;
-    user-select: none;
-    padding: 4px 8px;
-    border-radius: 3px;
-    transition: background-color 0.2s;
-}
-
-.alternate-pdfs summary::-webkit-details-marker {
-    display: none;
-}
-
-.alternate-pdfs summary:hover {
-    background-color: rgba(184, 153, 104, 0.1);
-}
-
+/* Alternate PDF dropdown - used in rendering.js */
 .alternate-pdf-list {
     list-style: none;
     padding: 8px;
     margin: 4px 0;
     background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
+    border: 2px solid var(--border-color);
+    border-radius: 0;
     position: absolute;
     z-index: 10;
     min-width: 200px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: var(--shadow);
 }
 
 .alternate-pdf-list li {
@@ -791,13 +678,17 @@ input[type="range"]::-moz-range-thumb:hover {
     font-size: 0.875rem;
     display: block;
     padding: 4px 8px;
-    border-radius: 3px;
-    transition: background-color 0.2s;
+    border-radius: 0;
+    transition: none;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .alternate-pdf-list a:hover {
-    background-color: rgba(184, 153, 104, 0.15);
-    text-decoration: underline;
+    background-color: var(--surface-color);
+    border-left: 3px solid var(--accent-color);
+    text-decoration: none;
 }
 
 .paper-abstract {
@@ -817,12 +708,13 @@ input[type="range"]::-moz-range-thumb:hover {
     gap: 0.5rem;
 }
 
-/* System Status */
+/* System Status - Brutalist */
 .system-status {
-    background-color: var(--bg-color);
+    background-color: var(--card-bg);
     padding: 1.5rem;
-    border-radius: 6px;
+    border-radius: 0;
     margin-top: 1rem;
+    border: 3px solid var(--border-color);
 }
 
 .status-grid {
@@ -835,8 +727,12 @@ input[type="range"]::-moz-range-thumb:hover {
 .status-item {
     padding: 0.75rem;
     background: var(--surface-color);
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
+    border-radius: 0;
+    border: 2px solid var(--border-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
 }
 
 details {
@@ -847,10 +743,12 @@ details summary {
     cursor: pointer;
     padding: 0.75rem;
     background-color: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font-weight: 500;
+    border: 2px solid var(--border-color);
+    border-radius: 0;
+    font-weight: 700;
     color: var(--text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 details summary:hover {
@@ -933,25 +831,28 @@ footer a:hover {
 
 .btn-pdf-download {
     background: var(--accent-color);
-    color: var(--text-color);
-    padding: 0.75rem 1.5rem; /* Increased for better touch targets */
-    min-height: 44px; /* WCAG touch target minimum */
-    border-radius: 6px;
+    color: var(--bg-color);
+    padding: 0.75rem 1.5rem;
+    min-height: 44px;
+    border-radius: 0;
     text-decoration: none;
-    font-size: 0.9375rem;
-    font-weight: 500;
+    font-size: 0.9rem;
+    font-weight: 900;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    transition: all 0.15s ease-out;
+    transition: none;
     box-shadow: var(--shadow);
-    border: none;
-    font-family: Georgia, 'Times New Roman', serif;
+    border: 3px solid var(--bg-color);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .btn-pdf-download:hover {
     background: var(--accent-hover);
     box-shadow: var(--shadow-lg);
+    transform: translate(2px, 2px);
 }
 
 .btn-pdf-download .pdf-icon {
@@ -1040,29 +941,33 @@ footer a:hover {
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    padding: 0.5rem 0.875rem; /* Increased for better touch targets */
-    min-height: 36px; /* Improved touch target size */
-    border-radius: 6px;
-    font-size: 0.875rem; /* Slightly larger for readability */
+    padding: 0.4rem 0.8rem;
+    min-height: 36px;
+    border-radius: 0;
+    font-size: 0.75rem;
     text-decoration: none;
-    transition: all 0.15s ease-out;
-    border: 1px solid;
+    transition: none;
+    border: 2px solid;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-/* Unified sepia styling for all source chips (page, DOI, PDF) */
+/* Brutalist styling for all source chips */
 .source-chip-pdf,
 .source-chip-page,
 .source-chip-doi {
-    background-color: rgba(166, 124, 82, 0.1);
-    border-color: rgba(166, 124, 82, 0.3);
-    color: var(--accent-color);
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
 }
 
 .source-chip-pdf:hover,
 .source-chip-page:hover,
 .source-chip-doi:hover {
-    background-color: rgba(166, 124, 82, 0.2);
+    background-color: var(--surface-color);
     border-color: var(--accent-color);
+    color: var(--accent-color);
 }
 
 /* Citation styling - moved below */

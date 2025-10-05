@@ -29,11 +29,11 @@ window.trackDownloadAttempt = function(pdfUrl, downloadId) {
     setTimeout(() => {
         fetch(pdfUrl, { method: 'HEAD', mode: 'no-cors' })
             .then(() => {
-                console.log(`Download initiated: ${DownloadReliability.getDomain(pdfUrl)}`);
+                // console.log(`Download initiated: ${DownloadReliability.getDomain(pdfUrl)}`);
             })
             .catch(() => {
                 DownloadReliability.recordAttempt(pdfUrl, false);
-                console.warn(`Download may have failed: ${DownloadReliability.getDomain(pdfUrl)}`);
+                // console.warn(`Download may have failed: ${DownloadReliability.getDomain(pdfUrl)}`);
             });
     }, 1000);
 };
@@ -74,8 +74,8 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('PaperezMCP Browser UI initialized');
-    console.log('API Server:', API_BASE_URL);
+    // console.log('PaperezMCP Browser UI initialized');
+    // console.log('API Server:', API_BASE_URL);
 
     // Get filter UI elements
     const pdfOnlyCheckbox = document.getElementById('pdfOnly');

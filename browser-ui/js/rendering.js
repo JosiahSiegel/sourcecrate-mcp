@@ -229,7 +229,7 @@ function buildHybridSourceLinks(paper) {
         });
 
         html += `<div class="all-sources-chips">
-            <span class="sources-label">All sources:</span>`;
+            <span class="sources-label">Sources:</span>`;
 
         sortedPages.forEach(access => {
             if (!access.url || !isValidUrl(access.url)) return;
@@ -348,7 +348,7 @@ function buildLegacyLinks(paper) {
             : '';
 
         html += `<div class="all-sources-chips">
-            <span class="sources-label">All sources:</span>`;
+            <span class="sources-label">Sources:</span>`;
 
         // Always add DOI first if available (normalized)
         if (paper.doi) {
@@ -425,13 +425,13 @@ export function buildPaperCard(paper, index, showBadge = true) {
     // Build research metadata badges
     let metadataBadges = '';
 
-    // DOI Badge
+    // DOI Badge with copy icon
     if (paper.doi) {
         const fullDoiUrl = getFullDoiUrl(paper.doi);
-        metadataBadges += `<span class="metadata-badge badge-doi" title="Click to copy DOI URL"
+        metadataBadges += `<span class="metadata-badge badge-doi" title="DOI: ${fullDoiUrl} (click to copy)"
                                  onclick="navigator.clipboard.writeText('${fullDoiUrl}')"
                                  style="cursor: pointer;">
-                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
+                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                              </svg>
@@ -465,16 +465,12 @@ export function buildPaperCard(paper, index, showBadge = true) {
                            </span>`;
     }
 
-    // Citation Count Badge
+    // Citation Count Badge (simplified)
     const citationCount = parseInt(paper.citation_count) || 0;
     if (citationCount > 0) {
-        metadataBadges += `<span class="metadata-badge badge-citations" title="Number of citations">
-                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
-                                <line x1="18" y1="20" x2="18" y2="10"></line>
-                                <line x1="12" y1="20" x2="12" y2="4"></line>
-                                <line x1="6" y1="20" x2="6" y2="14"></line>
-                             </svg>
-                             ${citationCount.toLocaleString()} citation${citationCount !== 1 ? 's' : ''}
+        const citationLabel = citationCount >= 1000 ? `${(citationCount/1000).toFixed(1)}k` : citationCount.toLocaleString();
+        metadataBadges += `<span class="metadata-badge badge-citations" title="${citationCount.toLocaleString()} citation${citationCount !== 1 ? 's' : ''}">
+                             ${citationLabel}
                            </span>`;
     }
 

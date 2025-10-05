@@ -64,21 +64,21 @@ export function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 35, 
     // Search start
     eventSource.addEventListener('search_start', (e) => {
         const data = JSON.parse(e.data);
-        console.log('Search started:', data);
+        // console.log('Search started:', data);
         resultsDiv.innerHTML = '<p class="loading-message">🔍 Searching across academic databases...</p>';
     });
 
     // Source started
     eventSource.addEventListener('source_start', (e) => {
         const data = JSON.parse(e.data);
-        console.log('Source started:', data.source);
+        // console.log('Source started:', data.source);
         showStatus(`Searching ${data.source}...`, 'loading');
     });
 
     // Results received
     eventSource.addEventListener('results', (e) => {
         const data = JSON.parse(e.data);
-        console.log(`Received ${data.papers.length} papers from ${data.source}`);
+        // console.log(`Received ${data.papers.length} papers from ${data.source}`);
 
         // Deduplicate and merge as we receive results
         let newCount = 0;
@@ -93,7 +93,7 @@ export function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 35, 
                 const merged = mergePapers(existing, paper);
                 papersByKey.set(key, merged);
                 mergedCount++;
-                console.log(`Merged duplicate: "${paper.title}" from ${paper.source} (now ${merged._merged_count} sources)`);
+                // console.log(`Merged duplicate: "${paper.title}" from ${paper.source} (now ${merged._merged_count} sources)`);
             } else {
                 // New unique paper - apply optimal relevance scoring
                 paper.relevance_score = calculateOptimalRelevance(paper, currentQuery);
@@ -102,7 +102,7 @@ export function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 35, 
             }
         });
 
-        console.log(`Deduplication: ${newCount} new, ${mergedCount} merged`);
+        // console.log(`Deduplication: ${newCount} new, ${mergedCount} merged`);
 
         // Update streamingResults from deduplicated map
         setStreamingResults(Array.from(papersByKey.values()));
@@ -114,7 +114,7 @@ export function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 35, 
     // Source completed
     eventSource.addEventListener('source_complete', (e) => {
         const data = JSON.parse(e.data);
-        console.log(`Source completed: ${data.source} (${data.count} papers)`);
+        // console.log(`Source completed: ${data.source} (${data.count} papers)`);
         setSourcesCompleted(data.completed);
 
         // Capture total sources if available
@@ -128,7 +128,7 @@ export function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 35, 
     // Progress update
     eventSource.addEventListener('progress', (e) => {
         const data = JSON.parse(e.data);
-        console.log(`Progress: ${data.percentage.toFixed(1)}% (${data.completed}/${data.total})`);
+        // console.log(`Progress: ${data.percentage.toFixed(1)}% (${data.completed}/${data.total})`);
 
         // Capture total sources from progress event
         if (data.total && totalSources === 0) {
@@ -141,7 +141,7 @@ export function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 35, 
     // Search complete
     eventSource.addEventListener('complete', (e) => {
         const data = JSON.parse(e.data);
-        console.log('Search complete:', data);
+        // console.log('Search complete:', data);
 
         eventSource.close();
         setCurrentEventSource(null);

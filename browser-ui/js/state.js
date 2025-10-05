@@ -37,7 +37,7 @@ function getApiUrl() {
 }
 
 export const API_BASE_URL = getApiUrl();
-console.log(`[Paperez] Using API URL: ${API_BASE_URL}`);
+// console.log(`[Paperez] Using API URL: ${API_BASE_URL}`);
 
 // ============================================================================
 // Download Reliability Tracking (Client-Side localStorage)
@@ -199,5 +199,5 @@ export function setRenderedPaperKeys(value) {
 
 // Utility functions
 export function showStatus(message, type = 'info') {
-    console.log(`[${type.toUpperCase()}] ${message}`);
+    // console.log(`[${type.toUpperCase()}] ${message}`);
 }
