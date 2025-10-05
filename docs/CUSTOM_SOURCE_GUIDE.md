@@ -1,6 +1,6 @@
 # Custom Source Integration Guide
 
-This guide provides comprehensive instructions for adding custom academic sources to PaperezMCP. The system is designed to support unlimited custom sources without code changes.
+This guide provides comprehensive instructions for adding custom academic sources to SourceCrate. The system is designed to support unlimited custom sources without code changes.
 
 ## Table of Contents
 
@@ -17,7 +17,7 @@ This guide provides comprehensive instructions for adding custom academic source
 
 ## Overview
 
-PaperezMCP supports three types of custom sources:
+SourceCrate supports three types of custom sources:
 
 - **HTTP API Sources**: Connect to any REST API with configurable mappings
 - **Plugin Sources**: Python plugins for complex custom logic
@@ -79,7 +79,7 @@ Best for sources requiring custom authentication, complex API logic, or data tra
 
 ```python
 # my_custom_plugin.py
-from paperez_mcp.api_clients.base_client import BaseAPIClient
+from source_crate.api_clients.base_client import BaseAPIClient
 from typing import Any
 
 class MyCustomClient(BaseAPIClient):
@@ -258,7 +258,7 @@ capabilities:
 
 ## Field Mappings
 
-Map API response fields to standard PaperezMCP fields:
+Map API response fields to standard SourceCrate fields:
 
 ### Standard Fields
 
@@ -375,7 +375,7 @@ python3 scripts/validate_source_enablement.py
 
 # Check for configuration warnings
 python3 -c "
-from paperez_mcp.config.manager import get_current_config
+from source_crate.config.manager import get_current_config
 config = get_current_config()
 warnings = config.validate_configuration()
 for warning in warnings:
@@ -389,7 +389,7 @@ for warning in warnings:
 # Test basic source functionality
 python3 -c "
 import asyncio
-from paperez_mcp.config.registry import SourceRegistry
+from source_crate.config.registry import SourceRegistry
 
 async def test_source():
     registry = SourceRegistry()
@@ -407,7 +407,7 @@ asyncio.run(test_source())
 
 ```bash
 # Test via MCP tools
-python3 paperez_mcp_server.py &
+python3 source_crate_server.py &
 # Then test with Claude Code or MCP client
 ```
 
@@ -459,7 +459,7 @@ sources:
         format: json
         type: thesis
       headers:
-        User-Agent: "PaperezMCP/1.0"
+        User-Agent: "SourceCrate/1.0"
       field_mappings:
         title: metadata.title
         authors: metadata.creator
@@ -477,7 +477,7 @@ sources:
 
 ```python
 # specialized_db_plugin.py
-from paperez_mcp.api_clients.base_client import BaseAPIClient
+from source_crate.api_clients.base_client import BaseAPIClient
 import aiohttp
 import json
 
@@ -604,7 +604,7 @@ Enable debug logging:
 
 ```python
 import logging
-logging.getLogger("paperez_mcp").setLevel(logging.DEBUG)
+logging.getLogger("source_crate").setLevel(logging.DEBUG)
 ```
 
 ### Testing Queries
@@ -613,7 +613,7 @@ Test individual components:
 
 ```python
 # Test configuration loading
-from paperez_mcp.config.manager import get_current_config
+from source_crate.config.manager import get_current_config
 config = get_current_config()
 print(f"Loaded {len(config.sources)} sources")
 
@@ -622,7 +622,7 @@ source_config = config.sources['my_source']
 print(f"Capabilities: {source_config.capabilities}")
 
 # Test category routing
-from paperez_mcp.services.search_service import SearchService
+from source_crate.services.search_service import SearchService
 service = SearchService()
 analysis = service.analyze_query_domain("my test query")
 print(f"Domain: {analysis['domain']}")

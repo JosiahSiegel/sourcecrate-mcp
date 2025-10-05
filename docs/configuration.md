@@ -2,7 +2,7 @@
 
 ## Overview
 
-PaperezMCP uses a **flexible multi-file configuration system** where you can create any number of YAML files in the `.paperez/config/` directory. All files are automatically loaded and merged.
+SourceCrate uses a **flexible multi-file configuration system** where you can create any number of YAML files in the `.paperez/config/` directory. All files are automatically loaded and merged.
 
 ## Quick Setup
 
@@ -123,7 +123,7 @@ categories:
 ## Legal Compliance and Liability
 
 ### Legal Disclaimer for Custom Sources
-**PaperezMCP provides legal compliance only for default configuration sources. Users who add custom sources assume full legal responsibility for compliance with all applicable Terms of Service, copyright laws, and institutional policies.**
+**SourceCrate provides legal compliance only for default configuration sources. Users who add custom sources assume full legal responsibility for compliance with all applicable Terms of Service, copyright laws, and institutional policies.**
 
 ### User Legal Obligations for Custom Sources
 1. **Full liability assumed** - Users are solely responsible for custom source compliance
@@ -131,7 +131,7 @@ categories:
 3. **Legal compliance mandatory** - Respect rate limits, use legitimate APIs only
 4. **Institutional policy compliance** - Ensure compliance with organizational policies
 5. **No web scraping** - Use only official APIs with proper authorization
-6. **PaperezMCP disclaims liability** - No responsibility for user-configured sources
+6. **SourceCrate disclaims liability** - No responsibility for user-configured sources
 
 ### Best Practices
 ```yaml
@@ -182,14 +182,14 @@ sources:
 python tests/test_all_categories_dynamic.py
 
 # Check specific source
-python -c "from paperez_mcp.config.manager import ConfigManager; print(ConfigManager().get_config().sources)"
+python -c "from source_crate.config.manager import ConfigManager; print(ConfigManager().get_config().sources)"
 ```
 
 ## Get Help
 
 Use the built-in tool for comprehensive help:
 ```
-"Help me configure paperez-mcp"
+"Help me configure source-crate"
 ```
 
 This provides complete schemas, examples, and troubleshooting guidance.

@@ -1,6 +1,6 @@
-# PaperezMCP Test Suite
+# SourceCrate Test Suite
 
-This directory contains automated tests for PaperezMCP functionality.
+This directory contains automated tests for SourceCrate functionality.
 
 ## Dynamic Category Testing
 
@@ -30,9 +30,9 @@ python tests/test_all_categories_dynamic.py
 
 ### Expected Output
 ```text
-🧪 PaperezMCP Dynamic Tool Testing
+🧪 SourceCrate Dynamic Tool Testing
 =====================================
-✓ Successfully imported PaperezMCP modules
+✓ Successfully imported SourceCrate modules
 🚀 Starting comprehensive MCP tool testing...
 📊 Configuration: 16 sources, 10 categories
 🔍 Discovered 10 categories: ['business', 'historical', 'medical', ...]

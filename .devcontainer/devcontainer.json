@@ -1,5 +1,5 @@
 {
-  "name": "PaperezMCP Development",
+  "name": "SourceCrate Development",
   "build": {
     "dockerfile": "Dockerfile",
     "args": {
@@ -66,13 +66,13 @@
   "workspaceFolder": "/workspace",
   "postCreateCommand": "chmod 700 /home/node/.claude && chown -R node:node /home/node/.claude",
   "waitFor": "postCreateCommand",
-  // Port forwarding configuration for PaperezMCP services
+  // Port forwarding configuration for SourceCrate services
   // VS Code forwards container ports to Windows localhost
   // requireLocalPort forces exact port mapping (e.g., 9000→9000, not 9000→9001)
   "forwardPorts": [9000, 3000, 3001],
   "portsAttributes": {
     "9000": {
-      "label": "PaperezMCP HTTP API",
+      "label": "SourceCrate HTTP API",
       "protocol": "http",
       "onAutoForward": "notify",
       "requireLocalPort": true

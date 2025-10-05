@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from paperez_mcp.utils.result_streaming import (
+from source_crate.utils.result_streaming import (
     ResultStreamer,
     StreamedResult,
     StreamingUpdate,

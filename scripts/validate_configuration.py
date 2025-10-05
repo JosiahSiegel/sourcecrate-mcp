@@ -12,7 +12,7 @@ def test_configuration_loading() -> bool:
     print("🔍 Testing configuration loading...")
 
     try:
-        from paperez_mcp.config.manager import ConfigManager
+        from source_crate.config.manager import ConfigManager
 
         config = ConfigManager().get_config()
 
@@ -46,7 +46,7 @@ def test_search_functionality() -> bool:
 
     try:
         # Test query intent detector
-        from paperez_mcp.utils.query_intent import QueryIntentDetector
+        from source_crate.utils.query_intent import QueryIntentDetector
 
         detector = QueryIntentDetector()
         analysis = detector.analyze_query("machine learning neural networks")

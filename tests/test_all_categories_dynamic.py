@@ -28,12 +28,12 @@ PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 try:
-    from paperez_mcp import config
-    from paperez_mcp.config.manager import ConfigManager
+    from source_crate import config
+    from source_crate.config.manager import ConfigManager
 
-    print("✓ Successfully imported PaperezMCP modules")
+    print("✓ Successfully imported SourceCrate modules")
 except ImportError as e:
-    print(f"✗ Failed to import PaperezMCP modules: {e}")
+    print(f"✗ Failed to import SourceCrate modules: {e}")
     print("Make sure you're running from the project root directory")
     sys.exit(1)
 
@@ -427,7 +427,7 @@ class MCPToolTester:
 
 async def main():
     """Main test execution function."""
-    print("🧪 PaperezMCP Dynamic Tool Testing")
+    print("🧪 SourceCrate Dynamic Tool Testing")
     print("=" * 40)
 
     tester = MCPToolTester()

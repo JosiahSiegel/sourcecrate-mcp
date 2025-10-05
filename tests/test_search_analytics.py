@@ -6,7 +6,7 @@ Tests performance monitoring, analytics collection, and reporting.
 import time
 from unittest.mock import patch
 
-from paperez_mcp.utils.search_analytics import (
+from source_crate.utils.search_analytics import (
     SearchAnalyticsCollector,
     SearchSession,
     SourcePerformanceSnapshot,
@@ -380,7 +380,7 @@ class TestSearchAnalyticsCollector:
     def test_temporal_patterns(self) -> None:
         """Test temporal pattern tracking."""
         # Mock datetime to control hour
-        with patch("paperez_mcp.utils.search_analytics.datetime") as mock_datetime:
+        with patch("source_crate.utils.search_analytics.datetime") as mock_datetime:
             # Set to specific hour
             mock_datetime.now.return_value.hour = 14  # 2 PM
 

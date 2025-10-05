@@ -83,28 +83,28 @@ python3 scripts/validate_mcp_server.py
 
 ### Syntax Check
 ```bash
-python3 -m py_compile paperez_mcp_server.py
-python3 -c "import py_compile; [py_compile.compile(f, doraise=True) for f in __import__('pathlib').Path('paperez_mcp').rglob('*.py')]"
+python3 -m py_compile source_crate_server.py
+python3 -c "import py_compile; [py_compile.compile(f, doraise=True) for f in __import__('pathlib').Path('source_crate').rglob('*.py')]"
 ```
 
 ### Linting
 ```bash
-ruff check paperez_mcp/
+ruff check source_crate/
 ```
 
 ### Type Checking
 ```bash
-mypy paperez_mcp/ --ignore-missing-imports
+mypy source_crate/ --ignore-missing-imports
 ```
 
 ### Formatting Check
 ```bash
-black --check paperez_mcp/ scripts/
+black --check source_crate/ scripts/
 ```
 
 ### Auto-fix Formatting
 ```bash
-black paperez_mcp/ scripts/
+black source_crate/ scripts/
 ```
 
 ## Troubleshooting

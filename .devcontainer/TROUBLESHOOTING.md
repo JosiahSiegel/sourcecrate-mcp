@@ -38,7 +38,7 @@ On WSL2/Docker Desktop, `--network=host` does not work. VS Code must forward por
 
 5. **Test connection from Windows:**
    - Open `http://localhost:9000/health` in browser
-   - Should show: `{"status":"healthy","service":"paperez-mcp"}`
+   - Should show: `{"status":"healthy","service":"sourcecrate-mcp"}`
 
 ### Quick Fix: Restart Port Forwarding
 
@@ -70,7 +70,7 @@ If Windows port 9000 is taken by another service:
 uv pip install -e .[dev,http]
 
 # Or use uvx (recommended)
-uvx --from '.[http]' paperez-http
+uvx --from '.[http]' sourcecrate-http
 ```
 
 ### Issue: Port already in use
@@ -102,7 +102,7 @@ Run this inside the devcontainer:
 
 ```bash
 # Check what's running
-ps aux | grep -E 'paperez|python.*http'
+ps aux | grep -E 'sourcecrate|python.*http'
 
 # Check ports
 lsof -i :9000 -i :3001 2>/dev/null || ss -tln | grep -E ':(9000|3001)'
@@ -116,7 +116,7 @@ cat ~/.vscode-server/data/Machine/settings.json | grep -A 10 "remote.portsAttrib
 
 Expected output:
 ```
-PID running paperez-http on port 9000 ✓
+PID running sourcecrate-http on port 9000 ✓
 PID running python http.server on port 3001 ✓
 API health check returns {"status":"healthy"} ✓
 VS Code has portsAttributes for 9000, 3000, 3001 ✓

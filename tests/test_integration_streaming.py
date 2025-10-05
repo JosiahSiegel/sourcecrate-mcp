@@ -10,18 +10,18 @@ from typing import Any
 
 import pytest
 
-from paperez_mcp.utils.adaptive_concurrency import AdaptiveConcurrencyManager
-from paperez_mcp.utils.fuzzy_matching import FuzzyPaperMatcher
+from source_crate.utils.adaptive_concurrency import AdaptiveConcurrencyManager
+from source_crate.utils.fuzzy_matching import FuzzyPaperMatcher
 
 # Import streaming components
-from paperez_mcp.utils.result_streaming import (
+from source_crate.utils.result_streaming import (
     ResultStreamer,
     create_streaming_search,
 )
 
 # Import global instances for cleanup
-from paperez_mcp.utils.search_analytics import search_analytics
-from paperez_mcp.utils.result_streaming import result_streamer
+from source_crate.utils.search_analytics import search_analytics
+from source_crate.utils.result_streaming import result_streamer
 
 
 class TestStreamingSearchIntegration:

@@ -1,25 +1,25 @@
 {
   "mcpServers": {
-    "paperez-mcp-remote": {
+    "source-crate-remote": {
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/JosiahSiegel/paperez-mcp.git",
-        "paperez-mcp"
+        "git+https://github.com/JosiahSiegel/source-crate.git",
+        "source-crate"
       ],
       "env": {
         "UNPAYWALL_EMAIL": "research@example.com",
         "PATH": "/home/node/.local/bin:${PATH}"
       }
     },
-    "paperez-mcp-local": {
+    "source-crate-local": {
       "type": "stdio",
       "command": "uvx",
       "args": [
         "--no-cache",
         "--from",
-        "/mnt/d/repos/paperez-mcp",
-        "paperez-mcp"
+        "/mnt/d/repos/source-crate",
+        "source-crate"
       ],
       "env": {
         "PATH": "/home/node/.local/bin:${PATH}"

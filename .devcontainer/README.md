@@ -1,11 +1,11 @@
-# PaperezMCP Dev Container
+# SourceCrate Dev Container
 
-Optimized development container for the PaperezMCP project with all necessary tools and configurations.
+Optimized development container for the SourceCrate project with all necessary tools and configurations.
 
 ## Features
 
 ### Core Tools
-- **Python 3.11+** - Runtime for PaperezMCP
+- **Python 3.11+** - Runtime for SourceCrate
 - **Node 20** - Base image with npm/npx
 - **uv/uvx** - Fast Python package management (critical for MCP servers)
 - **Git** - Version control with delta for better diffs
@@ -53,10 +53,10 @@ Install dependencies as needed:
 
 ```bash
 # For MCP server (Claude Code)
-uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp
+uvx --from git+https://github.com/JosiahSiegel/sourcecrate-mcp.git sourcecrate-mcp
 
 # For HTTP server (local development)
-uvx --from .[http] paperez-http --port 9000
+uvx --from .[http] sourcecrate-http --port 9000
 
 # For development (editable install)
 uv pip install -e .[dev,http]
@@ -114,21 +114,21 @@ bash scripts/fly-manager.sh deploy-backend   # Deploy backend only
 
 ### Format & Lint
 ```bash
-black paperez_mcp_server.py paperez_mcp/   # Format code
-ruff check paperez_mcp_server.py paperez_mcp/  # Lint code
-mypy paperez_mcp_server.py paperez_mcp/    # Type checking
+black sourcecrate_mcp_server.py sourcecrate_mcp/   # Format code
+ruff check sourcecrate_mcp_server.py sourcecrate_mcp/  # Lint code
+mypy sourcecrate_mcp_server.py sourcecrate_mcp/    # Type checking
 ```
 
 ### Testing
 ```bash
 pytest                                      # Run all tests
 pytest -v                                   # Verbose output
-pytest --cov=paperez_mcp                   # With coverage
+pytest --cov=sourcecrate_mcp                   # With coverage
 ```
 
 ### Pre-commit Validation
 ```bash
-python3 -m py_compile paperez_mcp_server.py  # Syntax check
+python3 -m py_compile sourcecrate_mcp_server.py  # Syntax check
 git commit                                    # Runs pre-commit hooks
 ```
 
@@ -155,13 +155,13 @@ After modifying `.devcontainer/` files:
 
 ## Differences from `hmm` Devcontainer
 
-| Feature | hmm | paperez-mcp |
+| Feature | hmm | sourcecrate-mcp |
 |---------|-----|-------------|
 | Python dependencies | Pre-installed in image | Installed via uv as needed |
 | Firewall (iptables) | Yes | No (not needed) |
 | Network capabilities | NET_ADMIN, NET_RAW | Standard |
 | VS Code extensions | General development | Python-specific |
-| Focus | Multi-purpose sandbox | PaperezMCP development |
+| Focus | Multi-purpose sandbox | SourceCrate development |
 
 **Why no pre-installed Python deps?**
 - Keeps Docker image small and fast to build

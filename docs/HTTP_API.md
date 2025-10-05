@@ -1,6 +1,6 @@
-# PaperezMCP HTTP API Reference
+# SourceCrate HTTP API Reference
 
-Complete REST API reference for PaperezMCP v1.1.0+
+Complete REST API reference for SourceCrate v1.1.0+
 
 ## Quick Start
 
@@ -10,14 +10,14 @@ Complete REST API reference for PaperezMCP v1.1.0+
 
 ```bash
 # Direct from GitHub - no installation needed!
-uvx --from 'git+https://github.com/JosiahSiegel/paperez-mcp.git[http]' paperez-http
+uvx --from 'git+https://github.com/JosiahSiegel/source-crate.git[http]' paperez-http
 ```
 
 **Alternative methods:**
 
 ```bash
 # From cloned repository
-cd /path/to/paperez-mcp
+cd /path/to/source-crate
 uvx --from '.[http]' paperez-http
 
 # Traditional pip install
@@ -25,7 +25,7 @@ pip install -e ".[http]"
 paperez-http
 
 # Using Python module
-python -m paperez_mcp.http_server
+python -m source_crate.http_server
 ```
 
 Server runs on:
@@ -70,7 +70,7 @@ Returns server health status.
 ```json
 {
   "status": "healthy",
-  "service": "paperez-mcp"
+  "service": "source-crate"
 }
 ```
 
@@ -84,7 +84,7 @@ Returns API version and available endpoints.
 **Response:**
 ```json
 {
-  "service": "PaperezMCP HTTP API",
+  "service": "SourceCrate HTTP API",
   "version": "1.1.0",
   "description": "Academic paper research made easy",
   "docs": "/docs",

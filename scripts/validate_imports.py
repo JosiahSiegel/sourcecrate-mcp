@@ -16,7 +16,7 @@ def test_core_imports():
         sys.path.insert(0, ".")
 
         # Test server imports
-        from paperez_mcp.server import (
+        from source_crate.server import (
             browse_papers,
             download_papers,
             get_help,
@@ -26,19 +26,19 @@ def test_core_imports():
         print("  ✓ Server tools imported successfully")
 
         # Test service imports
-        from paperez_mcp.services.search_service import SearchOrchestrationService
+        from source_crate.services.search_service import SearchOrchestrationService
 
         print("  ✓ Search service imported successfully")
 
         # Test utility imports
-        from paperez_mcp.utils.pdf_processor import extract_pdf_text_from_local_file
-        from paperez_mcp.utils.query_intent import QueryIntentDetector
-        from paperez_mcp.utils.smart_search import smart_downloadable_search
+        from source_crate.utils.pdf_processor import extract_pdf_text_from_local_file
+        from source_crate.utils.query_intent import QueryIntentDetector
+        from source_crate.utils.smart_search import smart_downloadable_search
 
         print("  ✓ Utility modules imported successfully")
 
         # Test config imports
-        from paperez_mcp.config.manager import ConfigManager
+        from source_crate.config.manager import ConfigManager
 
         print("  ✓ Configuration manager imported successfully")
 
@@ -59,7 +59,7 @@ def test_mcp_server_structure():
 
     try:
         # Import the MCP server object
-        from paperez_mcp.server import mcp
+        from source_crate.server import mcp
 
         # Check that MCP server is properly initialized
         assert hasattr(mcp, "tool"), "MCP server should have tool decorator"
@@ -67,7 +67,7 @@ def test_mcp_server_structure():
         print("  ✓ MCP server object properly structured")
 
         # Check that tool functions exist in the server module
-        from paperez_mcp import server
+        from source_crate import server
 
         tool_functions = [
             "browse_papers",
@@ -99,7 +99,7 @@ def test_configuration_loading():
     print("🔍 Testing configuration loading...")
 
     try:
-        from paperez_mcp.config.manager import ConfigManager
+        from source_crate.config.manager import ConfigManager
 
         config = ConfigManager().get_config()
         assert len(config.sources) > 0, "No sources loaded from configuration"

@@ -18,9 +18,9 @@ def setup_log_capture() -> tuple[StringIO, logging.StreamHandler, list[str]]:
 
     # Add to relevant loggers
     loggers_to_monitor = [
-        "paperez_mcp.api_clients.pubmed_client",
-        "paperez_mcp.utils.smart_search",
-        "paperez_mcp.config.manager",
+        "source_crate.api_clients.pubmed_client",
+        "source_crate.utils.smart_search",
+        "source_crate.config.manager",
     ]
 
     for logger_name in loggers_to_monitor:
@@ -76,7 +76,7 @@ async def test_mcp_server_startup() -> bool:
 
     try:
         # Import and test basic MCP server setup
-        from paperez_mcp.server import mcp
+        from source_crate.server import mcp
 
         print("  ✓ MCP server module loaded successfully")
 
@@ -118,7 +118,7 @@ async def test_mcp_tools_functionality() -> bool:
     log_capture, log_handler, monitored_loggers = setup_log_capture()
 
     try:
-        from paperez_mcp import server
+        from source_crate import server
 
         # Test get_status (should work offline)
         print("  📊 Testing get_status...")

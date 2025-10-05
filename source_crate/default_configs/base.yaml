@@ -1,0 +1,352 @@
+# SourceCrate Base Configuration
+# Core settings, routing, and general configuration options
+# Sources and categories are organized by research domain in separate files:
+# - medical.yaml, scientific.yaml, business.yaml, historical.yaml
+# - social-sciences.yaml, humanities.yaml, legal.yaml, government.yaml
+
+# TERMS OF SERVICE COMPLIANCE NOTES:
+# - All sources use legitimate public APIs designed for academic research
+# - All default sources verified for ToS compliance and API availability as of January 7, 2025
+# - API testing completed January 7, 2025 to confirm JSON/XML API availability
+#
+# ENABLED SOURCES (API verified):
+# - CrossRef: Requires email in requests (configured via mailto param)
+# - Semantic Scholar: 1 RPS rate limit, attribution required for publications
+# - arXiv: 1 request per 3 seconds, CC0 metadata license
+# - PubMed/PMC: NCBI rate limits (3 RPS without API key), email registration recommended
+# - Europe PMC: Privacy notice agreement, ~10 request limit
+# - ClinicalTrials.gov: US Government database, ~50 requests/minute, public domain
+# - DOAJ: 2 requests/second, CC BY-SA for journals, CC0 for articles
+# - HathiTrust: Small-scale queries only, not for bulk retrieval
+# - Internet Archive: ~1 RPS, non-commercial use only
+# - bioRxiv/medRxiv: Free, date-range API, 100 results per page (API tested ✅)
+# - ChemRxiv: Open API compatible, keyword search (API tested ✅)
+# - OSF Preprints: Open Science Framework API, includes SocArXiv/PsyArXiv/EarthArXiv (API tested ✅)
+# - Fatcat/Internet Archive Scholar: Open API, 35M+ papers (⚠️ intermittent connectivity issues)
+# - OpenAlex: Polite pool requires email (mailto param), free, no API key
+#
+# DISABLED SOURCES (no usable API):
+# - Google Scholar: Disabled (no official API)
+# - SSRN: Disabled (ToS reserves data mining rights, restricted API access)
+# - ResearchGate: Disabled (no public API, ToS prohibits automated extraction)
+# - ERIC: Disabled (no JSON/XML API - only HTML web interface, API testing Jan 7, 2025)
+#
+# REQUIRES API KEY (optional):
+# - CORE: Available but requires free API key registration (core.ac.uk/services/api)
+
+# Version and basic settings
+version: "1.0"
+default_category: null  # Use intelligent BM25 routing (cascade through all sources)
+max_concurrent_searches: 15  # Higher concurrency for comprehensive setup
+global_cache_enabled: true
+global_cache_expire: 7200  # Longer cache for comprehensive setup
+default_output_dir: .paperez
+cleanup_temp_files: true
+
+# User control options
+use_default_sources: true  # Set to false in user config to disable all built-in sources
+
+# Query routing configuration
+routing:
+  enabled: true
+  fallback_enabled: true
+  domain_keywords:
+    medical:
+      - medical
+      - clinical
+      - patient
+      - treatment
+      - therapy
+      - diagnosis
+      - biomedical
+      - healthcare
+      - pharmaceutical
+    computer_science:
+      - algorithm
+      - machine learning
+      - artificial intelligence
+      - neural
+      - deep learning
+      - AI
+      - computer
+      - software
+      - programming
+    physics:
+      - quantum
+      - physics
+      - engineering
+      - materials
+      - energy
+      - chemistry
+      - mathematics
+    historical:
+      - history
+      - historical
+      - archive
+      - government
+      - document
+      - policy
+      - genealogy
+      - archaeology
+      - archaeological
+      - ancient
+      - civilization
+      - egypt
+      - egyptian
+      - pharaoh
+      - pyramid
+      - rome
+      - roman
+      - greece
+      - greek
+      - mesopotamia
+      - babylon
+      - assyria
+      - persia
+      - byzantine
+      - ottoman
+      - antiquity
+      - artifact
+      - excavation
+      - ruins
+      - temple
+      - tomb
+      - hieroglyph
+      - papyrus
+      - manuscript
+      - medieval
+      - renaissance
+      - colonial
+    business:
+      - business
+      - economics
+      - finance
+      - management
+      - corporate
+      - entrepreneurship
+      - marketing
+    social_sciences:
+      - psychology
+      - sociology
+      - education
+      - anthropology
+      - political
+      - social
+      - behavior
+    humanities:
+      - literature
+      - philosophy
+      - art
+      - culture
+      - language
+      - religion
+      - humanities
+    legal:
+      - law
+      - legal
+      - court
+      - statute
+      - regulation
+      - constitutional
+      - jurisprudence
+  domain_categories:
+    medical: medical
+    computer_science: preprints
+    physics: preprints
+    historical: historical
+    business: business
+    social_sciences: social_sciences  # Social sciences research category
+    humanities: humanities  # Humanities research category
+    legal: legal_research  # Legal research category
+    general: null  # Use intelligent BM25 routing for general queries
+
+# Capability Profiles - Reusable capability templates (YAML-driven, source-agnostic)
+# Users can reference these profiles OR define custom ones in their own configs
+capability_profiles:
+  # Medical/biomedical research sources (PubMed, PMC, clinical databases)
+  medical:
+    medical_focus: true
+    stem_focus: false
+    humanities_focus: false
+    social_science_focus: false
+    preprint_server: false
+    field_search: true
+    phrase_search: true
+    boolean_search: true
+    wildcard_search: false
+    high_pdf_availability: false
+    open_access_only: false
+    subscription_content: true
+    prefers_simple_queries: false
+    prefers_natural_language: false
+    prefers_quoted_phrases: true
+    historical_depth: very_high
+    update_frequency: daily
+    average_response_time: 1.5
+    pdf_validation_required: true
+    search_priority: 9
+    topic_routing_weight: 1.5
+
+  # Preprint servers (arXiv, SocArXiv, OSF, bioRxiv)
+  preprint:
+    medical_focus: false
+    stem_focus: true
+    humanities_focus: false
+    social_science_focus: false
+    preprint_server: true
+    field_search: true
+    phrase_search: true
+    boolean_search: true
+    wildcard_search: true
+    high_pdf_availability: true
+    open_access_only: true
+    subscription_content: false
+    prefers_simple_queries: false
+    prefers_natural_language: false
+    prefers_quoted_phrases: true
+    historical_depth: medium
+    update_frequency: daily
+    average_response_time: 1.2
+    pdf_validation_required: false
+    search_priority: 10
+    topic_routing_weight: 1.8
+
+  # General academic databases (CrossRef, Semantic Scholar, OpenAlex)
+  general:
+    medical_focus: false
+    stem_focus: true
+    humanities_focus: true
+    social_science_focus: true
+    preprint_server: false
+    field_search: false
+    phrase_search: true
+    boolean_search: false
+    wildcard_search: false
+    high_pdf_availability: false
+    open_access_only: false
+    subscription_content: true
+    prefers_simple_queries: false
+    prefers_natural_language: true
+    prefers_quoted_phrases: true
+    historical_depth: very_high
+    update_frequency: weekly
+    average_response_time: 1.8
+    pdf_validation_required: true
+    search_priority: 8
+    topic_routing_weight: 1.2
+
+  # Historical/government archives (HathiTrust, Internet Archive, gov databases)
+  archive:
+    medical_focus: false
+    stem_focus: false
+    humanities_focus: true
+    social_science_focus: true
+    preprint_server: false
+    field_search: false
+    phrase_search: true
+    boolean_search: false
+    wildcard_search: false
+    high_pdf_availability: true
+    open_access_only: true
+    subscription_content: false
+    prefers_simple_queries: true
+    prefers_natural_language: true
+    prefers_quoted_phrases: false
+    historical_depth: very_high
+    update_frequency: monthly
+    average_response_time: 3.0
+    pdf_validation_required: true
+    search_priority: 5
+    topic_routing_weight: 0.8
+
+  # Open access repositories (DOAJ, CORE, institutional repos)
+  open_access:
+    medical_focus: false
+    stem_focus: true
+    humanities_focus: true
+    social_science_focus: true
+    preprint_server: false
+    field_search: false
+    phrase_search: true
+    boolean_search: false
+    wildcard_search: false
+    high_pdf_availability: true
+    open_access_only: true
+    subscription_content: false
+    prefers_simple_queries: false
+    prefers_natural_language: true
+    prefers_quoted_phrases: true
+    historical_depth: high
+    update_frequency: weekly
+    average_response_time: 2.5
+    pdf_validation_required: true
+    search_priority: 7
+    topic_routing_weight: 1.0
+
+  # Legal databases (court cases, statutes, legal documents)
+  legal:
+    medical_focus: false
+    stem_focus: false
+    humanities_focus: false
+    social_science_focus: false
+    preprint_server: false
+    field_search: true
+    phrase_search: true
+    boolean_search: true
+    wildcard_search: false
+    high_pdf_availability: false
+    open_access_only: false
+    subscription_content: true
+    prefers_simple_queries: false
+    prefers_natural_language: false
+    prefers_quoted_phrases: true
+    historical_depth: very_high
+    update_frequency: monthly
+    average_response_time: 2.0
+    pdf_validation_required: true
+    search_priority: 8
+    topic_routing_weight: 1.2
+
+  # Business/economics sources (SSRN, RePEc, business databases)
+  business:
+    medical_focus: false
+    stem_focus: false
+    humanities_focus: false
+    social_science_focus: true
+    preprint_server: false
+    field_search: false
+    phrase_search: true
+    boolean_search: false
+    wildcard_search: false
+    high_pdf_availability: false
+    open_access_only: false
+    subscription_content: true
+    prefers_simple_queries: false
+    prefers_natural_language: true
+    prefers_quoted_phrases: true
+    historical_depth: medium
+    update_frequency: weekly
+    average_response_time: 2.0
+    pdf_validation_required: true
+    search_priority: 7
+    topic_routing_weight: 1.0
+
+# URL Cleaning Rules
+# Fix malformed URLs from specific providers using regex patterns
+url_cleaning_rules:
+  - name: cambridge_pdf_cleanup_extra_path
+    description: Remove extra path segments after .pdf in Cambridge URLs (OpenAlex bug)
+    domains: [cambridge.org]
+    regex: '(\.pdf)/.*$'
+    replacement: '\1'
+    enabled: true
+  - name: cambridge_pdf_cleanup_extra_chars
+    description: Remove extra uppercase characters before .pdf in Cambridge URLs (e.g., S155192950005094Xa.pdf -> S155192950005094a.pdf)
+    domains: [cambridge.org]
+    regex: '(S[0-9]+)[A-Z]([a-z]?)\.pdf$'
+    replacement: '\1\2.pdf'
+    enabled: true
+
+# Initialize empty collections for sources and categories (populated by domain files)
+sources: {}
+categories: {}

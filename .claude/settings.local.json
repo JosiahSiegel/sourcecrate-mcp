@@ -43,8 +43,8 @@
       "Bash(/home/node/.local/bin/uvx:*)",
       "Read(//workspace/**)",
       "Bash(export:*)",
-      "mcp__paperez-mcp-local__get_status",
-      "mcp__paperez-mcp-remote__get_status",
+      "mcp__source-crate-local__get_status",
+      "mcp__source-crate-remote__get_status",
       "Bash(git add:*)",
       "Bash(git log:*)",
       "Bash(git commit:*)",
@@ -93,7 +93,11 @@
       "WebFetch(domain:www.cambridge.org)",
       "WebFetch(domain:support.datacite.org)",
       "WebFetch(domain:developers.zenodo.org)",
-      "Bash(python -c \"import yaml; yaml.safe_load(open(''paperez_mcp/default_configs/scientific.yaml''))\")"
+      "Bash(python -c \"import yaml; yaml.safe_load(open(''source_crate/default_configs/scientific.yaml''))\")",
+      "Bash(git checkout:*)",
+      "Bash(git tag:*)",
+      "Bash(find:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": [],
@@ -101,8 +105,8 @@
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "paperez-mcp-remote",
-    "paperez-mcp-local",
+    "source-crate-remote",
+    "source-crate-local",
     "context7"
   ]
 }

@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from paperez_mcp.utils.search_performance_optimizer import (
+from source_crate.utils.search_performance_optimizer import (
     ConcurrentSearchOptimizer,
     IntelligentResultCache,
     PerformanceMetrics,
@@ -577,7 +577,7 @@ class TestOptimizeSearchPerformance:
 
         # Mock the global cache with our test cache
         with patch(
-            "paperez_mcp.utils.search_performance_optimizer.intelligent_cache",
+            "source_crate.utils.search_performance_optimizer.intelligent_cache",
             test_cache,
         ):
             results, metrics = await optimize_search_performance(

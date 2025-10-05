@@ -1,6 +1,6 @@
-# Fly.io Deployment Guide for Paperez
+# Fly.io Deployment Guide for SourceCrate
 
-Complete guide for deploying Paperez HTTP API and Browser UI on Fly.io with optimal configuration for production scale.
+Complete guide for deploying SourceCrate HTTP API and Browser UI on Fly.io with optimal configuration for production scale.
 
 ---
 
@@ -62,17 +62,17 @@ Complete guide for deploying Paperez HTTP API and Browser UI on Fly.io with opti
    fly auth login
    ```
 
-3. **Clone Paperez repository:**
+3. **Clone SourceCrate repository:**
    ```bash
-   git clone https://github.com/JosiahSiegel/paperez-mcp.git
-   cd paperez-mcp
+   git clone https://github.com/JosiahSiegel/source-crate.git
+   cd source-crate
    ```
 
 ---
 
 ## 🐳 Optimized Multi-Stage Dockerfile
 
-Create an optimized Dockerfile for Paperez using multi-stage builds:
+Create an optimized Dockerfile for SourceCrate using multi-stage builds:
 
 ```dockerfile
 # =============================================================================
@@ -95,7 +95,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy only requirements first for better caching
 COPY pyproject.toml README.md ./
-COPY paperez_mcp ./paperez_mcp
+COPY source_crate ./source_crate
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -e ".[http]"
@@ -121,7 +121,7 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy application code
-COPY paperez_mcp ./paperez_mcp
+COPY source_crate ./source_crate
 COPY browser-ui ./browser-ui
 
 # Health check
@@ -132,7 +132,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 EXPOSE 8080
 
 # Run with gunicorn for production
-CMD ["gunicorn", "paperez_mcp.http_server:app", \
+CMD ["gunicorn", "source_crate.http_server:app", \
      "--bind", "0.0.0.0:8080", \
      "--workers", "2", \
      "--worker-class", "uvicorn.workers.UvicornWorker", \
@@ -146,11 +146,11 @@ CMD ["gunicorn", "paperez_mcp.http_server:app", \
 
 ## ⚙️ Fly.io Configuration (fly.toml)
 
-Create `fly.toml` for Paperez:
+Create `fly.toml` for SourceCrate:
 
 ```toml
-# Paperez HTTP API - Fly.io Configuration
-app = "paperez-api"  # Change to your app name
+# SourceCrate HTTP API - Fly.io Configuration
+app = "sourcecrate-api"  # Change to your app name
 primary_region = "iad"  # Change to closest region
 
 # Build configuration
@@ -209,11 +209,11 @@ primary_region = "iad"  # Change to closest region
 
 ```bash
 # Generate fly.toml (or use the one above)
-fly launch --no-deploy --name paperez-api --region iad
+fly launch --no-deploy --name sourcecrate-api --region iad
 ```
 
 **Choose:**
-- App name: `paperez-api` (or your preferred name)
+- App name: `sourcecrate-api` (or your preferred name)
 - Region: Choose closest to you (see `fly regions list`)
 - Postgres: No (we don't need a database)
 - Redis: No (optional, for caching later)
@@ -245,16 +245,16 @@ fly logs
 fly status
 ```
 
-Your API will be available at: `https://paperez-api.fly.dev`
+Your API will be available at: `https://sourcecrate-api.fly.dev`
 
 ### Step 5: Test the Deployment
 
 ```bash
 # Test health endpoint
-curl https://paperez-api.fly.dev/health
+curl https://sourcecrate-api.fly.dev/health
 
 # Test search endpoint
-curl -X POST https://paperez-api.fly.dev/api/v1/search \
+curl -X POST https://sourcecrate-api.fly.dev/api/v1/search \
   -H 'Content-Type: application/json' \
   -d '{"query":"machine learning","limit":5}'
 ```
@@ -287,7 +287,7 @@ Then redeploy:
 fly deploy
 ```
 
-UI available at: `https://paperez-api.fly.dev/`
+UI available at: `https://sourcecrate-api.fly.dev/`
 
 ### Option B: Separate GitHub Pages Deployment
 
@@ -295,7 +295,7 @@ Follow the GitHub Pages instructions from [DEPLOYMENT.md](./DEPLOYMENT.md), usin
 
 ```javascript
 // browser-ui/config.js
-window.PAPEREZ_API_URL = 'https://paperez-api.fly.dev';
+window.PAPEREZ_API_URL = 'https://sourcecrate-api.fly.dev';
 ```
 
 ---
@@ -494,7 +494,7 @@ fly machine restart <machine-id>
 
 🎯 Expand coverage with ToS-compliant academic APIs
 
-Paperez MCP comes with 15+ built-in sources. Below are additional sources with commercial-use-friendly terms of service that you can integrate:
+SourceCrate MCP comes with 15+ built-in sources. Below are additional sources with commercial-use-friendly terms of service that you can integrate:
 
 #### ✅ OpenAlex (250M+ works, CC0 license)
 
@@ -586,7 +586,7 @@ Three Regions (3 IPs):
 
 1. **Register for API keys** (where required)
 2. **Set secrets** via `fly secrets set`
-3. **Configure in YAML** (see Paperez MCP documentation)
+3. **Configure in YAML** (see SourceCrate MCP documentation)
 4. **Deploy and test** with multi-region setup
 
 **Note:** All sources listed have verified ToS allowing commercial use as of 2025. Always review individual ToS before deploying to production.
@@ -783,7 +783,7 @@ fly scale vm performance-1x
 **Fix:**
 ```bash
 # Increase gunicorn timeout in Dockerfile.flyio
-CMD ["gunicorn", "paperez_mcp.http_server:app", \
+CMD ["gunicorn", "source_crate.http_server:app", \
      "--timeout", "180", \  # Increase from 120
      ...]
 ```
@@ -858,7 +858,7 @@ fly scale count 3 --region iad,lhr,syd
 - **FastAPI on Fly.io:** <https://fly.io/docs/python/frameworks/fastapi>
 - **Fly.io Pricing:** <https://fly.io/docs/about/pricing>
 - **Fly.io CLI Reference:** <https://fly.io/docs/flyctl>
-- **Paperez GitHub:** <https://github.com/JosiahSiegel/paperez-mcp>
+- **SourceCrate GitHub:** <https://github.com/JosiahSiegel/source-crate>
 
 ---
 
@@ -872,8 +872,8 @@ brew install flyctl  # or curl -L https://fly.io/install.sh | sh
 fly auth login
 
 # 3. Clone and navigate
-git clone https://github.com/JosiahSiegel/paperez-mcp.git
-cd paperez-mcp
+git clone https://github.com/JosiahSiegel/source-crate.git
+cd source-crate
 
 # 4. Create Dockerfile.flyio and fly.toml (see above)
 
@@ -895,7 +895,7 @@ fly logs
 fly status
 ```
 
-**Your API is now live at:** `https://paperez-api.fly.dev` 🎉
+**Your API is now live at:** `https://sourcecrate-api.fly.dev` 🎉
 
 ---
 
@@ -921,8 +921,8 @@ Understanding the port setup across different environments:
 
 | Component | Internal Port | External Port | Access URL |
 |-----------|---------------|---------------|------------|
-| HTTP API | 8080 | 443 (HTTPS) | `https://paperez-api.fly.dev/api/v1/*` |
-| Browser UI | N/A | 443 (HTTPS) | `https://paperez-api.fly.dev/` |
+| HTTP API | 8080 | 443 (HTTPS) | `https://sourcecrate-api.fly.dev/api/v1/*` |
+| Browser UI | N/A | 443 (HTTPS) | `https://sourcecrate-api.fly.dev/` |
 | Health Check | 8080 | N/A | Internal only |
 
 **Key Points:**
@@ -964,8 +964,8 @@ python -m http.server 3000 && open http://localhost:3000
 fly deploy
 
 # Verify
-curl https://paperez-api.fly.dev/health
+curl https://sourcecrate-api.fly.dev/health
 
 # Access UI
-open https://paperez-api.fly.dev
+open https://sourcecrate-api.fly.dev
 ```

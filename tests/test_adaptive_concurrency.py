@@ -8,7 +8,7 @@ import time
 
 import pytest
 
-from paperez_mcp.utils.adaptive_concurrency import (
+from source_crate.utils.adaptive_concurrency import (
     AdaptiveConcurrencyManager,
     SourcePerformanceMetrics,
     adaptive_concurrency_manager,

@@ -5,7 +5,7 @@ Tests enhanced error messages, categorization, and suggestion generation.
 
 import time
 
-from paperez_mcp.utils.user_friendly_errors import (
+from source_crate.utils.user_friendly_errors import (
     EnhancedError,
     SearchErrorEnhancer,
     UserFriendlyErrorHandler,

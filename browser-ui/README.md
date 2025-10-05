@@ -1,6 +1,6 @@
-# PaperezMCP Browser UI Example
+# SourceCrate Browser UI Example
 
-A simple, clean browser-based interface for PaperezMCP HTTP API.
+A simple, clean browser-based interface for SourceCrate HTTP API.
 
 ## Features
 

@@ -3,7 +3,7 @@ Unit tests for fuzzy paper matching functionality.
 Tests paper deduplication, similarity scoring, and metadata merging.
 """
 
-from paperez_mcp.utils.fuzzy_matching import FuzzyPaperMatcher, MatchScore
+from source_crate.utils.fuzzy_matching import FuzzyPaperMatcher, MatchScore
 
 
 class TestFuzzyPaperMatcher:

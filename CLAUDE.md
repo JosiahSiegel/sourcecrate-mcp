@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-PaperezMCP is a Model Context Protocol (MCP) server for academic paper research with multi-source search capabilities, PDF processing, and intelligent routing. It provides 8 optimized tools for browsing, downloading, and converting academic papers.
+SourceCrate is a Model Context Protocol (MCP) server for academic paper research with multi-source search capabilities, PDF processing, and intelligent routing. It provides 8 optimized tools for browsing, downloading, and converting academic papers.
 
 ## Recent Performance Optimizations
 
@@ -25,13 +25,13 @@ PaperezMCP is a Model Context Protocol (MCP) server for academic paper research 
 ### Code Quality
 ```bash
 # Format code with Black
-black paperez_mcp_server.py paperez_mcp/
+black source_crate_server.py source_crate/
 
 # Lint code with Ruff
-ruff check paperez_mcp_server.py paperez_mcp/
+ruff check source_crate_server.py source_crate/
 
 # Type checking with MyPy
-mypy paperez_mcp_server.py paperez_mcp/
+mypy source_crate_server.py source_crate/
 
 # Install development dependencies
 pip install -e .[dev]
@@ -55,56 +55,56 @@ pytest tests/test_fuzzy_matching.py::TestFuzzyPaperMatcher::test_normalize_title
 pytest -v
 
 # Run with coverage
-pytest --cov=paperez_mcp --cov-report=term-missing
+pytest --cov=source_crate --cov-report=term-missing
 
 # Test syntax compilation before commit
-python3 -m py_compile paperez_mcp_server.py
+python3 -m py_compile source_crate_server.py
 ```
 
 ### MCP Server Development
 ```bash
 # Run the MCP server locally
-python paperez_mcp_server.py
+python source_crate_server.py
 
 # Run with debug output
-DEBUG=1 python paperez_mcp_server.py
+DEBUG=1 python source_crate_server.py
 
 # Test MCP server via uvx
-uvx --from . paperez-mcp
+uvx --from . source-crate
 
 # Install as MCP server in Claude Code
-claude mcp add -s project paperez-mcp -- uvx --from git+https://github.com/JosiahSiegel/paperez-mcp.git paperez-mcp
+claude mcp add -s project source-crate -- uvx --from git+https://github.com/JosiahSiegel/source-crate.git source-crate
 
 # Test specific MCP tools locally
-python -c "from paperez_mcp_server import browse_papers; import asyncio; print(asyncio.run(browse_papers('machine learning', 5)))"
+python -c "from source_crate_server import browse_papers; import asyncio; print(asyncio.run(browse_papers('machine learning', 5)))"
 ```
 
 ## Architecture Overview
 
 ### Core Components
 
-1. **Main Server** (`paperez_mcp_server.py`)
+1. **Main Server** (`source_crate_server.py`)
    - FastMCP-based MCP server with 8 optimized tools
    - Lazy loading of heavy dependencies for performance
    - Tool functions: browse_papers, browse_papers_streaming, download_papers, convert_pdf_to_text, convert_pdf_to_markdown, batch_convert_pdfs, get_status, get_help
 
-2. **Configuration System** (`paperez_mcp/config/`)
+2. **Configuration System** (`source_crate/config/`)
    - **Dual configuration approach**: Legacy (settings.py) + New configurable system (YAML-based)
    - **Multi-tier loading**: Built-in → User → Project → Environment overrides
    - **Configuration files**: `.paperez/config/config.yaml` (main), `.paperez/config/minimal_config.yaml` (fallback)
    - **Dynamic source registration**: Both built-in and plugin sources supported
 
-3. **API Clients** (`paperez_mcp/api_clients/`)
+3. **API Clients** (`source_crate/api_clients/`)
    - Multi-source academic database integration
    - Base client pattern with specialized implementations
    - Sources: CrossRef, Semantic Scholar, arXiv, PubMed, Google Scholar, Europe PMC, DOAJ, etc.
 
-4. **Search Services** (`paperez_mcp/services/`)
+4. **Search Services** (`source_crate/services/`)
    - **SearchOrchestrationService**: Intelligent routing and coordination
    - **ConfigurableSearchService**: YAML-configured search with source registry
    - **PaperProcessor**: Handles PDF download and conversion workflows
 
-5. **Utilities** (`paperez_mcp/utils/`)
+5. **Utilities** (`source_crate/utils/`)
    - **Smart search**: BM25 ranking, topic classification, intent analysis
    - **PDF processing**: Text extraction, markdown conversion (zero-token via pymupdf4llm)
    - **Parallel processing**: Concurrent PDF batch processing with semaphore control
@@ -168,7 +168,7 @@ python -c "from paperez_mcp_server import browse_papers; import asyncio; print(a
 
 ## File Structure Notes
 
-- **Main entry point**: `paperez_mcp_server.py` (contains all 8 MCP tools)
+- **Main entry point**: `source_crate_server.py` (contains all 8 MCP tools)
 - **Config files**: `.paperez/config/` directory (not `.paperez/` root)
-- **Source plugins**: Extensible via `paperez_mcp/plugins/`
+- **Source plugins**: Extensible via `source_crate/plugins/`
 - **Configuration**: YAML-based configuration system with multi-tier loading

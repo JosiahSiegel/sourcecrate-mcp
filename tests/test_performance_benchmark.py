@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from paperez_mcp.utils.performance_benchmark import (
+from source_crate.utils.performance_benchmark import (
     BenchmarkReport,
     PDFBenchmark,
     PerformanceBenchmark,
@@ -381,7 +381,7 @@ class TestGlobalBenchmarkInstances:
 
     def test_global_instances_exist(self):
         """Test that global benchmark instances exist."""
-        from paperez_mcp.utils.performance_benchmark import (
+        from source_crate.utils.performance_benchmark import (
             pdf_benchmark,
             search_benchmark,
         )
@@ -397,7 +397,7 @@ class TestGlobalBenchmarkInstances:
     @pytest.mark.asyncio
     async def test_global_search_benchmark_usage(self):
         """Test using the global search benchmark instance."""
-        from paperez_mcp.utils.performance_benchmark import search_benchmark
+        from source_crate.utils.performance_benchmark import search_benchmark
 
         async def mock_search(query, category=None):
             await asyncio.sleep(0.05)
