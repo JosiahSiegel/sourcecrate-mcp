@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/JosiahSiegel/sourcecrate.git",
+        "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git",
         "sourcecrate"
       ],
       "env": {
@@ -18,7 +18,7 @@
       "args": [
         "--no-cache",
         "--from",
-        "/mnt/d/repos/sourcecrate",
+        "/mnt/d/repos/sourcecrate-mcp",
         "sourcecrate"
       ],
       "env": {
