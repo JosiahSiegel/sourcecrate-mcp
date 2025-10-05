@@ -438,32 +438,66 @@ class ResultStreamer:
         return all_results[:10]
 
     def _get_final_results(self, delivered_results: set) -> list[StreamedResult]:
-        """Get all final results, removing duplicates with early delivered results."""
-        all_results = []
+        """
+        Get all final results with fuzzy deduplication and source merging.
 
-        for _source_name, results in self.source_results.items():
+        Uses FuzzyPaperMatcher to:
+        - Identify duplicate papers across sources (fuzzy title/author/year matching)
+        - Merge metadata from multiple sources (best abstract, multiple PDF URLs, etc.)
+        - Track all sources that provided each paper
+        """
+        from ..utils.fuzzy_matching import fuzzy_matcher
+
+        # Collect all results as paper dicts with source tracking
+        all_papers = []
+
+        for source_name, results in self.source_results.items():
             for result in results:
-                result.is_final = True
-                all_results.append(result)
+                # Make a copy to preserve original result data
+                paper = result.data.copy()
 
-        # Sort by confidence score
-        all_results.sort(key=lambda x: x.confidence_score, reverse=True)
+                # Ensure source is set correctly (may be in _streaming_metadata)
+                if not paper.get('source'):
+                    paper['source'] = result.source or source_name
 
-        # Remove duplicates by DOI/title
-        seen_identifiers = set()
-        unique_results = []
+                all_papers.append(paper)
 
-        for result in all_results:
-            # Create identifier from DOI or title
-            identifier = (
-                result.data.get("doi") or result.data.get("title", "").lower().strip()
+        # Apply fuzzy deduplication with intelligent metadata merging
+        # This will:
+        # 1. Find duplicates using fuzzy title/author/year matching
+        # 2. Merge metadata (longest abstract, all PDF URLs, all DOIs)
+        # 3. Add '_merged_sources' and '_merged_count' fields
+        deduplicated_papers = fuzzy_matcher.deduplicate_papers(all_papers)
+
+        logger.info(
+            f"🔗 Fuzzy deduplication: {len(all_papers)} results → "
+            f"{len(deduplicated_papers)} unique papers "
+            f"({len(all_papers) - len(deduplicated_papers)} duplicates merged)"
+        )
+
+        # Convert back to StreamedResult format with merged metadata
+        final_results = []
+
+        for paper in deduplicated_papers:
+            # Extract merged sources (if paper was merged from multiple sources)
+            merged_sources = paper.get('_merged_sources', [])
+            primary_source = merged_sources[0] if merged_sources else paper.get('source', 'unknown')
+
+            # Create StreamedResult with merged paper
+            result = StreamedResult(
+                source=primary_source,
+                data=paper,
+                timestamp=time.time(),
+                confidence_score=self._calculate_confidence(paper),
+                is_final=True
             )
 
-            if identifier and identifier not in seen_identifiers:
-                seen_identifiers.add(identifier)
-                unique_results.append(result)
+            final_results.append(result)
 
-        return unique_results
+        # Sort by confidence score (relevance, PDF availability, citations)
+        final_results.sort(key=lambda x: x.confidence_score, reverse=True)
+
+        return final_results
 
     def get_streaming_stats(self) -> dict[str, Any]:
         """Get current streaming statistics."""

@@ -223,34 +223,8 @@ function renderResults(data) {
     </div>`;
 
     data.results.forEach((paper, index) => {
-        // Format author names
-        const authors = formatAuthors(paper.authors);
-
-        // Strip HTML tags from abstract for consistent plain text display
-        const cleanAbstract = stripHtmlTags(paper.abstract);
-
-        // Format journal name
-        const journal = formatJournal(paper.journal);
-
-        html += `
-            <div class="paper-card">
-                <div class="paper-header">
-                    <h3>${paper.title || 'Untitled'}</h3>
-                </div>
-                <div class="paper-meta">
-                    <span class="meta-item"><strong>Authors:</strong> ${authors}</span>
-                    <span class="meta-item"><strong>Year:</strong> ${formatDate(paper.year)}</span>
-                    ${journal ? `<span class="meta-item"><strong>Journal:</strong> ${journal}</span>` : ''}
-                    <span class="meta-item"><strong>Source:</strong> ${paper.source || 'Unknown'}</span>
-                </div>
-                ${cleanAbstract ? `<p class="paper-abstract">${cleanAbstract}</p>` : ''}
-                <div class="paper-links">
-                    ${paper.url ? `<a href="${paper.url}" target="_blank" class="btn btn-small">View Paper</a>` : ''}
-                    ${paper.pdf_url ? `<a href="${paper.pdf_url}" target="_blank" class="btn btn-small btn-pdf">PDF</a>` : ''}
-                    ${paper.doi ? `<a href="https://doi.org/${paper.doi}" target="_blank" class="btn btn-small">DOI</a>` : ''}
-                </div>
-            </div>
-        `;
+        // Use the unified buildPaperCard function for consistent styling
+        html += buildPaperCard(paper, index, false);
     });
 
     resultsDiv.innerHTML = html;
@@ -261,6 +235,7 @@ function renderResults(data) {
 // ============================================================================
 let currentEventSource = null;
 let streamingResults = [];
+let papersByKey = new Map(); // Deduplication map: key → merged paper
 let sourcesCompleted = 0;
 let totalSources = 0;
 let pdfOnlyFilter = false;
@@ -311,9 +286,34 @@ function sortByRelevance(results) {
     });
 }
 
+/**
+ * Validate if string is a proper URL
+ * @param {string} url - URL string to validate
+ * @returns {boolean} True if valid URL
+ */
+function isValidUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+
+    // Must start with http:// or https://
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        return false;
+    }
+
+    try {
+        new URL(url);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 // Helper function to check if a PDF URL is valid (not a DOI redirect)
 function isValidPdfUrl(url) {
     if (!url) return false;
+
+    // Must be a valid URL first
+    if (!isValidUrl(url)) return false;
+
     // Filter out DOI URLs - they redirect to publisher pages, not direct PDFs
     if (url.includes('doi.org/') || url.startsWith('https://doi.apa.org/')) {
         return false;
@@ -403,6 +403,439 @@ function buildAccessBadge(paper) {
         <span class="access-badge-icon">${access.icon}</span>
         <span>${access.label}</span>
     </span>`;
+}
+
+// ============================================================================
+// DEDUPLICATION UTILITIES
+// ============================================================================
+
+/**
+ * Normalize DOI for comparison
+ * @param {string} doi - DOI string
+ * @returns {string|null} Normalized DOI or null
+ */
+function normalizeDoi(doi) {
+    if (!doi) return null;
+    return doi.toLowerCase()
+        .replace('https://doi.org/', '')
+        .replace('http://doi.org/', '')
+        .replace('doi:', '')
+        .trim();
+}
+
+/**
+ * Normalize title for fuzzy matching
+ * @param {string} title - Paper title
+ * @returns {string} Normalized title
+ */
+function normalizeTitle(title) {
+    if (!title) return '';
+    return title.toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Generate unique key for paper (DOI preferred, else title)
+ * @param {Object} paper - Paper object
+ * @returns {string} Unique key for deduplication
+ */
+function getPaperKey(paper) {
+    const doi = normalizeDoi(paper.doi);
+    if (doi) return `doi:${doi}`;
+
+    const title = normalizeTitle(paper.title);
+    if (title) return `title:${title}`;
+
+    // Fallback to source + URL if available
+    if (paper.url) return `url:${paper.url}`;
+
+    return `id:${Math.random()}`; // last resort
+}
+
+/**
+ * Apply citation-based relevance boost
+ * Boost = 10% of highest citation count (capped at 10% max boost)
+ * Example: 163 citations = 16% boost, capped at 10%
+ * @param {Object} paper - Paper with _source_links
+ * @returns {number} Boosted relevance score (0-1 scale)
+ */
+function applyCitationBoost(paper) {
+    // Find highest citation count among all sources
+    let maxCitations = 0;
+
+    if (paper._source_links && paper._source_links.length > 0) {
+        maxCitations = Math.max(...paper._source_links.map(link => parseInt(link.citation_count) || 0));
+    } else {
+        // Fallback to paper's own citation_count
+        maxCitations = parseInt(paper.citation_count) || 0;
+    }
+
+    // Calculate boost: 10% of citation count as percentage points
+    // Example: 163 citations = 16.3 → floor to 16% boost
+    const boostPercentage = Math.floor(maxCitations * 0.1);
+
+    // Cap boost at 10 percentage points
+    const cappedBoost = Math.min(boostPercentage, 10);
+
+    // Convert to 0-1 scale (divide by 100)
+    const boostScore = cappedBoost / 100;
+
+    // Get base relevance score (default to 0 if not set)
+    const baseScore = paper.relevance_score !== undefined ? paper.relevance_score : 0;
+
+    // Add boost, cap final score at 1.0
+    return Math.min(1.0, baseScore + boostScore);
+}
+
+/**
+ * Merge two paper objects (combine resources from multiple sources)
+ * @param {Object} existing - Existing paper object
+ * @param {Object} newPaper - New paper to merge
+ * @returns {Object} Merged paper object
+ */
+function mergePapers(existing, newPaper) {
+    // Start with existing as base
+    const merged = { ...existing };
+
+    // Merge sources
+    const existingSources = existing._merged_sources || [existing.source];
+    const newSources = newPaper._merged_sources || [newPaper.source];
+    merged._merged_sources = [...new Set([...existingSources, ...newSources])];
+    merged._merged_count = merged._merged_sources.length;
+
+    // NEW: Track source-attributed links for hybrid display
+    const sourceLinks = existing._source_links || [];
+
+    // Add existing paper's links if not already tracked
+    if (!existing._source_links) {
+        const existingPdf = existing.pdf_url || existing.open_access_pdf;
+        sourceLinks.push({
+            source: existing.source,
+            pdf_url: existingPdf && isValidPdfUrl(existingPdf) ? existingPdf : null,
+            url: existing.url || null,
+            has_pdf: isValidPdfUrl(existingPdf),
+            is_open_access: existing.is_open_access || false,
+            citation_count: parseInt(existing.citation_count) || 0
+        });
+    }
+
+    // Add new paper's links
+    const newPdf = newPaper.pdf_url || newPaper.open_access_pdf;
+    sourceLinks.push({
+        source: newPaper.source,
+        pdf_url: newPdf && isValidPdfUrl(newPdf) ? newPdf : null,
+        url: newPaper.url || null,
+        has_pdf: isValidPdfUrl(newPdf),
+        is_open_access: newPaper.is_open_access || false,
+        citation_count: parseInt(newPaper.citation_count) || 0
+    });
+
+    merged._source_links = sourceLinks;
+
+    // Keep backward compatibility arrays
+    const pdfUrls = new Set();
+    const urls = new Set();
+
+    sourceLinks.forEach(link => {
+        if (link.pdf_url && isValidPdfUrl(link.pdf_url)) pdfUrls.add(link.pdf_url);
+        if (link.url) urls.add(link.url);
+    });
+
+    merged._all_pdf_urls = Array.from(pdfUrls);
+    merged._all_urls = Array.from(urls);
+
+    // Use longest/best metadata
+    if (newPaper.abstract && (!merged.abstract || newPaper.abstract.length > merged.abstract.length)) {
+        merged.abstract = newPaper.abstract;
+    }
+    if (newPaper.doi && !merged.doi) {
+        merged.doi = newPaper.doi;
+    }
+    if (newPaper.title && (!merged.title || newPaper.title.length > merged.title.length)) {
+        merged.title = newPaper.title;
+    }
+
+    // Prefer higher citation count
+    const existingCitations = parseInt(existing.citation_count) || 0;
+    const newCitations = parseInt(newPaper.citation_count) || 0;
+    merged.citation_count = Math.max(existingCitations, newCitations);
+
+    // Merge open access flags (true if any source says it's OA)
+    merged.is_open_access = existing.is_open_access || newPaper.is_open_access || false;
+
+    // Keep the primary PDF URL for backward compatibility
+    if (!merged.pdf_url && newPaper.pdf_url) {
+        merged.pdf_url = newPaper.pdf_url;
+    }
+    if (!merged.open_access_pdf && newPaper.open_access_pdf) {
+        merged.open_access_pdf = newPaper.open_access_pdf;
+    }
+
+    // Apply citation-based relevance boost
+    merged.relevance_score = applyCitationBoost(merged);
+
+    return merged;
+}
+
+// ============================================================================
+// HYBRID SOURCE LINK UTILITIES
+// ============================================================================
+
+/**
+ * Sanitize filename for PDF downloads
+ * @param {string} title - Paper title
+ * @returns {string} Safe filename
+ */
+function sanitizeFilename(title) {
+    if (!title) return 'paper.pdf';
+    return title
+        .replace(/[<>:"/\\|?*\x00-\x1F]/g, '')
+        .replace(/\s+/g, '_')
+        .substring(0, 100) + '.pdf';
+}
+
+/**
+ * Deduplicate source links (same source, same URLs)
+ * Strategy: Keep unique combinations of source+type (PDF or page)
+ * Allows same source to have both PDF and page link
+ * @param {Array} sourceLinks - Array of source link objects
+ * @returns {Array} Deduplicated source links
+ */
+function deduplicateSourceLinks(sourceLinks) {
+    const seen = new Map();
+
+    sourceLinks.forEach(link => {
+        if (link.has_pdf && link.pdf_url) {
+            // PDF link - key by source:pdf
+            const key = `${link.source}:pdf`;
+            if (!seen.has(key)) {
+                seen.set(key, link);
+            }
+        } else if (link.url) {
+            // Page link - key by source:page
+            const key = `${link.source}:page`;
+            if (!seen.has(key)) {
+                seen.set(key, link);
+            }
+        }
+    });
+
+    return Array.from(seen.values());
+}
+
+/**
+ * Build hybrid source-attributed links (desktop: horizontal, mobile: stacked)
+ * @param {Object} paper - Paper object with _source_links
+ * @returns {string} HTML for hybrid source links
+ */
+function buildHybridSourceLinks(paper) {
+    const sourceLinks = paper._source_links || [];
+
+    if (sourceLinks.length === 0) {
+        // Fallback to legacy behavior
+        return buildLegacyLinks(paper);
+    }
+
+    const uniqueSourceLinks = deduplicateSourceLinks(sourceLinks);
+    const filename = sanitizeFilename(paper.title);
+
+    // Separate PDFs and pages, validate URLs
+    const pdfs = uniqueSourceLinks.filter(link => link.has_pdf && isValidUrl(link.pdf_url));
+    const pages = uniqueSourceLinks.filter(link => !link.has_pdf && link.url && isValidUrl(link.url));
+
+    let html = '<div class="source-access-container">';
+
+    // Primary action: Download PDF button (if available)
+    if (pdfs.length > 0) {
+        const primaryPdf = pdfs[0];
+        const downloadId = `download_${Math.random().toString(36).substr(2, 9)}`;
+
+        html += `<div class="primary-pdf-action">
+            <a href="${primaryPdf.pdf_url}"
+               download="${filename}"
+               target="_blank"
+               class="btn btn-primary btn-pdf-download"
+               data-pdf-url="${primaryPdf.pdf_url}"
+               id="${downloadId}"
+               onclick="window.trackDownloadAttempt(this.dataset.pdfUrl, this.id); return true;">
+               <span class="pdf-icon">📄</span> Download PDF (${primaryPdf.source})
+            </a>`;
+
+        // Progressive disclosure: Alternate PDFs (if more than 1)
+        if (pdfs.length > 1) {
+            html += `<details class="alternate-pdfs-dropdown">
+                <summary>+${pdfs.length - 1} more PDF${pdfs.length > 2 ? 's' : ''}</summary>
+                <ul class="alternate-pdf-list">`;
+
+            pdfs.slice(1).forEach(link => {
+                const altDownloadId = `download_${Math.random().toString(36).substr(2, 9)}`;
+                html += `<li>
+                    <a href="${link.pdf_url}"
+                       download="${filename}"
+                       target="_blank"
+                       data-pdf-url="${link.pdf_url}"
+                       id="${altDownloadId}"
+                       onclick="window.trackDownloadAttempt(this.dataset.pdfUrl, this.id); return true;">
+                       ${link.source}
+                    </a>
+                </li>`;
+            });
+
+            html += `</ul></details>`;
+        }
+
+        html += `</div>`; // Close primary-pdf-action
+    }
+
+    // Source chips - only show page links (PDFs handled by button + dropdown above)
+    if (pages.length > 0) {
+        // Sort by citation count descending (left to right = highest to lowest)
+        const sortedPages = [...pages].sort((a, b) => {
+            const countA = parseInt(a.citation_count) || 0;
+            const countB = parseInt(b.citation_count) || 0;
+            return countB - countA;
+        });
+
+        html += `<div class="all-sources-chips">
+            <span class="sources-label">All sources:</span>`;
+
+        sortedPages.forEach(link => {
+            if (!link.url || !isValidUrl(link.url)) return;
+
+            const citationCount = parseInt(link.citation_count) || 0;
+
+            // Determine citation tier for styling
+            let citationClass = '';
+            if (citationCount >= 100) {
+                citationClass = 'citation-tier-high';
+            } else if (citationCount >= 50) {
+                citationClass = 'citation-tier-medium';
+            } else if (citationCount >= 10) {
+                citationClass = 'citation-tier-low';
+            } else if (citationCount > 0) {
+                citationClass = 'citation-tier-minimal';
+            }
+
+            const citationText = citationCount > 0
+                ? ` <span class="source-citations ${citationClass}">(${citationCount.toLocaleString()})</span>`
+                : '';
+
+            // Check if this is a DOI URL
+            const isDoiUrl = link.url.includes('doi.org/');
+            const chipClass = isDoiUrl ? 'source-chip-doi' : 'source-chip-page';
+
+            html += `<a href="${link.url}"
+                       target="_blank"
+                       class="source-chip ${chipClass}"
+                       title="${isDoiUrl ? 'DOI Resolver' : 'Publisher page'}">
+                       ${link.source}${citationText}
+                     </a>`;
+        });
+
+        html += `</div>`; // Close all-sources-chips
+    }
+
+    html += `</div>`; // Close source-access-container
+
+    // DOI fallback if no PDFs or pages
+    if (pdfs.length === 0 && pages.length === 0 && paper.doi) {
+        html = `<a href="https://doi.org/${paper.doi}" target="_blank" class="btn btn-small">View via DOI</a>`;
+    }
+
+    // Google Scholar fallback if still nothing
+    if (pdfs.length === 0 && pages.length === 0 && !paper.doi) {
+        const searchQuery = encodeURIComponent(paper.title);
+        html = `<a href="https://scholar.google.com/scholar?q=${searchQuery}" target="_blank" class="btn btn-small btn-secondary">Search Google Scholar</a>`;
+    }
+
+    return html;
+}
+
+/**
+ * Fallback: Build legacy links (backward compatibility)
+ * Uses hybrid design for consistency
+ * @param {Object} paper - Paper object
+ * @returns {string} HTML for legacy links
+ */
+function buildLegacyLinks(paper) {
+    const filename = sanitizeFilename(paper.title);
+    const pdfUrl = paper.pdf_url || paper.open_access_pdf;
+
+    let html = '<div class="source-access-container">';
+
+    // Primary PDF if available
+    if (isValidPdfUrl(pdfUrl)) {
+        html += `<div class="primary-pdf-action">
+            <a href="${pdfUrl}" download="${filename}"
+               class="btn btn-primary btn-pdf-download">
+               <span class="pdf-icon">📄</span> Download PDF (${paper.source || 'Unknown'})
+            </a>
+        </div>`;
+    }
+
+    // Source chips for all available links
+    // Only show page links here (PDF already shown in download button)
+    const hasPageLink = paper.url || paper.doi;
+    if (hasPageLink) {
+        const citationCount = parseInt(paper.citation_count) || 0;
+
+        // Determine citation tier for styling
+        let citationClass = '';
+        if (citationCount >= 100) {
+            citationClass = 'citation-tier-high';
+        } else if (citationCount >= 50) {
+            citationClass = 'citation-tier-medium';
+        } else if (citationCount >= 10) {
+            citationClass = 'citation-tier-low';
+        } else if (citationCount > 0) {
+            citationClass = 'citation-tier-minimal';
+        }
+
+        const citationText = citationCount > 0
+            ? ` <span class="source-citations ${citationClass}">(${citationCount.toLocaleString()})</span>`
+            : '';
+
+        html += `<div class="all-sources-chips">
+            <span class="sources-label">All sources:</span>`;
+
+        if (paper.url && isValidUrl(paper.url)) {
+            // Check if the URL is actually a DOI URL
+            const isDoiUrl = paper.url.includes('doi.org/');
+            const chipClass = isDoiUrl ? 'source-chip-doi' : 'source-chip-page';
+
+            html += `<a href="${paper.url}"
+                       target="_blank"
+                       class="source-chip ${chipClass}"
+                       title="${isDoiUrl ? 'DOI Resolver' : 'Publisher page'}">
+                       ${paper.source || 'Unknown'}${citationText}
+                     </a>`;
+        } else if (paper.doi) {
+            html += `<a href="https://doi.org/${paper.doi}"
+                       target="_blank"
+                       class="source-chip source-chip-doi"
+                       title="DOI Resolver">
+                       ${paper.source || 'Unknown'}${citationText}
+                     </a>`;
+        }
+
+        html += `</div>`;
+    }
+
+    // Google Scholar fallback only if no links at all
+    if (!pdfUrl && !hasPageLink) {
+        const searchQuery = encodeURIComponent(paper.title);
+        html += `<div class="all-sources-chips">
+            <a href="https://scholar.google.com/scholar?q=${searchQuery}"
+               class="source-chip source-chip-page">
+               Search Google Scholar <span class="source-icon source-icon-page">🔍</span>
+            </a>
+        </div>`;
+    }
+
+    html += '</div>';
+    return html;
 }
 
 // ============================================================================
@@ -496,54 +929,8 @@ function buildPaperCard(paper, index, showBadge = true) {
     const cleanAbstract = stripHtmlTags(paper.abstract);
     const abstract = truncateText(cleanAbstract, 500);
 
-    // Build access links - always show at least one link
-    // Note: Server now normalizes all URLs to absolute, no client-side normalization needed
-    let accessLinks = '';
-    let pdfUrl = paper.pdf_url || paper.open_access_pdf;
-
-    // Filter out DOI URLs - they redirect to publisher pages (HTML), not direct PDFs
-    if (!isValidPdfUrl(pdfUrl)) {
-        pdfUrl = null; // Don't show as downloadable PDF
-    }
-
-    if (pdfUrl) {
-        // Generate a safe filename from the paper title
-        const sanitizeFilename = (title) => {
-            if (!title) return 'paper.pdf';
-            // Remove invalid filename characters and limit length
-            return title
-                .replace(/[<>:"/\\|?*\x00-\x1F]/g, '')
-                .replace(/\s+/g, '_')
-                .substring(0, 100) + '.pdf';
-        };
-        const filename = sanitizeFilename(paper.title);
-
-        // Direct download (no proxy - scales to infinite users)
-        // Browser handles download natively - works for most publishers
-        const downloadId = `download_${Math.random().toString(36).substr(2, 9)}`;
-        accessLinks += `<a href="${pdfUrl}"
-                          download="${filename}"
-                          target="_blank"
-                          class="btn btn-small btn-pdf"
-                          data-pdf-url="${pdfUrl}"
-                          id="${downloadId}"
-                          onclick="window.trackDownloadAttempt(this.dataset.pdfUrl, this.id); return true;">
-                          Download PDF
-                        </a>`;
-    }
-
-    // Use server-normalized URL directly
-    if (paper.url) {
-        accessLinks += `<a href="${paper.url}" target="_blank" class="btn btn-small">View Online</a>`;
-    } else if (paper.doi) {
-        accessLinks += `<a href="https://doi.org/${paper.doi}" target="_blank" class="btn btn-small">View via DOI</a>`;
-    }
-
-    // If still no links, create a search link
-    if (!accessLinks) {
-        const searchQuery = encodeURIComponent(paper.title);
-        accessLinks = `<a href="https://scholar.google.com/scholar?q=${searchQuery}" target="_blank" class="btn btn-small btn-secondary">Search Google Scholar</a>`;
-    }
+    // Build hybrid source-attributed links
+    const accessLinks = buildHybridSourceLinks(paper);
 
     return `
         <div class="paper-card ${showBadge ? 'paper-card-streaming' : ''}">
@@ -551,11 +938,9 @@ function buildPaperCard(paper, index, showBadge = true) {
                 <h3>${paper.title || 'Untitled'}</h3>
             </div>
             <div class="paper-meta">
-                ${buildAccessBadge(paper)}
                 <span class="meta-item"><strong>Authors:</strong> ${authors}</span>
                 <span class="meta-item"><strong>Year:</strong> ${formatDate(paper.year)}</span>
                 ${journal ? `<span class="meta-item"><strong>Journal:</strong> ${journal}</span>` : ''}
-                <span class="meta-item"><strong>Source:</strong> ${paper.source || 'Unknown'}</span>
             </div>
             ${abstract ? `<p class="paper-abstract">${abstract}</p>` : ''}
             <div class="paper-links">
@@ -604,6 +989,7 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 45) {
 
     // Reset streaming state
     streamingResults = [];
+    papersByKey.clear(); // Clear deduplication map for new search
     sourcesCompleted = 0;
     totalSources = 0;
     pdfOnlyFilter = pdfOnly;
@@ -642,10 +1028,34 @@ function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 45) {
         const data = JSON.parse(e.data);
         console.log(`Received ${data.papers.length} papers from ${data.source}`);
 
-        // Add all papers (filtering happens in renderStreamingResults)
-        streamingResults.push(...data.papers);
+        // Deduplicate and merge as we receive results
+        let newCount = 0;
+        let mergedCount = 0;
 
-        // Re-render with new results (filters applied during render)
+        data.papers.forEach(paper => {
+            const key = getPaperKey(paper);
+
+            if (papersByKey.has(key)) {
+                // Merge with existing paper
+                const existing = papersByKey.get(key);
+                const merged = mergePapers(existing, paper);
+                papersByKey.set(key, merged);
+                mergedCount++;
+                console.log(`Merged duplicate: "${paper.title}" from ${paper.source} (now ${merged._merged_count} sources)`);
+            } else {
+                // New unique paper - apply citation boost
+                paper.relevance_score = applyCitationBoost(paper);
+                papersByKey.set(key, paper);
+                newCount++;
+            }
+        });
+
+        console.log(`Deduplication: ${newCount} new, ${mergedCount} merged`);
+
+        // Update streamingResults from deduplicated map
+        streamingResults = Array.from(papersByKey.values());
+
+        // Re-render with deduplicated results (filters applied during render)
         renderStreamingResults();
     });
 
