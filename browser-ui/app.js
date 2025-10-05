@@ -321,6 +321,90 @@ function isValidPdfUrl(url) {
     return true;
 }
 
+/**
+ * Determine access status from paper metadata
+ * @param {Object} paper - Paper object with metadata
+ * @returns {Object} Access status object with status, label, icon, and tooltip
+ */
+function getAccessStatus(paper) {
+    const hasPdf = isValidPdfUrl(paper.pdf_url) || isValidPdfUrl(paper.open_access_pdf);
+    const hasLink = paper.url || paper.doi;
+
+    // Check for explicit open access flags (from various sources)
+    const isOpenAccess = paper.is_open_access || paper.isOpenAccess || paper.open_access;
+
+    // Semantic Scholar URLs often point to open access papers (via their aggregation)
+    const isSemanticScholar = paper.url && paper.url.includes('semanticscholar.org');
+
+    // arXiv papers are always open access
+    const isArxiv = (paper.url && paper.url.includes('arxiv.org')) ||
+                    (paper.source && paper.source.toLowerCase().includes('arxiv'));
+
+    // Preprint servers are typically open access
+    const isPreprint = paper.source && (
+        paper.source.toLowerCase().includes('biorxiv') ||
+        paper.source.toLowerCase().includes('medrxiv') ||
+        paper.source.toLowerCase().includes('chemrxiv') ||
+        paper.source.toLowerCase().includes('osf') ||
+        paper.source.toLowerCase().includes('preprint')
+    );
+
+    // DOAJ (Directory of Open Access Journals) papers are open access by definition
+    const isDoaj = paper.source && paper.source.toLowerCase().includes('doaj');
+
+    if (hasPdf) {
+        return {
+            status: 'open-access',
+            label: 'Open Access',
+            icon: '🔓',
+            tooltip: 'Free PDF available'
+        };
+    } else if (isOpenAccess || isArxiv || isPreprint || isDoaj) {
+        // Explicit open access flag OR known open access sources
+        return {
+            status: 'open-access',
+            label: 'Open Access',
+            icon: '🔓',
+            tooltip: 'Open access (check paper page for PDF)'
+        };
+    } else if (isSemanticScholar) {
+        // Semantic Scholar aggregates from many sources - could be OA or paywalled
+        return {
+            status: 'check-access',
+            label: 'Check Access',
+            icon: '🔍',
+            tooltip: 'May be open access - check paper page'
+        };
+    } else if (hasLink) {
+        return {
+            status: 'paywalled',
+            label: 'Likely Paywalled',
+            icon: '🔒',
+            tooltip: 'May require subscription'
+        };
+    } else {
+        return {
+            status: 'unknown',
+            label: 'Unknown',
+            icon: '❓',
+            tooltip: 'Access status unclear'
+        };
+    }
+}
+
+/**
+ * Build access badge HTML
+ * @param {Object} paper - Paper object with metadata
+ * @returns {string} HTML string for access badge
+ */
+function buildAccessBadge(paper) {
+    const access = getAccessStatus(paper);
+    return `<span class="access-badge access-badge-${access.status}" title="${access.tooltip}">
+        <span class="access-badge-icon">${access.icon}</span>
+        <span>${access.label}</span>
+    </span>`;
+}
+
 // ============================================================================
 // RENDERING UTILITIES
 // ============================================================================
@@ -467,6 +551,7 @@ function buildPaperCard(paper, index, showBadge = true) {
                 <h3>${paper.title || 'Untitled'}</h3>
             </div>
             <div class="paper-meta">
+                ${buildAccessBadge(paper)}
                 <span class="meta-item"><strong>Authors:</strong> ${authors}</span>
                 <span class="meta-item"><strong>Year:</strong> ${formatDate(paper.year)}</span>
                 ${journal ? `<span class="meta-item"><strong>Journal:</strong> ${journal}</span>` : ''}

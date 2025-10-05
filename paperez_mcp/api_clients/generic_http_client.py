@@ -436,6 +436,40 @@ class GenericHTTPClient(BaseAPIClient):
                 else:
                     paper[standard_field] = ""
 
+        # Detect open access status based on source-specific indicators
+        is_open_access = False
+
+        # Semantic Scholar: Check if openAccessPdf exists (even if URL is null)
+        if self.source_name == "semantic_scholar":
+            open_access_pdf = self._get_nested_value(item, "openAccessPdf")
+            is_open_access = bool(open_access_pdf)  # True if object exists, even if url is null
+
+        # OpenAlex: Check open_access object
+        elif self.source_name == "openalex":
+            oa_status = self._get_nested_value(item, "open_access.oa_status")
+            # OpenAlex oa_status: gold, green, bronze, hybrid, closed
+            is_open_access = oa_status in ["gold", "green", "bronze", "hybrid"]
+
+        # DOAJ: All papers are open access by definition
+        elif self.source_name == "doaj":
+            is_open_access = True
+
+        # Preprint servers: Always open access
+        elif self.source_name in ["arxiv", "biorxiv", "medrxiv", "chemrxiv", "osf_preprints"]:
+            is_open_access = True
+
+        # Europe PMC: Check isOpenAccess field
+        elif self.source_name == "europe_pmc":
+            is_oa = self._get_nested_value(item, "isOpenAccess")
+            is_open_access = str(is_oa).upper() == "Y"
+
+        # Fallback: If we have a valid pdf_url, it's likely open access
+        if not is_open_access and (paper.get("pdf_url") or paper.get("open_access_pdf")):
+            is_open_access = True
+
+        # Add is_open_access flag to paper metadata
+        paper["is_open_access"] = is_open_access
+
         return super()._standardize_paper(paper)
 
     async def _perform_search(

@@ -88,7 +88,8 @@
       "Bash(uv cache prune:*)",
       "Bash(source:*)",
       "Bash(start_http_server)",
-      "WebFetch(domain:medium.com)"
+      "WebFetch(domain:medium.com)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": [],
