@@ -288,6 +288,110 @@ sources:
       # Monitor: https://fatcat.wiki/ for service status updates
     capability_profile: archive
 
+  unpaywall:
+    name: unpaywall
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Unpaywall - 20M+ open access PDF URLs (FREE, CC0, no auth required)
+      coverage: open access papers, free PDFs for paywalled papers
+      base_url: https://api.unpaywall.org/v2
+      search_path: /search/
+      query_param: query
+      limit_param: ""  # Uses 'page' for pagination instead of limit
+      response_format: json
+      results_path: results
+      extra_params:
+        email: research@paperez.org  # Use your email for better rate limits
+        is_oa: true  # Only return open access papers
+      field_mappings:
+        title: response.title
+        authors: response.z_authors
+        doi: response.doi
+        abstract: response.abstract
+        journal: response.journal_name
+        year: response.year
+        url: response.doi_url
+        pdf_url: response.best_oa_location.url_for_pdf
+        is_open_access: response.is_oa
+        citation_count: "0"  # Unpaywall doesn't provide citation counts
+      rate_limit_delay: 1.0  # 100K calls/day, conservative delay
+      # NOTE: Email is required by Unpaywall API (uses default research@paperez.org)
+      # Users can override by setting a custom email in their config file
+      # Rate limit: 100K calls/day for free tier
+    capability_profile: open_access
+
+  datacite:
+    name: datacite
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: DataCite - DOI metadata for research datasets and publications (FREE, CC0, no auth)
+      coverage: research datasets, DOI metadata, multidisciplinary
+      base_url: https://api.datacite.org
+      search_path: /dois
+      query_param: query
+      limit_param: page[size]
+      response_format: json
+      results_path: data
+      extra_params:
+        page[number]: 1
+      field_mappings:
+        title: attributes.titles.0.title
+        authors: attributes.creators
+        doi: attributes.doi
+        abstract: attributes.descriptions.0.description
+        journal: attributes.publisher
+        year: attributes.publicationYear
+        url: attributes.url
+        pdf_url: ""  # DataCite focuses on metadata, not PDFs
+        citation_count: meta.citationCount
+      rate_limit_delay: 0.5  # Unlimited with reasonable use
+      # NOTE: Free, no authentication required
+      # Recommended to include User-Agent header with contact info
+    capability_profile: general
+
+  zenodo:
+    name: zenodo
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 7200
+    config:
+      description: Zenodo - CERN research data repository (FREE, CC0 metadata, no auth required)
+      coverage: research datasets, publications, multidisciplinary from CERN
+      base_url: https://zenodo.org/api
+      search_path: /records/
+      query_param: q
+      limit_param: size
+      response_format: json
+      results_path: hits.hits
+      extra_params:
+        page: 1
+        sort: bestmatch
+      field_mappings:
+        title: metadata.title
+        authors: metadata.creators
+        doi: doi
+        abstract: metadata.description
+        journal: metadata.journal.title
+        year: metadata.publication_date
+        url: links.html
+        pdf_url: files.0.links.self
+        citation_count: "0"  # Zenodo doesn't provide citation counts in API
+      rate_limit_delay: 0.6  # 100 req/min for authenticated, 60 req/min for guests
+      # NOTE: Free, no authentication required for public records
+      # Rate limits: Guest users: 60 req/min, 2000 req/hour
+      # Authenticated users: 100 req/min, 5000 req/hour
+    capability_profile: open_access
+
 
 # Scientific research categories
 categories:
@@ -302,6 +406,9 @@ categories:
       - openalex
       - doaj
       - fatcat_scholar
+      - unpaywall  # Added: Free PDFs for paywalled papers
+      - datacite  # Added: DOI metadata for datasets
+      - zenodo  # Added: CERN research repository
     max_results_per_source: 6
     parallel_search: true
 
@@ -327,16 +434,7 @@ categories:
       - semantic_scholar
       - openalex
       - doaj
+      - unpaywall  # Added: 20M+ free PDFs
+      - zenodo  # Added: CERN research data
     max_results_per_source: 5
     parallel_search: true
-
-# GAPS IDENTIFIED - NEED MORE SOURCES:
-# - IEEE Xplore (engineering/computer science conferences)
-# - ACM Digital Library (computer science)
-# - Physics databases beyond arXiv
-# - Mathematics research databases
-# - Chemistry databases (ChemRxiv, etc.)
-# - Materials science sources
-
-# ADDED SOURCES:
-# ✅ OpenAlex (comprehensive multidisciplinary) - Added 240M+ works coverage

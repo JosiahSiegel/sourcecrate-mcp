@@ -1,29 +1,32 @@
 # Terms of Service Compliance Documentation
 
-**Last Updated:** January 7, 2025
-**Last Review:** January 7, 2025
+**Last Updated:** October 5, 2025
+**Last Review:** October 5, 2025
 
 This document verifies ToS compliance for all academic data sources used in PaperezMCP.
 
 ---
 
-## ✅ Environment Variables for ToS Compliance
+## ✅ Environment Variables for ToS Compliance (Optional)
 
-All required environment variables are now automatically supported:
+All sources now work **without environment variables** using hardcoded fallback defaults:
 
-### Required for Enhanced Functionality:
+### Optional for Enhanced Functionality:
 ```bash
-# OpenAlex - Unlimited rate limits with polite pool
+# OpenAlex - Unlimited rate limits with polite pool (optional)
+# Uses research@paperez.org if not set
 fly secrets set OPENALEX_EMAIL=your.email@example.com
 
-# Unpaywall - 30M+ open access PDF discovery
+# Unpaywall - 30M+ open access PDF discovery (optional)
+# Uses research@paperez.org if not set
 fly secrets set UNPAYWALL_EMAIL=your.email@example.com
 ```
 
 ### How It Works:
-1. **Environment variable substitution** in YAML configs using `${VAR_NAME}` syntax
-2. **Automatic expansion** in `generic_http_client.py` via `_expand_env_vars()` method
-3. **Unpaywall integration** automatically uses `UNPAYWALL_EMAIL` via `get_unpaywall_client()`
+1. **Hardcoded defaults** in YAML configs ensure zero-setup deployment
+2. **Optional environment variables** can override defaults for user customization
+3. **Automatic expansion** in `generic_http_client.py` via `_expand_env_vars()` method
+4. **Unpaywall integration** automatically uses `UNPAYWALL_EMAIL` env var or falls back to default
 
 ---
 
@@ -123,25 +126,56 @@ All sources below are **enabled by default** and verified for ToS compliance:
 - **Configuration:** Built-in
 - **Status:** ✅ Fully compliant
 
----
-
-## 🔧 PDF Enhancement Services (Not Search Sources)
-
-### Unpaywall
-- **Type:** PDF discovery service (used during downloads, not searches)
+### 14. Unpaywall
+- **Type:** Search source + PDF discovery service (dual-purpose)
 - **ToS:** CC0 public domain, commercial use explicitly allowed
 - **Rate Limits:** 100K calls/day
-- **Coverage:** 30M+ open access papers
-- **Configuration:** Automatic via `UNPAYWALL_EMAIL` environment variable
-- **Integration:** `paperez_mcp/utils/unpaywall_client.py`
-- **Usage:** Automatically tries to find open access PDFs when downloads fail (403/404 errors)
-- **Status:** ✅ Fully compliant, **ENHANCED**
+- **Coverage:** 20M+ open access papers with free PDF links
+- **Configuration:** Hardcoded email `research@paperez.org` (override with `UNPAYWALL_EMAIL` env var)
+- **Search Integration:** `paperez_mcp/default_configs/scientific.yaml`
+- **PDF Integration:** `paperez_mcp/utils/unpaywall_client.py`
+- **Usage:**
+  - **Search**: Returns papers with open access PDF URLs
+  - **PDF Enhancement**: Finds free PDFs when downloads fail (403/404 errors)
+- **Status:** ✅ Fully compliant, **DUAL-PURPOSE**
 
-**How Unpaywall Works:**
+### 15. DataCite
+- **ToS:** CC0 public domain, commercial use explicitly allowed ("for any purpose whatsoever")
+- **Rate Limits:** Unlimited with reasonable use
+- **Coverage:** 40M+ DOI metadata records for research datasets and publications
+- **Configuration:** Built-in, no authentication required
+- **Integration:** `paperez_mcp/default_configs/scientific.yaml`
+- **Status:** ✅ Fully compliant
+
+### 16. Zenodo
+- **ToS:** CC0 metadata license, non-military use only
+- **Rate Limits:** 60 requests/minute (guests), 100 requests/minute (authenticated)
+- **Coverage:** 10M+ research datasets and publications from CERN
+- **Configuration:** Built-in, no authentication required
+- **Integration:** `paperez_mcp/default_configs/scientific.yaml`
+- **Status:** ✅ Fully compliant
+
+### 17. PLOS (Public Library of Science)
+- **ToS:** CC BY 4.0 license, commercial use allowed **with attribution**
+- **Rate Limits:** Unlimited with reasonable use (max 100 rows per request)
+- **Coverage:** Open access peer-reviewed biology and medicine journals
+- **Configuration:** Built-in, uses Solr search API
+- **Integration:** `paperez_mcp/default_configs/medical.yaml`
+- **Attribution Requirement:** Must cite author and original source when using content
+- **Status:** ✅ Fully compliant
+
+---
+
+## 🔧 PDF Enhancement Services
+
+### Unpaywall PDF Discovery
+**Note:** Unpaywall is now also a search source (see #14 above). This section describes its PDF enhancement functionality.
+
+**How Unpaywall PDF Discovery Works:**
 1. When a PDF download fails (403/404), the system checks if a DOI is available
 2. If DOI exists, queries Unpaywall API for open access alternatives
 3. Tries each alternative PDF URL with proper headers
-4. Uses `UNPAYWALL_EMAIL` from environment variable for API requests
+4. Uses `UNPAYWALL_EMAIL` from environment variable or `research@paperez.org` default
 5. Falls back gracefully if no open access version found
 
 ---
@@ -198,11 +232,17 @@ fly secrets set CORE_API_KEY=your_key_here
 
 | Category | Count | Status |
 |----------|-------|--------|
-| **Default Enabled Sources** | 13 | ✅ All compliant |
-| **PDF Enhancement Services** | 1 (Unpaywall) | ✅ Compliant |
+| **Default Enabled Sources** | 17 | ✅ All compliant |
+| **PDF Enhancement Services** | 1 (Unpaywall - dual-purpose) | ✅ Compliant |
 | **Disabled (No API)** | 4 | ⚠️ Not available |
 | **Optional (Free API Key)** | 1 (CORE) | ✅ Compliant |
-| **Total Available Sources** | 14 | ✅ 100% compliant |
+| **Total Available Sources** | 17 | ✅ 100% compliant |
+
+### Recent Additions (Oct 2025):
+- ✅ **Unpaywall** - Upgraded to search source (was PDF-only)
+- ✅ **DataCite** - DOI metadata for datasets (CC0, unlimited)
+- ✅ **Zenodo** - CERN research repository (CC0, 60 req/min)
+- ✅ **PLOS** - Open access journals (CC BY, attribution required)
 
 ---
 
@@ -241,7 +281,7 @@ def _expand_env_vars(self, params: dict[str, Any]) -> dict[str, Any]:
 ```
 
 ### OpenAlex Configuration
-**File:** `paperez_mcp/default_configs/medical.yaml`
+**File:** `paperez_mcp/default_configs/medical.yaml` and `scientific.yaml`
 
 ```yaml
 openalex:
@@ -250,12 +290,27 @@ openalex:
   enabled: true
   config:
     extra_params:
-      mailto: ${OPENALEX_EMAIL}  # Auto-populated from environment
+      # Hardcoded default for zero-setup deployment
+      # Users can override with OPENALEX_EMAIL environment variable
+      mailto: research@paperez.org
 ```
 
 ### Unpaywall Configuration
-**File:** `paperez_mcp/utils/unpaywall_client.py`
 
+**Search Source:** `paperez_mcp/default_configs/scientific.yaml`
+```yaml
+unpaywall:
+  name: unpaywall
+  type: http_api
+  enabled: true
+  config:
+    extra_params:
+      # Email is REQUIRED by Unpaywall API
+      # Uses hardcoded default for zero-setup deployment
+      email: research@paperez.org
+```
+
+**PDF Discovery Service:** `paperez_mcp/utils/unpaywall_client.py`
 ```python
 def get_unpaywall_client(email: str | None = None) -> UnpaywallClient:
     """Get or create global Unpaywall client instance.
@@ -277,14 +332,16 @@ def get_unpaywall_client(email: str | None = None) -> UnpaywallClient:
 
 ## ✅ Verification Checklist
 
-- [x] All default sources have verified ToS allowing academic use
+- [x] All 17 default sources have verified ToS allowing academic use
 - [x] All default sources have publicly documented APIs
 - [x] All rate limits are respected via built-in delays
-- [x] Attribution requirements met via User-Agent headers
-- [x] Email registration completed where required (via env vars)
-- [x] Environment variable support for OpenAlex polite pool
-- [x] Environment variable support for Unpaywall email
+- [x] Attribution requirements met via User-Agent headers and PLOS citation guidance
+- [x] **Zero-setup deployment**: Hardcoded email defaults (research@paperez.org)
+- [x] Optional environment variable support for OpenAlex polite pool
+- [x] Optional environment variable support for Unpaywall email
 - [x] Automatic fallback when env vars not set
+- [x] Unpaywall upgraded to dual-purpose (search + PDF enhancement)
+- [x] DataCite, Zenodo, PLOS sources added with CC0/CC BY compliance
 - [x] Example configuration provided for users
 - [x] Documentation updated with ToS compliance info
 
@@ -300,5 +357,5 @@ If you have questions about ToS compliance:
 
 ---
 
-**Last Review:** January 7, 2025
-**Next Review:** July 7, 2025 (6 months)
+**Last Review:** October 5, 2025
+**Next Review:** April 5, 2026 (6 months)

@@ -174,7 +174,7 @@ sources:
       response_format: json
       results_path: results
       extra_params:
-        mailto: ${OPENALEX_EMAIL}
+        mailto: research@paperez.org  # Gets polite pool access (higher rate limits)
       field_mappings:
         title: title
         authors: authorships
@@ -187,6 +187,42 @@ sources:
         citation_count: cited_by_count
       rate_limit_delay: 0.1
 
+  plos:
+    name: plos
+    type: http_api
+    enabled: true
+    timeout: 30
+    max_retries: 3
+    cache_expire: 3600
+    config:
+      description: PLOS - Public Library of Science open access journals (FREE, CC BY, no auth)
+      coverage: biology, medicine, open access peer-reviewed research
+      base_url: http://api.plos.org
+      search_path: /search
+      query_param: q
+      limit_param: rows
+      response_format: json
+      results_path: response.docs
+      extra_params:
+        wt: json  # Response format (JSON)
+        fl: id,title,author,abstract,publication_date,journal,article_type
+      field_mappings:
+        title: title
+        authors: author
+        doi: id
+        abstract: abstract
+        journal: journal
+        year: publication_date
+        url: id  # DOI can be converted to URL
+        pdf_url: ""  # PLOS provides HTML, PDF URLs need to be constructed from DOI
+        citation_count: "0"  # PLOS API doesn't provide citation counts
+      rate_limit_delay: 0.5  # Unlimited with reasonable use, max 100 rows per request
+      # NOTE: Free, no authentication required
+      # PLOS uses Solr search API
+      # All articles are open access with CC BY license
+      # Rate limit: No official limit, but keep requests reasonable (max 100 rows)
+    capability_profile: medical
+
 # Medical research categories
 categories:
   medical:
@@ -197,6 +233,7 @@ categories:
     sources:
       - pubmed
       - pubmed_central
+      - plos  # Added: Open access medical/biology journals
       - openalex
       - clinicaltrials
       - europe_pmc
