@@ -503,11 +503,11 @@ class GenericHTTPClient(BaseAPIClient):
                 response = await client.get(url, headers=headers, params=params)
 
                 if response.status_code == 429:
-                    # Rate limited - wait and retry once
+                    # Rate limited - skip this source instead of waiting
+                    # (waiting blocks streaming and causes timeouts)
                     retry_after = int(response.headers.get("Retry-After", 60))
-                    self.logger.warning(f"Rate limited, waiting {retry_after}s")
-                    await asyncio.sleep(retry_after)
-                    response = await client.get(url, headers=headers, params=params)
+                    self.logger.warning(f"Rate limited (would need to wait {retry_after}s), skipping source")
+                    return []
 
                 if response.status_code != 200:
                     self.logger.warning(
