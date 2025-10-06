@@ -22,6 +22,14 @@ import {
     setCurrentQuery
 } from './state.js';
 import { getPaperKey, mergePapers, calculateOptimalRelevance } from './utils.js';
+import PaperProcessor from './processing-poc.js';
+import ClientSearchOrchestrator from './api-clients/orchestrator.js';
+
+// Initialize client-side paper processor for Phase 1 optimization
+const paperProcessor = new PaperProcessor();
+
+// Initialize client-side search orchestrator for Phase 2 optimization
+const clientSearchOrchestrator = new ClientSearchOrchestrator();
 
 /**
  * Handle SSE streaming search
@@ -80,29 +88,36 @@ export function searchWithSSE(query, limit, pdfOnly = false, minRelevance = 35, 
         const data = JSON.parse(e.data);
         // console.log(`Received ${data.papers.length} papers from ${data.source}`);
 
-        // Deduplicate and merge as we receive results
+        // Client-side deduplication with fuzzy matching (Phase 1 optimization)
         let newCount = 0;
         let mergedCount = 0;
 
         data.papers.forEach(paper => {
-            const key = getPaperKey(paper);
+            let foundDuplicate = false;
 
-            if (papersByKey.has(key)) {
-                // Merge with existing paper
-                const existing = papersByKey.get(key);
-                const merged = mergePapers(existing, paper);
-                papersByKey.set(key, merged);
-                mergedCount++;
-                // console.log(`Merged duplicate: "${paper.title}" from ${paper.source} (now ${merged._merged_count} sources)`);
-            } else {
-                // New unique paper - apply optimal relevance scoring
-                paper.relevance_score = calculateOptimalRelevance(paper, currentQuery);
+            // Check against all existing papers using fuzzy matching
+            for (const [key, existing] of papersByKey.entries()) {
+                if (paperProcessor.areDuplicates(existing, paper)) {
+                    // Merge with existing using enhanced merger
+                    const merged = paperProcessor.mergePapers(existing, paper);
+                    papersByKey.set(key, merged);
+                    mergedCount++;
+                    foundDuplicate = true;
+                    // console.log(`Fuzzy match: "${paper.title}" from ${paper.source}`);
+                    break;
+                }
+            }
+
+            if (!foundDuplicate) {
+                // New unique paper - calculate BM25 relevance
+                const key = paperProcessor.getPaperKey(paper);
+                paper.relevance_score = paperProcessor.bm25.score(paper, currentQuery, 100);
                 papersByKey.set(key, paper);
                 newCount++;
             }
         });
 
-        // console.log(`Deduplication: ${newCount} new, ${mergedCount} merged`);
+        // console.log(`Client-side processing: ${newCount} new, ${mergedCount} duplicates merged`);
 
         // Update streamingResults from deduplicated map
         setStreamingResults(Array.from(papersByKey.values()));
@@ -235,10 +250,107 @@ export async function checkStatus() {
 }
 
 /**
+ * Client-side direct search (Phase 2 optimization - bypasses server)
+ * @param {string} query - Search query
+ * @param {number} limit - Max results per source
+ * @param {boolean} pdfOnly - Filter for PDF availability
+ * @param {number} minRelevance - Minimum relevance threshold
+ * @param {Function} renderCallback - Callback to render results
+ */
+export async function searchWithClient(query, limit, pdfOnly = false, minRelevance = 35, renderCallback) {
+    // Reset streaming state
+    setStreamingResults([]);
+    papersByKey.clear();
+    renderedPaperKeys.clear();
+    setSourcesCompleted(0);
+    setTotalSources(0);
+    setPdfOnlyFilter(pdfOnly);
+    setRelevanceThreshold(minRelevance);
+    setCurrentQuery(query);
+
+    const resultsDiv = document.getElementById('results');
+    resultsDiv.innerHTML = '<p class="loading-message">🔍 Searching directly from browser (CORS-enabled sources)...</p>';
+
+    // Show results section
+    document.querySelector('.results-section').classList.add('active');
+
+    const filterText = pdfOnly ? ' (Direct Download only)' : '';
+    showStatus(`Client-side search: "${query}"${filterText}...`, 'loading');
+
+    try {
+        // Search with streaming-like callbacks
+        await clientSearchOrchestrator.searchWithCallbacks(query, {
+            limit,
+            sources: ['arxiv', 'crossref', 'pubmed', 'openalex'],
+
+            onSourceStart: (data) => {
+                showStatus(`Searching ${data.source}...`, 'loading');
+            },
+
+            onResults: (data) => {
+                // Process results as they arrive (streaming-like)
+                let newCount = 0;
+                let mergedCount = 0;
+
+                data.papers.forEach(paper => {
+                    let foundDuplicate = false;
+
+                    // Check against existing papers using fuzzy matching
+                    for (const [key, existing] of papersByKey.entries()) {
+                        if (paperProcessor.areDuplicates(existing, paper)) {
+                            const merged = paperProcessor.mergePapers(existing, paper);
+                            papersByKey.set(key, merged);
+                            mergedCount++;
+                            foundDuplicate = true;
+                            break;
+                        }
+                    }
+
+                    if (!foundDuplicate) {
+                        const key = paperProcessor.getPaperKey(paper);
+                        paper.relevance_score = paperProcessor.bm25.score(paper, currentQuery, 100);
+                        papersByKey.set(key, paper);
+                        newCount++;
+                    }
+                });
+
+                // Update results
+                setStreamingResults(Array.from(papersByKey.values()));
+                renderCallback();
+            },
+
+            onSourceComplete: (data) => {
+                setSourcesCompleted(data.completed);
+                if (data.total && totalSources === 0) {
+                    setTotalSources(data.total);
+                }
+                renderCallback();
+            },
+
+            onComplete: (data) => {
+                const summaryDiv = document.getElementById('results-summary');
+                if (summaryDiv) {
+                    const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
+                    summaryDiv.innerHTML = `<p>✅ Client-side search complete! Found <strong>${streamingResults.length}</strong> papers${pdfInfo} from ${data.sources_successful}/${data.sources_searched} sources (${data.elapsed_ms.toFixed(0)}ms)</p>`;
+                    summaryDiv.className = 'results-summary results-summary-complete';
+                }
+                showStatus(`✅ Found ${streamingResults.length} papers from ${data.sources_successful} sources`, 'success');
+            }
+        });
+    } catch (error) {
+        console.error('Client-side search error:', error);
+        showStatus(`Error: ${error.message}`, 'error');
+    }
+}
+
+/**
  * Search by paper title with one click
  * @param {string} title - Paper title to search for
  * @param {Function} renderCallback - Callback to render results
  */
+// Export client search for app.js
+export { searchWithClient };
+
 export function searchByTitle(title, renderCallback) {
     if (!title) return;
 
@@ -257,6 +369,13 @@ export function searchByTitle(title, renderCallback) {
     // Scroll to top to see results
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
+    // Check if client-side search is enabled
+    const useClientSearch = document.getElementById('useClientSearch')?.checked || false;
+
     // Execute search
-    searchWithSSE(cleanedTitle, limit, pdfOnly, minRelevance, renderCallback);
+    if (useClientSearch) {
+        searchWithClient(cleanedTitle, limit, pdfOnly, minRelevance, renderCallback);
+    } else {
+        searchWithSSE(cleanedTitle, limit, pdfOnly, minRelevance, renderCallback);
+    }
 }
