@@ -96,7 +96,9 @@
       "Bash(git checkout:*)",
       "Bash(git tag:*)",
       "Bash(find:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(fly deploy:*)",
+      "WebFetch(domain:docs.openalex.org)"
     ],
     "deny": [],
     "ask": [],
