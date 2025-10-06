@@ -34,6 +34,7 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
 
@@ -849,6 +850,18 @@ async def internal_error_handler(request: Any, exc: Any) -> JSONResponse:
             "detail": "An unexpected error occurred",
         },
     )
+
+
+# ==================== Static File Serving ====================
+
+# Mount static files AFTER all API routes so API takes precedence
+# This serves the browser-ui directory with correct MIME types
+# Path is relative to /app (WORKDIR in Dockerfile)
+try:
+    app.mount("/", StaticFiles(directory="browser-ui", html=True), name="static")
+    logger.info("Static files mounted from browser-ui/")
+except RuntimeError as e:
+    logger.warning(f"Could not mount static files: {e}. Continuing without UI.")
 
 
 # ==================== Main Entry Point ====================

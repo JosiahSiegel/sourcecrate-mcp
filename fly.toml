@@ -32,7 +32,3 @@ primary_region = 'dfw'
 
 [[vm]]
   size = 'shared-cpu-1x'
-
-[[statics]]
-  guest_path = '/app/browser-ui'
-  url_prefix = '/'
