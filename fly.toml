@@ -31,7 +31,7 @@ primary_region = 'dfw'
     soft_limit = 10
 
 [[vm]]
-  size = 'shared-cpu-2x'
+  size = 'shared-cpu-1x'
 
 [[statics]]
   guest_path = '/app/browser-ui'
