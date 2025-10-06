@@ -77,6 +77,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // console.log('SourceCrate Browser UI initialized');
     // console.log('API Server:', API_BASE_URL);
 
+    // Display actual API URL in footer
+    document.getElementById('apiServer').textContent = API_BASE_URL;
+
     // Get filter UI elements
     const pdfOnlyCheckbox = document.getElementById('pdfOnly');
 
