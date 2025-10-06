@@ -20,7 +20,7 @@ export class OpenAlexClient extends BaseAPIClient {
     async search(query, limit = 10) {
         try {
             const params = new URLSearchParams({
-                search: query,
+                filter: `default.search:${query}`,
                 'per-page': limit,
                 mailto: 'sourcecrate@example.com' // Polite pool requires email
             });
