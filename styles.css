@@ -1,0 +1,1082 @@
+/* SourceCrate Browser UI - Styles */
+
+:root {
+    /* Minimal Brutalism Theme - Bold, raw, unapologetic */
+    --bg-color: #1a1512;
+    --card-bg: #2d2420;
+    --surface-color: #2d2420;
+    --border-color: #c0a392;
+
+    /* Text Colors - Brutalist
+       High contrast for maximum readability
+    */
+    --text-color: #fdf8f6;
+    --text-secondary: #c0a392;
+    --text-tertiary: #a18072;
+
+    /* Accents - Brutalist */
+    --accent-color: #c0a392;
+    --accent-hover: #d4b5a5;
+    --success-color: #7a9b76;
+    --error-color: #a67c6f;
+    --warning-color: #b89968;
+    --accent-teal: #7b9a92;
+
+    /* Brutalist Shadows - Strong, defined */
+    --shadow-sm: 4px 4px 0 rgba(166, 124, 82, 0.3);
+    --shadow: 6px 6px 0 rgba(166, 124, 82, 0.4);
+    --shadow-lg: 8px 8px 0 rgba(166, 124, 82, 0.5);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Brutalist focus states - Bold and obvious */
+a:focus-visible,
+button:focus-visible,
+details:focus-visible,
+input:focus-visible,
+.source-chip:focus-visible {
+    outline: 3px solid var(--accent-color);
+    outline-offset: 2px;
+    border-radius: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.5;
+    min-height: 100vh;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0;
+    word-spacing: 0;
+    position: relative;
+}
+
+/* Remove texture overlay for brutalist clean look */
+body::before {
+    display: none;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+/* Mobile-first: larger padding on bigger screens */
+@media (min-width: 640px) {
+    .container {
+        padding: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .container {
+        padding: 2rem;
+    }
+}
+
+/* Header - Brutalist Style */
+header {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    border: 3px solid var(--border-color);
+    background: var(--card-bg);
+    border-radius: 0;
+}
+
+header h1 {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: var(--text-color);
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+}
+
+/* Tablet and up */
+@media (min-width: 640px) {
+    header h1 {
+        font-size: 2.5rem;
+        font-weight: 900;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    header h1 {
+        font-size: 3rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+    }
+}
+
+/* Sections - Brutalist */
+section {
+    background: var(--card-bg);
+    border-radius: 0;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border: 3px solid var(--border-color);
+    box-shadow: var(--shadow);
+}
+
+/* Tablet and up */
+@media (min-width: 640px) {
+    section {
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    section {
+        padding: 2rem;
+    }
+}
+
+/* Hide results and status sections until needed */
+.results-section,
+.status-section {
+    display: none;
+}
+
+.results-section.active,
+.status-section.active {
+    display: block;
+}
+
+/* Forms - Brutalist */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Search Input - Brutalist */
+.search-input {
+    margin-bottom: 1rem;
+}
+
+.search-input input {
+    width: 100%;
+    padding: 1rem;
+    border: 3px solid var(--border-color);
+    border-radius: 0;
+    font-size: 1rem;
+    transition: none;
+    background: var(--surface-color);
+    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 600;
+}
+
+.search-input input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+.search-input input::placeholder {
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+/* Override browser autofill styling */
+.search-input input:-webkit-autofill,
+.search-input input:-webkit-autofill:hover,
+.search-input input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--surface-color) inset;
+    -webkit-text-fill-color: var(--text-color);
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Mobile: larger font to prevent zoom */
+@media (max-width: 639px) {
+    .search-input input {
+        font-size: 1.0625rem; /* 17px to prevent iOS zoom */
+    }
+}
+
+/* Standard Inputs - Classic Style */
+.form-group input[type="text"],
+.form-group input[type="number"] {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+    background: var(--surface-color);
+    color: var(--text-color);
+    font-family: Georgia, 'Times New Roman', serif;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent-color);
+}
+
+/* Override browser autofill styling */
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0 1000px var(--surface-color) inset;
+    -webkit-text-fill-color: var(--text-color);
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Custom Styled Checkbox */
+.form-group input[type="checkbox"] {
+    /* Hide default checkbox */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+    /* Custom styling */
+    width: 20px;
+    height: 20px;
+    margin-right: 0.75rem;
+    border: 2px solid var(--text-secondary);
+    border-radius: 3px;
+    background-color: var(--bg-primary);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+}
+
+.form-group input[type="checkbox"]:hover {
+    border-color: var(--accent-color);
+    background-color: rgba(166, 124, 82, 0.1);
+}
+
+.form-group input[type="checkbox"]:checked {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+/* Checkmark */
+.form-group input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--bg-primary);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.form-group input[type="checkbox"]:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+/* Better label styling for checkbox */
+.form-group label {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* Mobile: larger touch targets */
+@media (max-width: 639px) {
+    .form-group input[type="text"],
+    .form-group input[type="number"] {
+        padding: 1rem;
+        font-size: 1.0625rem; /* 17px to prevent iOS zoom */
+    }
+}
+
+.form-row {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+/* Classic Range Slider */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border-color);
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    border: 2px solid var(--surface-color);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: var(--accent-hover);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--accent-color);
+    cursor: pointer;
+    border: 2px solid var(--surface-color);
+    box-shadow: var(--shadow-sm);
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+    background: var(--accent-hover);
+}
+
+/* Mobile: larger touch target */
+@media (max-width: 639px) {
+    input[type="range"]::-webkit-slider-thumb {
+        width: 28px;
+        height: 28px;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+/* Buttons - Brutalist Style */
+.btn {
+    padding: 1rem 2rem;
+    border: 3px solid var(--bg-color);
+    border-radius: 0;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: none;
+    text-decoration: none;
+    display: inline-block;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: var(--shadow);
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: var(--bg-color);
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translate(2px, 2px);
+    box-shadow: 4px 4px 0 rgba(166, 124, 82, 0.4);
+}
+
+.btn-primary:active {
+    transform: translate(4px, 4px);
+    box-shadow: 2px 2px 0 rgba(166, 124, 82, 0.3);
+}
+
+.btn-secondary {
+    background: var(--card-bg);
+    color: var(--accent-color);
+    border: 3px solid var(--accent-color);
+}
+
+.btn-secondary:hover {
+    background: var(--surface-color);
+    transform: translate(2px, 2px);
+    box-shadow: 4px 4px 0 rgba(166, 124, 82, 0.4);
+}
+
+/* Mobile: larger touch targets */
+@media (max-width: 639px) {
+    .btn {
+        padding: 1rem 2rem;
+        min-height: 48px;
+    }
+}
+
+/* Status Indicator - Classic Style */
+.status-indicator {
+    padding: 1rem 1.5rem;
+    border-radius: 6px;
+    margin-bottom: 2rem;
+    font-weight: 500;
+    text-align: center;
+    display: none;
+    border: 1px solid;
+}
+
+.status-indicator.loading {
+    background: var(--surface-color);
+    border-color: var(--warning-color);
+    color: var(--warning-color);
+}
+
+.status-indicator.success {
+    background: var(--surface-color);
+    border-color: var(--success-color);
+    color: var(--success-color);
+}
+
+.status-indicator.error {
+    background: var(--surface-color);
+    border-color: var(--error-color);
+    color: var(--error-color);
+}
+
+/* Results */
+.results-container {
+    min-height: 200px;
+}
+
+.placeholder {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 3rem;
+}
+
+.no-results {
+    text-align: center;
+    color: var(--warning-color);
+    padding: 2rem;
+    font-weight: 500;
+}
+
+.results-summary {
+    background-color: var(--surface-color);
+    padding: 1.5rem;
+    border-radius: 6px;
+    margin-bottom: 2rem;
+    border-left: 3px solid var(--accent-color);
+}
+
+.paper-card {
+    border: 3px solid var(--border-color);
+    border-radius: 0;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    background: var(--card-bg);
+    transition: none;
+    box-shadow: var(--shadow);
+    position: relative;
+}
+
+.paper-card:hover {
+    border-color: var(--accent-color);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Prevent layout thrashing during streaming updates */
+#results-container {
+    contain: layout style;  /* CSS containment for better performance */
+}
+
+/* Smooth summary updates without flash */
+.results-summary {
+    transition: opacity 0.15s ease;
+}
+
+/* Tablet and up */
+@media (min-width: 640px) {
+    .paper-card {
+        padding: 1.75rem;
+        margin-bottom: 2.25rem;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    .paper-card {
+        padding: 2rem;
+        margin-bottom: 2.5rem;
+    }
+}
+
+.paper-header {
+    display: flex;
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+.paper-number {
+    display: none; /* Hidden for minimalist design */
+}
+
+.paper-title-row {
+    flex: 1;
+    display: flex;
+    align-items: start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.paper-header h3 {
+    font-size: 1.3rem;
+    font-weight: 900;
+    line-height: 1.3;
+    color: var(--text-color);
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+/* Title Search Icon - Magnifying Glass */
+.title-search-icon {
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    transition: all 0.15s ease-out;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 44px; /* WCAG touch target minimum */
+    min-height: 44px;
+    margin-top: -0.125rem; /* Fine-tune vertical alignment with first line */
+}
+
+.title-search-icon:hover {
+    color: var(--accent-color);
+    background-color: rgba(166, 124, 82, 0.1);
+    transform: scale(1.1);
+}
+
+.title-search-icon:active {
+    transform: scale(0.95);
+}
+
+/* Keyboard focus state */
+.title-search-icon:focus-visible {
+    outline: 3px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.download-badge,
+.relevance-badge {
+    display: none; /* Hidden for minimalist design */
+}
+
+.paper-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.meta-item {
+    padding: 0;
+}
+
+/* Research Metadata Badges */
+.research-metadata-badges {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+    flex-wrap: wrap;
+}
+
+.metadata-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: none;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge-doi {
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.badge-doi:hover {
+    background: var(--surface-color);
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.badge-open-access {
+    background: var(--success-color);
+    color: var(--bg-color);
+    border: 2px solid var(--success-color);
+}
+
+.badge-preprint {
+    background: var(--warning-color);
+    color: var(--bg-color);
+    border: 2px solid var(--warning-color);
+}
+
+.badge-citations {
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
+}
+
+/* Alternate PDF dropdown - used in rendering.js */
+.alternate-pdf-list {
+    list-style: none;
+    padding: 8px;
+    margin: 4px 0;
+    background: var(--surface-color);
+    border: 2px solid var(--border-color);
+    border-radius: 0;
+    position: absolute;
+    z-index: 10;
+    min-width: 200px;
+    box-shadow: var(--shadow);
+}
+
+.alternate-pdf-list li {
+    padding: 4px 0;
+}
+
+.alternate-pdf-list a {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-size: 0.875rem;
+    display: block;
+    padding: 4px 8px;
+    border-radius: 0;
+    transition: none;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.alternate-pdf-list a:hover {
+    background-color: var(--surface-color);
+    border-left: 3px solid var(--accent-color);
+    text-decoration: none;
+}
+
+.paper-abstract {
+    color: var(--text-secondary);
+    line-height: 1.65; /* Enhanced readability */
+    margin-bottom: 0.75rem;
+    max-height: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9375rem; /* 15px - improved readability */
+    letter-spacing: 0.01em;
+}
+
+.paper-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* System Status - Brutalist */
+.system-status {
+    background-color: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 0;
+    margin-top: 1rem;
+    border: 3px solid var(--border-color);
+}
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.status-item {
+    padding: 0.75rem;
+    background: var(--surface-color);
+    border-radius: 0;
+    border: 2px solid var(--border-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+}
+
+details {
+    margin-top: 1rem;
+}
+
+details summary {
+    cursor: pointer;
+    padding: 0.75rem;
+    background-color: var(--surface-color);
+    border: 2px solid var(--border-color);
+    border-radius: 0;
+    font-weight: 700;
+    color: var(--text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+details summary:hover {
+    background-color: var(--card-bg);
+    border-color: var(--accent-color);
+}
+
+details pre {
+    margin-top: 0.5rem;
+    padding: 1rem;
+    background-color: var(--bg-color);
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+/* Footer - Minimalist */
+footer {
+    text-align: center;
+    padding-top: 1.5rem;
+    margin-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-tertiary);
+    font-size: 0.8125rem;
+}
+
+footer p {
+    margin: 0;
+}
+
+footer a {
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+footer a:hover {
+    color: var(--accent-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+
+    header h1 {
+        font-size: 2rem;
+    }
+
+    section {
+        padding: 1.5rem;
+    }
+
+    .form-row {
+        flex-direction: column;
+    }
+
+    .paper-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Hybrid Source-Level Access Indicators */
+.source-access-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* Primary PDF Action - Prominent Download Button */
+.primary-pdf-action {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-pdf-download {
+    background: var(--accent-color);
+    color: var(--bg-color);
+    padding: 0.75rem 1.5rem;
+    min-height: 44px;
+    border-radius: 0;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: none;
+    box-shadow: var(--shadow);
+    border: 3px solid var(--bg-color);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.btn-pdf-download:hover {
+    background: var(--accent-hover);
+    box-shadow: var(--shadow-lg);
+    transform: translate(2px, 2px);
+}
+
+.btn-pdf-download .pdf-icon {
+    font-size: 1rem;
+}
+
+/* Progressive Disclosure - Alternate PDFs Dropdown */
+.alternate-pdfs-dropdown {
+    display: inline-block;
+    position: relative;
+}
+
+.alternate-pdfs-dropdown summary {
+    cursor: pointer;
+    color: var(--accent-color);
+    font-size: 0.875rem;
+    list-style: none;
+    user-select: none;
+    padding: 0.375rem 0.625rem;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+}
+
+.alternate-pdfs-dropdown summary::-webkit-details-marker {
+    display: none;
+}
+
+.alternate-pdfs-dropdown summary:hover {
+    background-color: rgba(166, 124, 82, 0.15);
+    border-color: var(--accent-color);
+}
+
+.alternate-pdfs-dropdown .alternate-pdf-list {
+    list-style: none;
+    padding: 0.5rem;
+    margin: 0.25rem 0;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    position: absolute;
+    z-index: 10;
+    min-width: 180px;
+    box-shadow: var(--shadow-lg);
+    top: 100%;
+    left: 0;
+}
+
+.alternate-pdfs-dropdown .alternate-pdf-list li {
+    padding: 0.25rem 0;
+}
+
+.alternate-pdfs-dropdown .alternate-pdf-list a {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-size: 0.875rem;
+    display: block;
+    padding: 0.375rem 0.5rem;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.alternate-pdfs-dropdown .alternate-pdf-list a:hover {
+    background-color: rgba(166, 124, 82, 0.15);
+    text-decoration: underline;
+}
+
+/* All Sources - Chip Display */
+.all-sources-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sources-label {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+.source-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.4rem 0.8rem;
+    min-height: 36px;
+    border-radius: 0;
+    font-size: 0.75rem;
+    text-decoration: none;
+    transition: none;
+    border: 2px solid;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Brutalist styling for all source chips */
+.source-chip-pdf,
+.source-chip-page,
+.source-chip-doi {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--text-secondary);
+}
+
+.source-chip-pdf:hover,
+.source-chip-page:hover,
+.source-chip-doi:hover {
+    background-color: var(--surface-color);
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+}
+
+/* Citation styling - moved below */
+/* Citation Count Tiers - Size-based scaling (research shows size/weight > color for metrics) */
+.source-citations {
+    font-style: normal;
+    transition: all 0.15s ease;
+}
+
+/* Minimal impact (1-9 citations) - barely visible */
+.citation-tier-minimal {
+    color: var(--text-tertiary);
+    font-size: 0.7rem;
+    font-weight: 400;
+    opacity: 0.6;
+}
+
+/* Low impact (10-49 citations) - subtle */
+.citation-tier-low {
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    opacity: 0.7;
+}
+
+/* Medium impact (50-99 citations) - noticeable */
+.citation-tier-medium {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+/* High impact (100+ citations) - prominent */
+.citation-tier-high {
+    color: var(--accent-color);
+    font-size: 0.85rem;
+    font-weight: 700;
+    opacity: 1.0;
+}
+
+/* Mobile Responsive - Vertical Stacking */
+@media (max-width: 768px) {
+    .source-access-container {
+        gap: 1rem;
+    }
+
+    .primary-pdf-action {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn-pdf-download {
+        width: 100%;
+        justify-content: center;
+        padding: 0.875rem 1.5rem;
+    }
+
+    .alternate-pdfs-dropdown {
+        width: 100%;
+    }
+
+    .alternate-pdfs-dropdown summary {
+        width: 100%;
+        text-align: center;
+    }
+
+    .all-sources-chips {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .source-chip {
+        width: 100%;
+        justify-content: space-between;
+        min-height: 44px; /* WCAG touch target minimum for mobile */
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* Streaming specific styles - Simplified */
+.results-summary-complete {
+    border-left-color: var(--success-color);
+}
+
+.loading-message {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem;
+    font-size: 1.1rem;
+    font-style: italic;
+}
+
+.paper-card-streaming {
+    animation: slideInFade 0.3s ease-out;
+}
+
+/* Smooth slide and fade animation for new cards */
+@keyframes slideInFade {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.4s ease-out;
+}

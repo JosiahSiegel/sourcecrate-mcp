@@ -1,456 +1,261 @@
-# SourceCrate 📚🚀
+# SourceCrate Browser UI Example
 
-> **Academic paper research made easy through the Model Context Protocol (MCP)**
+A simple, clean browser-based interface for SourceCrate HTTP API.
 
-SourceCrate is a comprehensive MCP server that makes academic research effortless. Get papers from multiple databases, extract full-text content, and convert PDFs to markdown - all with zero-installation via uvx.
+## Features
 
-[![GitHub](https://img.shields.io/badge/GitHub-JosiahSiegel%2Fsource--crate-blue)](https://github.com/JosiahSiegel/sourcecrate)
-[![Python 3.8+](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+### Search & Discovery
+- **Search Papers**: Search academic papers across 20+ databases
+- **Streaming Search**: Real-time results as sources complete
+- **One-Click Re-Search**: Magnifying glass icon on each title for instant re-search
+- **Smart Relevance Scoring**: Multi-signal ranking (citations, title match, recency)
 
-## 🚀 Quick Start for Claude Code
+### Access & Downloads
+- **Multi-Source Links**: Deduplicated links with citation counts
+- **Smart URL Handling**: Automatic DOI fallback for broken publisher URLs
+- **Download Reliability**: Client-side tracking of working PDF sources
+- **Direct PDF Access**: Primary download button with alternate sources
 
-### ✨ **Zero-Setup Installation (Recommended)**
+### UI/UX
+- **Clean Modern Design**: Dark aged paper monotone theme
+- **Responsive Layout**: Mobile-first design with touch-friendly targets
+- **WCAG Compliant**: AAA contrast ratios and accessibility features
+- **Source Attribution**: Each link shows source and citation count
+- **Zero Backend Dependencies**: Just HTML/CSS/JavaScript
 
-**All methods now use our seamless auto-installer - no manual dependency management required!**
+## Quick Start
 
-#### Option 1: Direct Install from GitHub
+### 1. Start the HTTP Server
+
+#### Recommended: Zero-Installation with uvx
+
 ```bash
-claude mcp add -s project sourcecrate -- uvx --from git+https://github.com/JosiahSiegel/sourcecrate.git sourcecrate
-```
+# Direct from GitHub (no installation needed!)
+uvx --from 'git+https://github.com/JosiahSiegel/sourcecrate-mcp.git[http]' sourcecrate-http
 
-#### Option 2: Using Cloned Repository
-Perfect for development or offline use:
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/JosiahSiegel/sourcecrate.git
-cd sourcecrate
-
-# 2. Connect Claude Code using our auto-installer
-claude mcp add -s project sourcecrate -- python /path/to/sourcecrate/install_and_run.py
-
-# Or using uvx (also uses auto-installer):
-claude mcp add -s project sourcecrate -- uvx --from /path/to/sourcecrate sourcecrate
-```
-
-### 🔧 **What the Auto-Installer Does:**
-- ✅ **Automatic dependency detection** - Checks if already installed
-- ✅ **Smart environment setup** - Creates isolated venv when needed
-- ✅ **Multi-platform support** - Windows, macOS, Linux, WSL
-- ✅ **Fallback strategies** - Multiple installation methods tried automatically
-- ✅ **Zero manual configuration** - Works immediately after clone/download
-- ✅ **Cache-friendly** - Reuses environments for faster subsequent starts
-
-**Note:** Changes to MCP server code still require restarting Claude Code to take effect.
-
-### Basic Usage
-Ask Claude naturally:
-- "Download 3 machine learning papers"
-- "Convert this PDF to markdown: /path/to/paper.pdf"
-- "Help me configure sourcecrate"
-
-### Available Tools (8 Functions)
-
-| Tool | Description |
-|------|-------------|
-| **`download_papers`** | 📄 **MAIN TOOL** - Get/download full papers as files |
-| **`browse_papers`** | 🔍 Quick metadata overview (titles/abstracts only) |
-| **`browse_papers_streaming`** | 🌊 **NEW** - Real-time streaming search with faster response times |
-| **`convert_pdf_to_text`** | Convert PDF to plain text files |
-| **`convert_pdf_to_markdown`** | Convert single PDF to markdown |
-| **`batch_convert_pdfs`** | Convert entire directories of PDFs |
-| **`get_status`** | Check API health and system status |
-| **`get_help`** | Configuration guide and examples |
-
-## 🌐 HTTP Server (NEW in v1.1.0)
-
-SourceCrate now includes an HTTP/REST API server for browser-based and HTTP client access!
-
-### ✨ Zero-Setup Installation (Recommended)
-
-**Start the HTTP server instantly with uvx - no manual installation required!**
-
-#### Option 1: Direct from GitHub
-```bash
-uvx --from 'git+https://github.com/JosiahSiegel/sourcecrate.git[http]' sourcecrate-http
-# Server runs on http://localhost:8000
-```
-
-#### Option 2: From Cloned Repository
-```bash
-# 1. Clone the repository
-git clone https://github.com/JosiahSiegel/sourcecrate.git
-cd sourcecrate
-
-# 2. Run with uvx
+# Or from cloned repository
+cd /path/to/sourcecrate-mcp
 uvx --from '.[http]' sourcecrate-http
-# Server runs on http://localhost:8000
 ```
 
-### Alternative: Traditional Installation
+#### Alternative Methods
 
 ```bash
-# Install with HTTP support
+# Traditional pip install
 pip install -e ".[http]"
-
-# Start the HTTP server
 sourcecrate-http
-# Server runs on http://localhost:8000
+
+# Or using Python module
+python -m sourcecrate_mcp.http_server
 ```
 
-### Browser UI
+The server runs on `http://localhost:9000`.
 
-A clean, modern web interface with advanced features for academic paper search:
+### 2. Verify API is Running
 
-**Features:**
-- 🔍 **One-Click Re-Search** - Magnifying glass icon on each title for instant search
-- 📊 **Smart Relevance Scoring** - Multi-signal ranking (citations, title match, recency)
-- 🔗 **Intelligent Link Deduplication** - Automatic URL and source deduplication
-- 📄 **Direct PDF Access** - Primary download button with alternate sources
-- 🔄 **DOI Fallback System** - Automatic fallback for broken publisher URLs
-- 🌓 **Dark Aged Paper Theme** - Clean monotone design, WCAG AAA compliant
-- 🚀 **Real-Time Streaming** - Progressive results as sources complete (2-5s first results)
-
-**Quick Start:**
 ```bash
-# Option 1: Direct file open
-open browser-ui/index.html  # macOS
-xdg-open browser-ui/index.html  # Linux
-start browser-ui/index.html  # Windows
+# Test the API endpoint
+curl http://localhost:9000/health
 
-# Option 2: Serve with local server (recommended)
-cd browser-ui
+# Should return: {"status":"healthy"}
+```
+
+### 3. Open the UI
+
+Open `index.html` in your browser:
+
+```bash
+# Option 1: Direct file open (from browser-ui directory)
+open index.html  # macOS
+xdg-open index.html  # Linux
+start index.html  # Windows
+
+# Option 2: Using a local server (recommended)
+# Run from the browser-ui directory:
 python -m http.server 3000
 # Then visit http://localhost:3000
 ```
 
-**See:** [Browser UI Documentation](browser-ui/README.md) for complete feature details
+### 4. Search Papers
 
-### API Documentation
+1. Enter a search query (e.g., "machine learning", "climate change")
+2. Set max results (1-50)
+3. Optionally enable streaming search
+4. Click "Search"
 
-- **Interactive Docs**: http://localhost:8000/docs (Swagger UI)
-- **ReDoc**: http://localhost:8000/redoc
-- **Full API Reference**: [docs/HTTP_API.md](docs/HTTP_API.md)
+Results show:
+- Paper titles with one-click re-search icon (🔍)
+- Authors (up to 5, then "et al."), year, journal
+- Abstracts (truncated to 500 chars)
+- Primary PDF download button (if available)
+- Source chips with citation counts
+- Automatic DOI fallback for broken URLs
+- Open access indicators
 
-### Available Endpoints
+## Port Configuration
 
-All 8 MCP tools available as REST endpoints, plus SSE streaming:
+The UI automatically detects the API URL based on how you're running it:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/search` | POST | Browse papers (metadata) |
-| `/api/v1/search/streaming` | POST | Streaming search (aggregated) |
-| `/api/v1/search/stream` | GET | SSE progressive streaming |
-| `/api/v1/download` | POST | Download papers |
-| `/api/v1/convert/pdf-to-text` | POST | Convert PDF to text |
-| `/api/v1/convert/pdf-to-markdown` | POST | Convert PDF to markdown |
-| `/api/v1/convert/batch` | POST | Batch convert PDFs |
-| `/api/v1/status` | GET | System status |
-| `/api/v1/help` | GET | Configuration help |
+| UI Access Method | UI Port | API Port | Auto-Detected URL |
+|-----------------|---------|----------|-------------------|
+| Direct file open | N/A | 9000 | `http://localhost:9000` |
+| Local server (python -m http.server 3000) | 3000 | 9000 | `http://localhost:9000` |
+| Devcontainer (VS Code) | 3001 | 9000 | `http://localhost:9000` |
+| Fly.io production (same-origin) | 443 | 8080 | Same origin (HTTPS) |
+| Custom deployment | Varies | Varies | Use `config.js` override |
 
-### Example Usage
+**How it works:**
+1. UI checks for `window.SOURCECRATE_API_URL` from `config.js` (highest priority)
+2. Auto-detects based on current page port (for local dev)
+3. Falls back to `http://localhost:9000` (default local API)
 
-**Python:**
-```python
-import requests
+## API Endpoints Used
 
-response = requests.post('http://localhost:8000/api/v1/search',
-    json={'query': 'quantum computing', 'limit': 10})
-papers = response.json()
-```
+This UI demonstrates these HTTP API endpoints:
 
-**JavaScript:**
-```javascript
-const response = await fetch('http://localhost:8000/api/v1/search', {
-  method: 'POST',
-  headers: {'Content-Type': 'application/json'},
-  body: JSON.stringify({query: 'quantum computing', limit: 10})
-});
-const papers = await response.json();
-```
+- `POST /api/v1/search` - Browse papers (metadata only)
+- `POST /api/v1/search/streaming` - Streaming search
+- `GET /api/v1/status` - System status check
 
-**cURL:**
-```bash
-curl -X POST http://localhost:8000/api/v1/search \
-  -H 'Content-Type: application/json' \
-  -d '{"query":"quantum computing","limit":10}'
-```
+See the [HTTP API documentation](../docs/HTTP_API.md) for all available endpoints.
 
-### Use Cases
+## Development
 
-- **Browser-based research** - Web UI for paper search
-- **Integration** - Add paper search to your apps
-- **Automation** - Programmatic access via REST API
-- **Remote access** - Deploy on server, access from anywhere
+### Testing with CORS
 
-### 🔌 Port Configuration
-
-The system uses consistent ports across all environments:
-
-| Environment | Component | Port | Access |
-|-------------|-----------|------|--------|
-| **Local Development** | HTTP API | 8000 | `http://localhost:8000` |
-| | Browser UI | 3001 | `http://localhost:3001` |
-| | UI (alternate) | 3000 | `http://localhost:3000` |
-| **Devcontainer (VS Code)** | HTTP API | 8000 | `http://localhost:8000` |
-| | Browser UI | 3001 | `http://localhost:3001` |
-| **Fly.io Production** | HTTP API (internal) | 8080 | N/A (internal only) |
-| | HTTP API (external) | 443 | `https://your-app.fly.dev` |
-| | Browser UI | 443 | `https://your-app.fly.dev/` |
-
-**Auto-Detection:** The browser UI automatically detects the correct API URL:
-- Local dev → `http://localhost:8000`
-- Production → Same origin (HTTPS)
-- Can be overridden via `config.js`
-
-**Management Scripts:**
-- `scripts/local-manager.sh` - Interactive CLI for local development
-- `scripts/fly-manager.sh` - Interactive CLI for Fly.io operations
-
-### Production Deployment
-
-**🚀 Deploy to Fly.io:** See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete step-by-step guide.
-
-**Why Fly.io:**
-- ✅ Free tier: 3 VMs (vs 1 on alternatives)
-- ✅ No forced spin-down (runs 24/7)
-- ✅ Global edge network (30+ regions)
-- ✅ 3x rate limits (multi-region IPs)
-- ✅ Scales to 100K users ($15-30/month)
-- 👉 [Complete Deployment Guide](docs/DEPLOYMENT.md)
-
-
-## 📋 Scope & Use Cases
-
-### What SourceCrate Does
-SourceCrate finds **academic research papers**:
-- ✅ Journal articles, preprints, conference papers
-- ✅ Papers **about** topics (scholarly analysis, research)
-- ✅ Metadata + PDFs + markdown conversion
-
-### What SourceCrate Doesn't Do
-- ❌ Primary literary texts/books (use [Project Gutenberg](https://gutenberg.org))
-- ❌ General books (use [Google Books](https://books.google.com))
-- ❌ Non-scholarly content
-
-### Example: Humanities Research
-**✅ Correct:** "scholarship on Arthurian legend" → SourceCrate finds academic papers ABOUT the topic
-**❌ Incorrect:** "Le Morte d'Arthur full text" → Use Project Gutenberg for the actual book
-
-**For primary texts, use:**
-- [Project Gutenberg](https://gutenberg.org) - Public domain books
-- [Internet Archive](https://archive.org) - Books, manuscripts, media
-- [HathiTrust](https://hathitrust.org) - Digitized books
-- [Google Books](https://books.google.com) - Book search
-
-## 🔧 Configuration (Optional)
-
-### Environment Variables (Enhanced Performance)
-```bash
-export SEMANTIC_SCHOLAR_API_KEY="your_key_here"
-export CROSSREF_EMAIL="your_email@example.com"
-export NCBI_API_KEY="your_ncbi_api_key"  # Recommended: 10 RPS vs 3 RPS default
-```
-
-**API Key Benefits:**
-- **NCBI/PubMed**: Register at [NCBI](https://www.ncbi.nlm.nih.gov/account/) for 10 RPS (vs 3 RPS default)
-- **Semantic Scholar**: Higher rate limits for academic research
-- **CrossRef**: Email contact improves service reliability
-
-### Custom Configuration Files
-
-SourceCrate supports **multiple configuration files** organized by research domain. Create any YAML file in `.sourcecrate/config/` directory:
-
-#### Option 1: Single Custom Config
-```bash
-mkdir -p .sourcecrate/config/
-# Create .sourcecrate/config/my_custom.yaml
-```
-
-```yaml
-# .sourcecrate/config/my_custom.yaml
-version: "1.0"
-use_default_sources: true
-sources:
-  my_institution_api:
-    name: my_institution_api
-    type: http_api
-    enabled: true
-    timeout: 30
-    config:
-      description: My University Research Database
-      base_url: https://api.myuni.edu
-      search_path: /search
-      query_param: q
-      field_mappings:
-        title: title
-        authors: authors
-        abstract: abstract
-        year: publication_year
-        url: link
-      rate_limit_delay: 0.5
-categories:
-  my_specialty:
-    name: my_specialty
-    display_name: My Research Specialty
-    description: Custom category for my field
-    sources:
-      - my_institution_api
-      - crossref  # Reference built-in sources
-    max_results_per_source: 10
-```
-
-#### Option 2: Domain-Specific Files
-```bash
-# Create specialized config files by domain
-.sourcecrate/config/chemistry.yaml      # Chemistry sources
-.sourcecrate/config/engineering.yaml    # Engineering databases
-.sourcecrate/config/local_sources.yaml  # Institution-specific APIs
-```
-
-All YAML files in `.sourcecrate/config/` are automatically loaded and merged with built-in sources.
-
-Use `get_help` tool for complete configuration schemas and examples.
-
-## 🛠️ Troubleshooting
-
-### Auto-Installer Issues
-
-If you encounter problems with the automatic installation:
-
-#### Problem: "No papers found" with empty api_status
-```json
-{
-  "results": [],
-  "total_found": 0,
-  "api_status": {},
-  "sources_used": []
-}
-```
-
-**Cause:** Dependencies weren't properly installed or API clients failed to initialize.
+If testing from `file://` protocol, you may encounter CORS issues.
 
 **Solutions:**
-1. **Restart Claude Code** after installation
-2. **Check installation logs** - Look for dependency installation failures in the terminal
-3. **Manual fallback installation:**
-   ```bash
-   # Navigate to the sourcecrate directory
-   cd /path/to/sourcecrate
 
-   # Run the installer manually to see detailed output
-   python install_and_run.py
-   ```
-4. **Force clean installation:**
+1. **Use local server** (recommended):
    ```bash
-   # Remove cached venv and reinstall
-   rm -rf .venv
-   python install_and_run.py
+   python -m http.server 3000
    ```
 
-#### Problem: "Module not found" errors
-**Solution:** The auto-installer creates isolated environments. Ensure you're using the correct MCP configuration:
-```json
-{
-  "mcpServers": {
-    "sourcecrate": {
-      "type": "stdio",
-      "command": "python",
-      "args": ["/path/to/sourcecrate/install_and_run.py"]
-    }
-  }
-}
+2. **Configure CORS** in `sourcecrate_mcp/http_server.py`:
+   ```python
+   app.add_middleware(
+       CORSMiddleware,
+       allow_origins=["*"],  # Already configured
+       allow_methods=["*"],
+       allow_headers=["*"],
+   )
+   ```
+
+### Customization
+
+**Change API Server URL:**
+
+**Option 1: Using config.js (Recommended for production)**
+```bash
+cp config.js.example config.js
 ```
 
-#### Problem: Slow first-time startup
-**Expected behavior:** First run takes 1-2 minutes for dependency installation. Subsequent runs are fast thanks to caching.
+Edit `config.js`:
+```javascript
+window.SOURCECRATE_API_URL = 'https://your-api-server.com';
+```
 
-## 🌟 Features
+Add to `index.html` before `app.js`:
+```html
+<script src="config.js"></script>
+<script src="app.js"></script>
+```
 
-- 🔍 **Multi-Source Search** - 15+ verified legal academic APIs across all disciplines
-- 🔧 **Fully Extensible** - Add custom sources via YAML configuration
-- 📖 **Unlimited PDF Processing** - No page or character limits
-- 🔄 **Zero-Token Conversion** - PDF to markdown without AI usage
-- ⚡ **Intelligent Fallback** - Robust multi-source search
-- 🗄️ **Smart Caching** - 1GB disk cache for performance
+**Option 2: Inline in HTML**
+Add to `index.html`:
+```html
+<script>window.SOURCECRATE_API_URL = 'https://your-api-server.com';</script>
+<script src="app.js"></script>
+```
 
-## 📚 Documentation
+**Option 3: Edit app.js directly (not recommended)**
+```javascript
+const API_BASE_URL = 'http://your-server:9000';
+```
 
-- **[HTTP API Reference](docs/HTTP_API.md)** - Complete REST API documentation
-- **[Configuration Guide](docs/configuration.md)** - Custom sources and advanced config
-- **[Custom Source Guide](docs/CUSTOM_SOURCE_GUIDE.md)** - Add your own academic databases
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment to Fly.io
-- **[Terms of Service](docs/legal/TERMS_OF_SERVICE.md)** - Legal compliance and usage terms
-- **[Development Guide](docs/development/VALIDATION.md)** - Validation and testing
+**Styling:**
 
-## ⚖️ Legal & Ethical Usage
+Modify `styles.css` to customize colors, fonts, and layout.
 
-**📋 [Complete Terms of Service](docs/legal/TERMS_OF_SERVICE.md) - Full legal compliance details and user obligations**
+## Files
 
-**All 15+ enabled sources verified legal for academic research (2025):**
+- `index.html` - Main UI structure
+- `styles.css` - UI styling
+- `config.js.example` - Example production configuration
+- `js/` - **Modular ES6 JavaScript** (see MODULARIZATION.md)
+  - `utils.js` - Pure utility functions (558 lines)
+  - `state.js` - State management & localStorage (207 lines)
+  - `api.js` - API client & SSE streaming (262 lines)
+  - `rendering.js` - UI rendering & paper cards (589 lines)
+  - `app.js` - Main entry point (102 lines)
+- `MODULARIZATION.md` - Module structure documentation
+- `README.md` - This file
 
-### Scientific & General Sources
-- **[OpenAlex](https://docs.openalex.org/)** - Open catalog of 240M+ scholarly works, fully open access, no authentication required
-- **[CrossRef](https://www.crossref.org/documentation/retrieve-metadata/rest-api/)** - Official API from non-profit organization, requires email contact (configured)
-- **[Semantic Scholar](https://www.semanticscholar.org/product/api#Terms-of-Service)** - Microsoft/Allen Institute official API, 1 RPS rate limit respected
-- **[arXiv](https://info.arxiv.org/help/api/user-manual.html)** - Cornell University preprint repository, 1 request per 3 seconds
-- **[DOAJ](https://doaj.org/api/docs/)** - Directory of Open Access Journals, 2 requests/second limit respected
+## Production Deployment
 
-### Medical & Biomedical Sources
-- **[PubMed/PMC](https://www.ncbi.nlm.nih.gov/home/about/policies/)** - NIH/NCBI government databases, 3 RPS default rate limit
-- **[Europe PMC](https://europepmc.org/privacy)** - European biomedical database, ~10 requests/time period limit
-- **[ClinicalTrials.gov](https://clinicaltrials.gov/data-about-studies/learn-about-this-site/terms-and-conditions)** - US government database, ~50 requests/minute, public domain
+**🚀 Deploy for FREE:** See deployment guides for step-by-step instructions.
 
-### Business & Economics Sources
-- **[RePEc](https://ideas.repec.org/api.html)** - Economics research papers (5M+ items), public domain bibliographic data
+**Quick options:**
 
-### Specialized Domain Sources ✅
-- **[Open Library](https://openlibrary.org/developers/api)** - Internet Archive's book database, humanities focus
-- **[CORE Repository](https://core.ac.uk/services/api/)** - Open access research aggregator, demo API key
-- **[CourtListener](https://www.courtlistener.com/api/rest-info/)** - Free Law Project non-profit, legal opinions database
+1. **Render.com** - [Quick Start](../docs/DEPLOYMENT.md)
+   - Easiest setup, 100% free for hobby projects
+   - Auto-deploys from GitHub
+   - Cold starts after 15 min idle (by design)
 
-### Recently Disabled Sources (2025 ToS Changes)
-- **Federal Register** - DISABLED: Now requires IP-based access approval due to anti-scraping measures
-- **Internet Archive** - DISABLED: API terms unclear as of 2025, requires verification
+2. **Fly.io** - [Complete Guide](../docs/DEPLOYMENT_FLYIO.md)
+   - Recommended for production
+   - Better free tier (3 VMs), no forced spin-down
+   - Best for scaling to 100K+ users
 
-### Previously Disabled Sources (Compliance Issues)
-- **Google Scholar** - No official API available
-- **SSRN** - ToS restrictions on data mining
+**For advanced production use:**
+- Add authentication to protect your API
+- Configure rate limiting to prevent abuse
+- Use custom domain for professional branding
+- Set up monitoring and alerts
 
-**Compliance measures (verified 2025):**
-- ✅ **ToS verification completed** for all 15+ enabled sources as of 2025
-- ✅ **Strict rate limiting** per each source's requirements (0.05s to 1.0s delays)
-- ✅ **Email contact** configured where required (CrossRef: <research@sourcecrate.org>)
-- ✅ **Academic research use only** - all sources designed for scholarly access
-- ✅ **Attribution requirements** met with proper source citation
-- ✅ **Government databases** prioritized for public domain content
-- ✅ **Official APIs only** - no web scraping or unofficial endpoints
-- ✅ **Proactive compliance monitoring** - sources disabled if ToS change
+## Advanced Features
 
-**Legal Disclaimer - Custom Source Liability:**
-- SourceCrate provides legal compliance only for default configuration sources
-- Users who modify configurations assume full legal responsibility for compliance
-- Custom source additions are solely under user control and legal liability
-- Users must independently verify Terms of Service compliance for any modifications
-- SourceCrate disclaims all responsibility for user-configured sources outside defaults
-- Institutional and legal compliance for custom sources is the user's sole responsibility
+### URL Deduplication
+The UI automatically deduplicates links:
+- **By URL**: Same URL from multiple sources → Shows highest-cited source only
+- **By Source**: Same source with multiple URLs → Shows highest-cited link only
+- **DOI Fallback**: Broken publisher URLs → Automatically replaced with DOI resolver
 
-## 🤝 Contributing
+### Broken URL Detection
+Automatically detects and fixes known problematic URLs:
+- Cambridge Core legacy URLs (`/aop-cambridge-core/content/view/`)
+- Falls back to DOI resolver when PDF unavailable
+- DOI links appear in source chips (not primary button)
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+### Client-Side Performance
+- **Download tracking**: localStorage-based reliability tracking (scalable to infinite users)
+- **Lazy loading**: Heavy dependencies loaded on demand
+- **Streaming results**: See papers as sources complete (2-5s first results)
+- **Local deduplication**: Fuzzy matching by DOI and title
 
-## 📄 License & Terms
+## Key Behaviors
 
-- **Software License:** MIT License - see the [LICENSE](LICENSE) file for details
-- **Terms of Service:** [TERMS_OF_SERVICE.md](docs/legal/TERMS_OF_SERVICE.md) - Legal compliance and usage terms
+### Link Priority
+1. **Primary button**: First valid PDF download link
+2. **Alternate PDFs**: Other PDF sources in dropdown
+3. **Source chips**: Publisher pages, DOI resolvers, DOI fallbacks
+4. **Fallback**: Google Scholar search if no links available
 
----
+### DOI Fallback System
+When a PDF URL is detected as broken:
+1. Check if paper has DOI metadata
+2. If yes: Add "Source (via DOI)" chip to "All sources" section
+3. If DOI already exists from another source: Deduplicate (show once)
+4. If no DOI: Skip broken link entirely
 
-## Ready to Get Started?
+## Next Steps
 
-**Transform academic research with AI! Zero installation required! 🚀**
+- Explore all 8 API endpoints in [HTTP_API.md](../docs/HTTP_API.md)
+- Review relevance scoring algorithm in [RELEVANCE_SCORING.md](../docs/RELEVANCE_SCORING.md)
+- Configure custom sources in [CUSTOM_SOURCE_GUIDE.md](../docs/CUSTOM_SOURCE_GUIDE.md)
+- Deploy to production using [DEPLOYMENT.md](../docs/DEPLOYMENT.md)
+
+## License
+
+MIT - See repository LICENSE file
