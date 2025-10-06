@@ -65,7 +65,7 @@ Ask Claude naturally:
 
 ## 🌐 HTTP Server (NEW in v1.1.0)
 
-SourceCrate now includes an HTTP/REST API server for browser-based and HTTP client access!
+SourceCrate includes an optional HTTP/REST API server for programmatic access!
 
 ### ✨ Zero-Setup Installation (Recommended)
 
@@ -98,34 +98,6 @@ pip install -e ".[http]"
 sourcecrate-http
 # Server runs on http://localhost:8000
 ```
-
-### Browser UI
-
-A clean, modern web interface with advanced features for academic paper search:
-
-**Features:**
-- 🔍 **One-Click Re-Search** - Magnifying glass icon on each title for instant search
-- 📊 **Smart Relevance Scoring** - Multi-signal ranking (citations, title match, recency)
-- 🔗 **Intelligent Link Deduplication** - Automatic URL and source deduplication
-- 📄 **Direct PDF Access** - Primary download button with alternate sources
-- 🔄 **DOI Fallback System** - Automatic fallback for broken publisher URLs
-- 🌓 **Dark Aged Paper Theme** - Clean monotone design, WCAG AAA compliant
-- 🚀 **Real-Time Streaming** - Progressive results as sources complete (2-5s first results)
-
-**Quick Start:**
-```bash
-# Option 1: Direct file open
-open browser-ui/index.html  # macOS
-xdg-open browser-ui/index.html  # Linux
-start browser-ui/index.html  # Windows
-
-# Option 2: Serve with local server (recommended)
-cd browser-ui
-python -m http.server 3000
-# Then visit http://localhost:3000
-```
-
-**See:** [Browser UI Documentation](browser-ui/README.md) for complete feature details
 
 ### API Documentation
 
@@ -179,30 +151,21 @@ curl -X POST http://localhost:8000/api/v1/search \
 
 ### Use Cases
 
-- **Browser-based research** - Web UI for paper search
 - **Integration** - Add paper search to your apps
 - **Automation** - Programmatic access via REST API
 - **Remote access** - Deploy on server, access from anywhere
+- **Web applications** - Build custom interfaces with REST API
 
 ### 🔌 Port Configuration
 
-The system uses consistent ports across all environments:
+The HTTP server uses port 8000 by default:
 
-| Environment | Component | Port | Access |
-|-------------|-----------|------|--------|
-| **Local Development** | HTTP API | 8000 | `http://localhost:8000` |
-| | Browser UI | 3001 | `http://localhost:3001` |
-| | UI (alternate) | 3000 | `http://localhost:3000` |
-| **Devcontainer (VS Code)** | HTTP API | 8000 | `http://localhost:8000` |
-| | Browser UI | 3001 | `http://localhost:3001` |
-| **Fly.io Production** | HTTP API (internal) | 8080 | N/A (internal only) |
-| | HTTP API (external) | 443 | `https://your-app.fly.dev` |
-| | Browser UI | 443 | `https://your-app.fly.dev/` |
-
-**Auto-Detection:** The browser UI automatically detects the correct API URL:
-- Local dev → `http://localhost:8000`
-- Production → Same origin (HTTPS)
-- Can be overridden via `config.js`
+| Environment | Port | Access |
+|-------------|------|--------|
+| **Local Development** | 8000 | `http://localhost:8000` |
+| **Devcontainer (VS Code)** | 8000 | `http://localhost:8000` |
+| **Fly.io Production** | 8080 (internal) | N/A (internal) |
+| | 443 (external) | `https://your-app.fly.dev` |
 
 **Management Scripts:**
 - `scripts/local-manager.sh` - Interactive CLI for local development
