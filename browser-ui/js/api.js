@@ -366,13 +366,6 @@ export function searchByTitle(title, renderCallback) {
     // Scroll to top to see results
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Check if client-side search is enabled
-    const useClientSearch = document.getElementById('useClientSearch')?.checked || false;
-
-    // Execute search
-    if (useClientSearch) {
-        searchWithClient(cleanedTitle, limit, pdfOnly, minRelevance, renderCallback);
-    } else {
-        searchWithSSE(cleanedTitle, limit, pdfOnly, minRelevance, renderCallback);
-    }
+    // Always use client-side search (bypasses server for better performance)
+    searchWithClient(cleanedTitle, limit, pdfOnly, minRelevance, renderCallback);
 }

@@ -9,7 +9,7 @@ import {
     renderedPaperKeys,
     setPdfOnlyFilter
 } from './state.js';
-import { searchWithSSE, searchWithClient, checkStatus, searchByTitle as apiSearchByTitle } from './api.js';
+import { searchWithClient, checkStatus, searchByTitle as apiSearchByTitle } from './api.js';
 import { renderStreamingResults } from './rendering.js';
 
 // ============================================================================
@@ -65,14 +65,9 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
     const limit = 25; // Default: 25 results per source
     const pdfOnly = document.getElementById('pdfOnly').checked;
     const minRelevance = 35;
-    const useClientSearch = document.getElementById('useClientSearch')?.checked || false;
 
-    // Use client-side search or server-side SSE based on toggle
-    if (useClientSearch) {
-        await searchWithClient(query, limit, pdfOnly, minRelevance, renderStreamingResults);
-    } else {
-        searchWithSSE(query, limit, pdfOnly, minRelevance, renderStreamingResults);
-    }
+    // Always use client-side search (bypasses server for better performance)
+    await searchWithClient(query, limit, pdfOnly, minRelevance, renderStreamingResults);
 });
 
 // ============================================================================
