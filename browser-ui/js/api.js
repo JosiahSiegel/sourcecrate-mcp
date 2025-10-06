@@ -348,9 +348,6 @@ export async function searchWithClient(query, limit, pdfOnly = false, minRelevan
  * @param {string} title - Paper title to search for
  * @param {Function} renderCallback - Callback to render results
  */
-// Export client search for app.js
-export { searchWithClient };
-
 export function searchByTitle(title, renderCallback) {
     if (!title) return;
 
