@@ -9,7 +9,7 @@ import {
     renderedPaperKeys,
     setPdfOnlyFilter
 } from './state.js';
-import { searchWithClient, checkStatus, searchByTitle as apiSearchByTitle } from './api.js';
+import { searchWithClient, searchByTitle as apiSearchByTitle } from './api.js';
 import { renderStreamingResults } from './rendering.js';
 
 // ============================================================================
@@ -46,10 +46,6 @@ window.searchByTitle = function(title) {
     apiSearchByTitle(title, renderStreamingResults);
 };
 
-/**
- * Check system status (exposed globally for onclick)
- */
-window.checkStatus = checkStatus;
 
 // ============================================================================
 // Event Handlers
@@ -66,7 +62,7 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
     const pdfOnly = document.getElementById('pdfOnly').checked;
     const minRelevance = 35;
 
-    // Always use client-side search (bypasses server for better performance)
+    // Execute search across multiple academic databases
     await searchWithClient(query, limit, pdfOnly, minRelevance, renderStreamingResults);
 });
 
@@ -76,10 +72,6 @@ document.getElementById('searchForm').addEventListener('submit', async (e) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     // console.log('SourceCrate Browser UI initialized');
-    // console.log('API Server:', API_BASE_URL);
-
-    // Display actual API URL in footer
-    document.getElementById('apiServer').textContent = API_BASE_URL;
 
     // Get filter UI elements
     const pdfOnlyCheckbox = document.getElementById('pdfOnly');

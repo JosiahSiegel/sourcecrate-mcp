@@ -250,7 +250,7 @@ export async function checkStatus() {
 }
 
 /**
- * Client-side direct search (Phase 2 optimization - bypasses server)
+ * Search academic papers across multiple databases
  * @param {string} query - Search query
  * @param {number} limit - Max results per source
  * @param {boolean} pdfOnly - Filter for PDF availability
@@ -269,13 +269,13 @@ export async function searchWithClient(query, limit, pdfOnly = false, minRelevan
     setCurrentQuery(query);
 
     const resultsDiv = document.getElementById('results');
-    resultsDiv.innerHTML = '<p class="loading-message">🔍 Searching directly from browser (CORS-enabled sources)...</p>';
+    resultsDiv.innerHTML = '<p class="loading-message">🔍 Searching across academic databases...</p>';
 
     // Show results section
     document.querySelector('.results-section').classList.add('active');
 
     const filterText = pdfOnly ? ' (Direct Download only)' : '';
-    showStatus(`Client-side search: "${query}"${filterText}...`, 'loading');
+    showStatus(`Searching for "${query}"${filterText}...`, 'loading');
 
     try {
         // Search with streaming-like callbacks
@@ -331,14 +331,14 @@ export async function searchWithClient(query, limit, pdfOnly = false, minRelevan
                 const summaryDiv = document.getElementById('results-summary');
                 if (summaryDiv) {
                     const pdfInfo = pdfOnlyFilter ? ` with direct download` : '';
-                    summaryDiv.innerHTML = `<p>✅ Client-side search complete! Found <strong>${streamingResults.length}</strong> papers${pdfInfo} from ${data.sources_successful}/${data.sources_searched} sources (${data.elapsed_ms.toFixed(0)}ms)</p>`;
+                    summaryDiv.innerHTML = `<p>✅ Search complete! Found <strong>${streamingResults.length}</strong> papers${pdfInfo} from ${data.sources_successful}/${data.sources_searched} sources (${data.elapsed_ms.toFixed(0)}ms)</p>`;
                     summaryDiv.className = 'results-summary results-summary-complete';
                 }
                 showStatus(`✅ Found ${streamingResults.length} papers from ${data.sources_successful} sources`, 'success');
             }
         });
     } catch (error) {
-        console.error('Client-side search error:', error);
+        console.error('Search error:', error);
         showStatus(`Error: ${error.message}`, 'error');
     }
 }
@@ -366,6 +366,6 @@ export function searchByTitle(title, renderCallback) {
     // Scroll to top to see results
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Always use client-side search (bypasses server for better performance)
+    // Execute search
     searchWithClient(cleanedTitle, limit, pdfOnly, minRelevance, renderCallback);
 }
