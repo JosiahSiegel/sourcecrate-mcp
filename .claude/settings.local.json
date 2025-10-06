@@ -80,7 +80,7 @@
       "Bash(printf \"1\\n3\\n0\\n0\\n\")",
       "Bash(printf \"1\\n4\\n0\\n0\\n\")",
       "Bash(printf \"4\\n8\\n0\\n0\\n\")",
-      "Bash(FLY_APP_NAME=sourcecrate-api bash scripts/fly-manager.sh:*)",
+      "Bash(FLY_APP_NAME=sourcecrate bash scripts/fly-manager.sh:*)",
       "Bash(chmod:*)",
       "Bash(command:*)",
       "Bash(HTTP_PORT=9000 bash scripts/local-manager.sh http-start)",

@@ -65,7 +65,7 @@ You are an elite SourceCrate architect with deep expertise in the FastMCP-based 
 ### Deployment Infrastructure
 
 #### Fly.io Production Deployment
-- **Configuration**: fly.toml (app: sourcecrate-api, region: iad)
+- **Configuration**: fly.toml (app: sourcecrate, region: iad)
 - **Build**: Multi-stage Dockerfile.flyio (builder → slim runtime)
   - Stage 1: Python 3.11-bookworm builder (installs dependencies)
   - Stage 2: Python 3.11-slim runtime (production image)
@@ -135,7 +135,7 @@ You are an elite SourceCrate architect with deep expertise in the FastMCP-based 
 - **Usage patterns**:
   - Interactive: `bash scripts/fly-manager.sh` (navigable menus)
   - CLI direct: `fly-manager.sh status` (instant command)
-  - With env vars: `FLY_APP_NAME=sourcecrate-api bash scripts/fly-manager.sh deploy`
+  - With env vars: `FLY_APP_NAME=sourcecrate bash scripts/fly-manager.sh deploy`
 
 #### local-manager.sh - Local Development Manager
 - **Purpose**: Manage HTTP API and Browser UI (NOT MCP - Claude Code manages that)
@@ -182,8 +182,8 @@ You are an elite SourceCrate architect with deep expertise in the FastMCP-based 
    - Local dev: HTTP_PORT=9000, UI_PORT=3001 (avoid conflicts with forwarded ports)
    - Fly.io: PORT=8080 (HTTP), UI on same origin via [[statics]]
 5. **Troubleshooting**:
-   - Check logs first: `local-manager.sh logs` or `fly logs -a sourcecrate-api`
-   - Verify processes: `local-manager.sh status` or `fly status -a sourcecrate-api`
+   - Check logs first: `local-manager.sh logs` or `fly logs -a sourcecrate`
+   - Verify processes: `local-manager.sh status` or `fly status -a sourcecrate`
    - Port conflicts: `lsof -i :9000` (local) or `fly services list` (Fly.io)
    - UI config: Check browser-ui/config.js has correct API URL
 6. **Service Dependencies**:
@@ -296,57 +296,57 @@ You are an elite SourceCrate architect with deep expertise in the FastMCP-based 
 #### Fly.io Deployment
 1. **Choose deployment method**:
    - Interactive menu: `bash scripts/fly-manager.sh` → Deployment → Deploy app
-   - CLI direct: `fly deploy -a sourcecrate-api`
-   - With env var: `FLY_APP_NAME=sourcecrate-api bash scripts/fly-manager.sh deploy`
+   - CLI direct: `fly deploy -a sourcecrate`
+   - With env var: `FLY_APP_NAME=sourcecrate bash scripts/fly-manager.sh deploy`
 2. **Monitor deployment**:
-   - Watch logs: `fly logs -a sourcecrate-api` (during deploy)
-   - Check status: `fly status -a sourcecrate-api`
-   - View machines: `fly machine list -a sourcecrate-api`
+   - Watch logs: `fly logs -a sourcecrate` (during deploy)
+   - Check status: `fly status -a sourcecrate`
+   - View machines: `fly machine list -a sourcecrate`
 3. **Deployment process**:
    - Build: Multi-stage Dockerfile.flyio (builder → runtime)
    - Strategy: Rolling update (10min wait timeout)
    - Health check: /health endpoint (30s interval, 10s timeout)
 4. **Common deployment commands**:
-   - Standard deploy: `fly deploy -a sourcecrate-api`
-   - With custom Dockerfile: `fly deploy -a sourcecrate-api --dockerfile Dockerfile.flyio`
-   - Build only (no deploy): `fly deploy -a sourcecrate-api --build-only`
-   - Redeploy previous: `fly releases -a sourcecrate-api` → `fly releases redeploy <version>`
+   - Standard deploy: `fly deploy -a sourcecrate`
+   - With custom Dockerfile: `fly deploy -a sourcecrate --dockerfile Dockerfile.flyio`
+   - Build only (no deploy): `fly deploy -a sourcecrate --build-only`
+   - Redeploy previous: `fly releases -a sourcecrate` → `fly releases redeploy <version>`
 
 #### Post-Deployment Verification
 1. **Health checks**:
-   - API health: `curl https://sourcecrate-api.fly.dev/health`
+   - API health: `curl https://sourcecrate.fly.dev/health`
    - Expected: `{"status":"healthy","service":"sourcecrate"}`
 2. **Service validation**:
-   - OpenAPI docs: https://sourcecrate-api.fly.dev/docs
-   - Browser UI: https://sourcecrate-api.fly.dev/
+   - OpenAPI docs: https://sourcecrate.fly.dev/docs
+   - Browser UI: https://sourcecrate.fly.dev/
    - Test search via UI
    - Verify SSE streaming works
 3. **Monitor logs**:
-   - Real-time: `fly logs -a sourcecrate-api`
-   - Last 100 lines: `fly logs -a sourcecrate-api --lines 100`
-   - Filter errors: `fly logs -a sourcecrate-api | grep ERROR`
+   - Real-time: `fly logs -a sourcecrate`
+   - Last 100 lines: `fly logs -a sourcecrate --lines 100`
+   - Filter errors: `fly logs -a sourcecrate | grep ERROR`
 4. **Performance checks**:
-   - Machine status: `fly status -a sourcecrate-api`
-   - Scaling: `fly scale show -a sourcecrate-api`
+   - Machine status: `fly status -a sourcecrate`
+   - Scaling: `fly scale show -a sourcecrate`
    - Concurrency: Check soft_limit=10, hard_limit=25 in fly.toml
 
 #### Rollback Procedure (if deployment fails)
-1. **Check recent releases**: `fly releases -a sourcecrate-api`
+1. **Check recent releases**: `fly releases -a sourcecrate`
 2. **Identify last good version**: Review release list
-3. **Redeploy previous**: `fly releases redeploy <version> -a sourcecrate-api`
-4. **Monitor rollback**: `fly logs -a sourcecrate-api`
-5. **Verify health**: `curl https://sourcecrate-api.fly.dev/health`
+3. **Redeploy previous**: `fly releases redeploy <version> -a sourcecrate`
+4. **Monitor rollback**: `fly logs -a sourcecrate`
+5. **Verify health**: `curl https://sourcecrate.fly.dev/health`
 
 #### Scaling Operations
-1. **View current scale**: `fly scale show -a sourcecrate-api`
+1. **View current scale**: `fly scale show -a sourcecrate`
 2. **Scale machine count**:
    - Interactive: `bash scripts/fly-manager.sh` → Scaling → Scale machine count
-   - CLI: `fly scale count 2 -a sourcecrate-api`
+   - CLI: `fly scale count 2 -a sourcecrate`
 3. **Scale VM size**:
    - Current: shared-cpu-2x (512MB)
-   - Upgrade: `fly scale vm shared-cpu-4x -a sourcecrate-api` (1GB)
+   - Upgrade: `fly scale vm shared-cpu-4x -a sourcecrate` (1GB)
    - Available sizes: shared-cpu-{1x,2x,4x,8x}, performance-{1x,2x,4x,8x}
-4. **Scale to zero** (stop all): `fly scale count 0 -a sourcecrate-api`
+4. **Scale to zero** (stop all): `fly scale count 0 -a sourcecrate`
 5. **Auto-scaling** (configured in fly.toml):
    - min_machines_running: 1
    - soft_limit: 10 concurrent requests (start new machine)

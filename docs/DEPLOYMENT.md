@@ -150,7 +150,7 @@ Create `fly.toml` for SourceCrate:
 
 ```toml
 # SourceCrate HTTP API - Fly.io Configuration
-app = "sourcecrate-api"  # Change to your app name
+app = "sourcecrate"  # Change to your app name
 primary_region = "iad"  # Change to closest region
 
 # Build configuration
@@ -209,11 +209,11 @@ primary_region = "iad"  # Change to closest region
 
 ```bash
 # Generate fly.toml (or use the one above)
-fly launch --no-deploy --name sourcecrate-api --region iad
+fly launch --no-deploy --name sourcecrate --region iad
 ```
 
 **Choose:**
-- App name: `sourcecrate-api` (or your preferred name)
+- App name: `sourcecrate` (or your preferred name)
 - Region: Choose closest to you (see `fly regions list`)
 - Postgres: No (we don't need a database)
 - Redis: No (optional, for caching later)
@@ -245,16 +245,16 @@ fly logs
 fly status
 ```
 
-Your API will be available at: `https://sourcecrate-api.fly.dev`
+Your API will be available at: `https://sourcecrate.fly.dev`
 
 ### Step 5: Test the Deployment
 
 ```bash
 # Test health endpoint
-curl https://sourcecrate-api.fly.dev/health
+curl https://sourcecrate.fly.dev/health
 
 # Test search endpoint
-curl -X POST https://sourcecrate-api.fly.dev/api/v1/search \
+curl -X POST https://sourcecrate.fly.dev/api/v1/search \
   -H 'Content-Type: application/json' \
   -d '{"query":"machine learning","limit":5}'
 ```
@@ -287,7 +287,7 @@ Then redeploy:
 fly deploy
 ```
 
-UI available at: `https://sourcecrate-api.fly.dev/`
+UI available at: `https://sourcecrate.fly.dev/`
 
 ### Option B: Separate GitHub Pages Deployment
 
@@ -295,7 +295,7 @@ Follow the GitHub Pages instructions from [DEPLOYMENT.md](./DEPLOYMENT.md), usin
 
 ```javascript
 // browser-ui/config.js
-window.SOURCECRATE_API_URL = 'https://sourcecrate-api.fly.dev';
+window.SOURCECRATE_API_URL = 'https://sourcecrate.fly.dev';
 ```
 
 ---
@@ -895,7 +895,7 @@ fly logs
 fly status
 ```
 
-**Your API is now live at:** `https://sourcecrate-api.fly.dev` 🎉
+**Your API is now live at:** `https://sourcecrate.fly.dev` 🎉
 
 ---
 
@@ -921,8 +921,8 @@ Understanding the port setup across different environments:
 
 | Component | Internal Port | External Port | Access URL |
 |-----------|---------------|---------------|------------|
-| HTTP API | 8080 | 443 (HTTPS) | `https://sourcecrate-api.fly.dev/api/v1/*` |
-| Browser UI | N/A | 443 (HTTPS) | `https://sourcecrate-api.fly.dev/` |
+| HTTP API | 8080 | 443 (HTTPS) | `https://sourcecrate.fly.dev/api/v1/*` |
+| Browser UI | N/A | 443 (HTTPS) | `https://sourcecrate.fly.dev/` |
 | Health Check | 8080 | N/A | Internal only |
 
 **Key Points:**
@@ -964,8 +964,8 @@ python -m http.server 3000 && open http://localhost:3000
 fly deploy
 
 # Verify
-curl https://sourcecrate-api.fly.dev/health
+curl https://sourcecrate.fly.dev/health
 
 # Access UI
-open https://sourcecrate-api.fly.dev
+open https://sourcecrate.fly.dev
 ```

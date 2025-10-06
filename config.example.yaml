@@ -106,4 +106,4 @@ sources:
 # Fly.io deployment:
 #   1. Set secrets: fly secrets set OPENALEX_EMAIL=your@email.com
 #   2. Secrets automatically populate ${OPENALEX_EMAIL} in configs
-#   3. Deploy: fly deploy -a sourcecrate-api
+#   3. Deploy: fly deploy -a sourcecrate

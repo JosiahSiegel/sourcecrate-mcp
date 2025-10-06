@@ -17,10 +17,10 @@
 // The UI will auto-detect and use the same origin for API calls
 
 // Fly.io (separate deployment)
-// window.SOURCECRATE_API_URL = 'https://sourcecrate-api.fly.dev';
+// window.SOURCECRATE_API_URL = 'https://sourcecrate.fly.dev';
 
 // Render.com
-// window.SOURCECRATE_API_URL = 'https://sourcecrate-api.onrender.com';
+// window.SOURCECRATE_API_URL = 'https://sourcecrate.onrender.com';
 
 // Custom domain
 // window.SOURCECRATE_API_URL = 'https://api.yoursite.com';

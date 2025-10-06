@@ -1,39 +1,38 @@
-# fly.toml app configuration file generated for sourcecrate-api on 2025-10-03T17:13:20-07:00
+# fly.toml app configuration file generated for sourcecrate on 2025-10-05T17:31:51-07:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'sourcecrate-api'
+app = 'sourcecrate'
 primary_region = 'iad'
 
 [build]
-  dockerfile = "Dockerfile.flyio"
+  dockerfile = 'Dockerfile.flyio'
 
 [deploy]
-  strategy = "rolling"
-  wait_timeout = "10m"
+  strategy = 'rolling'
+  wait_timeout = '10m0s'
 
 [env]
-  PORT = "8080"
-  PYTHONUNBUFFERED = "1"
+  PORT = '8080'
+  PYTHONUNBUFFERED = '1'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = false
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
   processes = ['app']
 
-  # Concurrency limits (important for multi-source API calls)
   [http_service.concurrency]
-    type = "requests"
-    soft_limit = 10  # Start new machines at 10 concurrent requests
-    hard_limit = 25  # Max 25 concurrent requests per machine
+    type = 'requests'
+    hard_limit = 25
+    soft_limit = 10
 
 [[vm]]
-  size = 'shared-cpu-2x'  # 512MB RAM (was shared-cpu-1x with 256MB)
+  size = 'shared-cpu-2x'
 
 [[statics]]
-  guest_path = "/app/browser-ui"
-  url_prefix = "/"
+  guest_path = '/app/browser-ui'
+  url_prefix = '/'
