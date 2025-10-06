@@ -64,3 +64,6 @@ sourcecrate_data/
 .sourcecrate/
 examples/
 tests/
+
+# Browser UI - exclude auto-generated local config
+browser-ui/config.js
