@@ -142,26 +142,8 @@ class StatusRequest(BaseModel):
 # ==================== API Endpoints ====================
 
 
-@app.get("/")
-async def root() -> dict[str, Any]:
-    """Root endpoint with API information"""
-    return {
-        "service": "SourceCrateMCP HTTP API",
-        "version": "1.1.0",
-        "description": "Academic paper research made easy",
-        "docs": "/docs",
-        "endpoints": {
-            "search": "POST /api/v1/search",
-            "search_streaming": "POST /api/v1/search/streaming",
-            "download": "POST /api/v1/download",
-            "proxy_download": "GET /api/v1/proxy-download",
-            "convert_pdf_to_text": "POST /api/v1/convert/pdf-to-text",
-            "convert_pdf_to_markdown": "POST /api/v1/convert/pdf-to-markdown",
-            "batch_convert": "POST /api/v1/convert/batch",
-            "status": "GET /api/v1/status",
-            "help": "GET /api/v1/help",
-        },
-    }
+# Root endpoint removed - StaticFiles serves browser-ui/index.html at /
+# API information available at /docs (FastAPI automatic documentation)
 
 
 @app.get("/health")
