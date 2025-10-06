@@ -152,6 +152,27 @@ async def health_check() -> dict[str, str]:
     return {"status": "healthy", "service": "sourcecrate-mcp"}
 
 
+@app.get("/debug/init")
+async def debug_init() -> dict[str, Any]:
+    """Debug endpoint to test lazy loading initialization"""
+    try:
+        from source_crate.server import _lazy_import_search_functions
+
+        search_funcs = _lazy_import_search_functions()
+        return {
+            "status": "success",
+            "search_functions_count": len(search_funcs) if search_funcs else 0,
+            "sources": list(search_funcs.keys()) if search_funcs else []
+        }
+    except Exception as e:
+        import traceback
+        return {
+            "status": "error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
+
 @app.post("/api/v1/search")
 async def search_papers(request: SearchRequest) -> dict[str, Any]:
     """
