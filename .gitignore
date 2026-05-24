@@ -105,3 +105,4 @@ test_*.json
 *.txt
 test_*
 *.png
+.claude
