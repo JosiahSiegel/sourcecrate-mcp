@@ -73,7 +73,7 @@ DEBUG=1 python source_crate_server.py
 uvx --from . sourcecrate
 
 # Install as MCP server in Claude Code
-claude mcp add -s project sourcecrate -- uvx --from git+https://github.com/JosiahSiegel/sourcecrate.git sourcecrate
+claude mcp add -s project sourcecrate -- uvx --from git+https://github.com/JosiahSiegel/sourcecrate-mcp.git sourcecrate
 
 # Test specific MCP tools locally
 python -c "from source_crate_server import browse_papers; import asyncio; print(asyncio.run(browse_papers('machine learning', 5)))"

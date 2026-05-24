@@ -353,7 +353,7 @@ If you have questions about ToS compliance:
 1. Review this document
 2. Check `config.example.yaml` for detailed source information
 3. Consult individual source documentation (linked in configs)
-4. File an issue at https://github.com/JosiahSiegel/sourcecrate/issues
+4. File an issue at https://github.com/JosiahSiegel/sourcecrate-mcp/issues
 
 ---
 

@@ -44,10 +44,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/JosiahSiegel/sourcecrate"
-Repository = "https://github.com/JosiahSiegel/sourcecrate"
-Issues = "https://github.com/JosiahSiegel/sourcecrate/issues"
-Documentation = "https://github.com/JosiahSiegel/sourcecrate#readme"
+Homepage = "https://github.com/JosiahSiegel/sourcecrate-mcp"
+Repository = "https://github.com/JosiahSiegel/sourcecrate-mcp"
+Issues = "https://github.com/JosiahSiegel/sourcecrate-mcp/issues"
+Documentation = "https://github.com/JosiahSiegel/sourcecrate-mcp#readme"
 
 [project.scripts]
 sourcecrate = "source_crate.install_and_run:main"

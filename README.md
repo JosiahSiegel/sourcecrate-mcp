@@ -4,7 +4,7 @@
 
 SourceCrate is a comprehensive MCP server that makes academic research effortless. Get papers from multiple databases, extract full-text content, and convert PDFs to markdown - all with zero-installation via uvx.
 
-[![GitHub](https://img.shields.io/badge/GitHub-JosiahSiegel%2Fsource--crate-blue)](https://github.com/JosiahSiegel/sourcecrate)
+[![GitHub](https://img.shields.io/badge/GitHub-JosiahSiegel%2Fsource--crate--mcp-blue)](https://github.com/JosiahSiegel/sourcecrate-mcp)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -16,7 +16,7 @@ SourceCrate is a comprehensive MCP server that makes academic research effortles
 
 #### Option 1: Direct Install from GitHub
 ```bash
-claude mcp add -s project sourcecrate -- uvx --from git+https://github.com/JosiahSiegel/sourcecrate.git sourcecrate
+claude mcp add -s project sourcecrate -- uvx --from git+https://github.com/JosiahSiegel/sourcecrate-mcp.git sourcecrate
 ```
 
 #### Option 2: Using Cloned Repository
@@ -24,14 +24,14 @@ Perfect for development or offline use:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/JosiahSiegel/sourcecrate.git
-cd sourcecrate
+git clone https://github.com/JosiahSiegel/sourcecrate-mcp.git
+cd sourcecrate-mcp
 
 # 2. Connect Claude Code using our auto-installer
-claude mcp add -s project sourcecrate -- python /path/to/sourcecrate/install_and_run.py
+claude mcp add -s project sourcecrate -- python /path/to/sourcecrate-mcp/install_and_run.py
 
 # Or using uvx (also uses auto-installer):
-claude mcp add -s project sourcecrate -- uvx --from /path/to/sourcecrate sourcecrate
+claude mcp add -s project sourcecrate -- uvx --from /path/to/sourcecrate-mcp sourcecrate
 ```
 
 ### 🔧 **What the Auto-Installer Does:**
@@ -73,15 +73,15 @@ SourceCrate includes an optional HTTP/REST API server for programmatic access!
 
 #### Option 1: Direct from GitHub
 ```bash
-uvx --from 'git+https://github.com/JosiahSiegel/sourcecrate.git[http]' sourcecrate-http
+uvx --from 'git+https://github.com/JosiahSiegel/sourcecrate-mcp.git[http]' sourcecrate-http
 # Server runs on http://localhost:8000
 ```
 
 #### Option 2: From Cloned Repository
 ```bash
 # 1. Clone the repository
-git clone https://github.com/JosiahSiegel/sourcecrate.git
-cd sourcecrate
+git clone https://github.com/JosiahSiegel/sourcecrate-mcp.git
+cd sourcecrate-mcp
 
 # 2. Run with uvx
 uvx --from '.[http]' sourcecrate-http
