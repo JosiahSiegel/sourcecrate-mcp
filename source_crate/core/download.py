@@ -4,8 +4,7 @@ Core download functionality for SourceCrateMCP.
 This module contains protocol-agnostic download functions that can be called
 from any interface (MCP, HTTP, CLI, etc.).
 
-Note: Currently these are wrappers that delegate to the implementations in server.py.
-Future refactoring will move the full implementation here.
+These adapters normalize the shared research service responses.
 """
 
 import logging
@@ -42,11 +41,9 @@ async def download_papers_core(
         - downloaded_count: Number successfully downloaded
         - output_directory: Where files were saved
     """
-    # Import here to avoid circular dependencies
-    from source_crate import server
+    from source_crate.core import research
 
-    # Access the underlying function from the FunctionTool wrapper
-    result_list = await server.download_papers.fn(
+    result_list = await research.download_papers(
         query, limit, output_dir, force_category, convert_to_markdown, debug
     )
 

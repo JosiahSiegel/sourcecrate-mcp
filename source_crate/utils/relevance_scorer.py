@@ -388,7 +388,7 @@ class RelevanceScorer:
                 query, paper, field_weights_profile
             )
             paper_with_score = paper.copy()
-            paper_with_score["relevance_score"] = relevance_score
+            paper_with_score["relevance_score"] = relevance_score * 100
             scored_papers.append(paper_with_score)
 
         # Sort by relevance score (descending)
@@ -399,14 +399,14 @@ class RelevanceScorer:
         return ranked_papers
 
     def filter_low_relevance(
-        self, papers: list[dict], min_threshold: float = 0.1
+        self, papers: list[dict], min_threshold: float = 10
     ) -> list[dict]:
         """
         Filter out papers with very low relevance scores
 
         Args:
             papers: List of papers with relevance scores
-            min_threshold: Minimum relevance score to keep
+            min_threshold: Minimum relevance percentage (0–100) to keep
 
         Returns:
             Filtered list of papers

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "sourcecrate": {
+      "command": "uvx",
+      "args": [
+        "--python", "3.12",
+        "--from", "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.0",
+        "sourcecrate"
+      ]
+    }
+  }
+}

@@ -182,10 +182,10 @@ class TestFuzzyPaperMatcher:
         assert score.overall_score == 1.0
         assert score.confidence == "high"
 
-        # Test similar papers
+        # Matching DOI remains authoritative when sources use different titles.
         paper2["title"] = "Machine Learning for Healthcare Applications"
         score = self.matcher.calculate_match_score(paper1, paper2)
-        assert 0.7 < score.overall_score < 1.0
+        assert score.overall_score == 1.0
         assert score.confidence in ["high", "medium"]
 
         # Test different papers

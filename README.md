@@ -2,53 +2,55 @@
 
 > **Academic paper research made easy through the Model Context Protocol (MCP)**
 
-SourceCrate is a comprehensive MCP server that makes academic research effortless. Get papers from multiple databases, extract full-text content, and convert PDFs to markdown - all with zero-installation via uvx.
+SourceCrate is a comprehensive MCP server that makes academic research effortless. Get papers from multiple databases, extract full-text content, and convert PDFs to markdown - with isolated installation through uvx.
 
 [![GitHub](https://img.shields.io/badge/GitHub-JosiahSiegel%2Fsource--crate--mcp-blue)](https://github.com/JosiahSiegel/sourcecrate-mcp)
-[![Python 3.8+](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-green.svg)](https://python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## 🚀 Quick Start for Claude Code
+## Install in any MCP-capable agent
 
-### ✨ **Zero-Setup Installation (Recommended)**
+Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) and Git on PATH.
+No SourceCrate account, API key, hosted service, or repository clone is required.
+`uvx` installs the pinned release in an isolated environment and downloads Python 3.12
+if needed. Preinstall once before connecting your agent (the first download can take minutes):
 
-**All methods now use our seamless auto-installer - no manual dependency management required!**
-
-#### Option 1: Direct Install from GitHub
-```bash
-claude mcp add -s project sourcecrate -- uvx --from git+https://github.com/JosiahSiegel/sourcecrate-mcp.git sourcecrate
+```sh
+uvx --python 3.12 --from git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.0 sourcecrate --version
 ```
 
-#### Option 2: Using Cloned Repository
-Perfect for development or offline use:
+Add this entry to your client's MCP server configuration, then restart/reconnect it:
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/JosiahSiegel/sourcecrate-mcp.git
-cd sourcecrate-mcp
-
-# 2. Connect Claude Code using our auto-installer
-claude mcp add -s project sourcecrate -- python /path/to/sourcecrate-mcp/install_and_run.py
-
-# Or using uvx (also uses auto-installer):
-claude mcp add -s project sourcecrate -- uvx --from /path/to/sourcecrate-mcp sourcecrate
+```json
+{
+  "mcpServers": {
+    "sourcecrate": {
+      "command": "uvx",
+      "args": [
+        "--python", "3.12",
+        "--from", "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.0",
+        "sourcecrate"
+      ]
+    }
+  }
+}
 ```
 
-### 🔧 **What the Auto-Installer Does:**
-- ✅ **Automatic dependency detection** - Checks if already installed
-- ✅ **Smart environment setup** - Creates isolated venv when needed
-- ✅ **Multi-platform support** - Windows, macOS, Linux, WSL
-- ✅ **Fallback strategies** - Multiple installation methods tried automatically
-- ✅ **Zero manual configuration** - Works immediately after clone/download
-- ✅ **Cache-friendly** - Reuses environments for faster subsequent starts
+A ready-to-copy [mcp-config.json](mcp-config.json) is included. Clients with a different
+configuration format use the same command and arguments, transport **stdio**.
+On Windows use the absolute path to `uvx.exe` if your desktop agent cannot find it
+(`where.exe uvx`); on macOS/Linux use `command -v uvx`. Set a startup timeout of at
+least 120 seconds where supported, or preinstall using the command above.
 
-**Note:** Changes to MCP server code still require restarting Claude Code to take effect.
+For agents that support MCP, start with `get_help`, then `browse_papers` for metadata,
+and `download_papers` only when files are wanted. Search results use relevance scores
+from 0 to 100. Download and conversion tools write files; supply an explicit output
+directory. Remote academic sources may have their own availability or rate limits.
 
-### Basic Usage
-Ask Claude naturally:
-- "Download 3 machine learning papers"
-- "Convert this PDF to markdown: /path/to/paper.pdf"
-- "Help me configure sourcecrate"
+SourceCrate speaks standard MCP over stdin/stdout; diagnostics go to stderr. It does
+not expose a remote MCP URL. The optional REST API below is a separate interface.
+To upgrade, replace the release tag in the command and configuration, preinstall it,
+and restart your agent. For development use `uv run --locked sourcecrate` in a clone.
 
 ### Available Tools (8 Functions)
 
@@ -67,13 +69,44 @@ Ask Claude naturally:
 
 SourceCrate includes an optional HTTP/REST API server for programmatic access!
 
+### HTTP access and file workspace
+
+Set `SOURCECRATE_HTTP_TOKEN` to a randomly generated secret before starting the HTTP server.
+API and debug requests require `Authorization: Bearer <token>`.
+Health checks, CORS preflight and documentation are public; use **Authorize** in Swagger UI. The default bind address is `127.0.0.1`.
+
+```powershell
+$env:SOURCECRATE_HTTP_TOKEN = python -c "import secrets; print(secrets.token_urlsafe(32))"
+$env:SOURCECRATE_HTTP_ROOT = "$PWD/research-files"
+uv sync --locked --extra http --extra dev
+uv run --locked sourcecrate-http
+```
+
+HTTP conversion and download paths resolve inside `SOURCECRATE_HTTP_ROOT` (default:
+`.sourcecrate/http`). Place input PDFs there. Paths escaping it and filesystem links
+are rejected. Set `SOURCECRATE_CORS_ORIGINS` to a comma-separated list of allowed
+browser origins when needed; by default no cross-origin access is granted.
+The website at https://sourcecrate.org is deployed independently through GitHub Pages
+from the separate `sourcecrate` repository. It calls academic APIs directly and does
+not require this optional REST server.
+
+PDF downloads allow only public HTTP(S) destinations on ports 80/443, revalidate
+redirects, pin validated DNS addresses, and stop at 25 MiB. Local MCP stdio tools
+remain suitable for trusted local file workflows.
+
+Paper `relevance_score` values use **0–100** in both repositories. SSE clients must
+send the bearer header using fetch (native EventSource cannot set it). The final
+`results` event has `replace: true`; replace provisional papers with its deduplicated
+snapshot. Shared identity/filter fixtures live in `tests/fixtures/paper-contract.json`
+in both repositories and should be updated together.
+
 ### ✨ Zero-Setup Installation (Recommended)
 
 **Start the HTTP server instantly with uvx - no manual installation required!**
 
 #### Option 1: Direct from GitHub
 ```bash
-uvx --from 'git+https://github.com/JosiahSiegel/sourcecrate-mcp.git[http]' sourcecrate-http
+uvx --from 'sourcecrate[http] @ git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.0' sourcecrate-http
 # Server runs on http://localhost:8000
 ```
 
@@ -125,9 +158,11 @@ All 8 MCP tools available as REST endpoints, plus SSE streaming:
 
 **Python:**
 ```python
+import os
 import requests
 
 response = requests.post('http://localhost:8000/api/v1/search',
+    headers={'Authorization': f'Bearer {os.environ["SOURCECRATE_HTTP_TOKEN"]}'},
     json={'query': 'quantum computing', 'limit': 10})
 papers = response.json()
 ```
@@ -136,7 +171,7 @@ papers = response.json()
 ```javascript
 const response = await fetch('http://localhost:8000/api/v1/search', {
   method: 'POST',
-  headers: {'Content-Type': 'application/json'},
+  headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
   body: JSON.stringify({query: 'quantum computing', limit: 10})
 });
 const papers = await response.json();
@@ -145,6 +180,7 @@ const papers = await response.json();
 **cURL:**
 ```bash
 curl -X POST http://localhost:8000/api/v1/search \
+  -H "Authorization: Bearer $SOURCECRATE_HTTP_TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"query":"quantum computing","limit":10}'
 ```
@@ -156,33 +192,16 @@ curl -X POST http://localhost:8000/api/v1/search \
 - **Remote access** - Deploy on server, access from anywhere
 - **Web applications** - Build custom interfaces with REST API
 
-### 🔌 Port Configuration
+### Deployment and validation
 
-The HTTP server uses port 8000 by default:
+The website uses GitHub Pages. This repository distributes a local MCP server;
+there is no hosted SourceCrate API dependency. Run the optional HTTP server locally
+on port 8000 with a bearer token when your application needs REST access.
 
-| Environment | Port | Access |
-|-------------|------|--------|
-| **Local Development** | 8000 | `http://localhost:8000` |
-| **Devcontainer (VS Code)** | 8000 | `http://localhost:8000` |
-| **Fly.io Production** | 8080 (internal) | N/A (internal) |
-| | 443 (external) | `https://your-app.fly.dev` |
-
-**Management Scripts:**
-- `scripts/local-manager.sh` - Interactive CLI for local development
-- `scripts/fly-manager.sh` - Interactive CLI for Fly.io operations
-
-### Production Deployment
-
-**🚀 Deploy to Fly.io:** See [DEPLOYMENT.md](docs/DEPLOYMENT.md) for complete step-by-step guide.
-
-**Why Fly.io:**
-- ✅ Free tier: 3 VMs (vs 1 on alternatives)
-- ✅ No forced spin-down (runs 24/7)
-- ✅ Global edge network (30+ regions)
-- ✅ 3x rate limits (multi-region IPs)
-- ✅ Scales to 100K users ($15-30/month)
-- 👉 [Complete Deployment Guide](docs/DEPLOYMENT.md)
-
+CI runs locked dependency installation, lint, typing, formatting, and offline tests
+on Linux, Windows, and macOS. It builds a wheel, installs it in an isolated environment,
+and checks an actual MCP handshake, tool discovery, and `get_help` outside the checkout.
+Release assets are built from the tested commit.
 
 ## 📋 Scope & Use Cases
 
@@ -278,56 +297,14 @@ Use `get_help` tool for complete configuration schemas and examples.
 
 ## 🛠️ Troubleshooting
 
-### Auto-Installer Issues
-
-If you encounter problems with the automatic installation:
-
-#### Problem: "No papers found" with empty api_status
-```json
-{
-  "results": [],
-  "total_found": 0,
-  "api_status": {},
-  "sources_used": []
-}
-```
-
-**Cause:** Dependencies weren't properly installed or API clients failed to initialize.
-
-**Solutions:**
-1. **Restart Claude Code** after installation
-2. **Check installation logs** - Look for dependency installation failures in the terminal
-3. **Manual fallback installation:**
-   ```bash
-   # Navigate to the sourcecrate directory
-   cd /path/to/sourcecrate
-
-   # Run the installer manually to see detailed output
-   python install_and_run.py
-   ```
-4. **Force clean installation:**
-   ```bash
-   # Remove cached venv and reinstall
-   rm -rf .venv
-   python install_and_run.py
-   ```
-
-#### Problem: "Module not found" errors
-**Solution:** The auto-installer creates isolated environments. Ensure you're using the correct MCP configuration:
-```json
-{
-  "mcpServers": {
-    "sourcecrate": {
-      "type": "stdio",
-      "command": "python",
-      "args": ["/path/to/sourcecrate/install_and_run.py"]
-    }
-  }
-}
-```
-
-#### Problem: Slow first-time startup
-**Expected behavior:** First run takes 1-2 minutes for dependency installation. Subsequent runs are fast thanks to caching.
+- **Command not found:** install uv and Git, then restart the agent so its PATH refreshes.
+  Desktop clients can use an absolute path to `uvx`.
+- **Slow first startup:** run the `--version` preinstallation command before connecting.
+- **Connection closes:** run the exact configured command with `--help` in a terminal
+  and inspect stderr. Do not put `--help` or `--version` in the agent configuration.
+- **No papers:** use `get_status` to inspect sources; external APIs may be unavailable
+  or rate-limited. Try another query. Basic stdio use needs no HTTP bearer token.
+- **Upgrade:** use a newer published release tag, preinstall it, and reconnect your agent.
 
 ## 🌟 Features
 
@@ -343,7 +320,6 @@ If you encounter problems with the automatic installation:
 - **[HTTP API Reference](docs/HTTP_API.md)** - Complete REST API documentation
 - **[Configuration Guide](docs/configuration.md)** - Custom sources and advanced config
 - **[Custom Source Guide](docs/CUSTOM_SOURCE_GUIDE.md)** - Add your own academic databases
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Production deployment to Fly.io
 - **[Terms of Service](docs/legal/TERMS_OF_SERVICE.md)** - Legal compliance and usage terms
 - **[Development Guide](docs/development/VALIDATION.md)** - Validation and testing
 

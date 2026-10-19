@@ -4,8 +4,7 @@ Core search functionality for SourceCrateMCP.
 This module contains protocol-agnostic search functions that can be called
 from any interface (MCP, HTTP, CLI, etc.).
 
-Note: Currently these are wrappers that delegate to the implementations in server.py.
-Future refactoring will move the full implementation here.
+These adapters normalize the shared research service responses.
 """
 
 import logging
@@ -39,12 +38,9 @@ async def browse_papers_core(
         - sources_used: List of sources that returned results
         - query: Original search query
     """
-    # Import server to access the decorated function
-    from source_crate import server
+    from source_crate.core import research
 
-    # Access the underlying function from the FunctionTool wrapper
-    # FastMCP wraps functions in FunctionTool, but we can access .fn to get the original
-    result_list = await server.browse_papers.fn(query, limit, force_category, debug)
+    result_list = await research.browse_papers(query, limit, force_category, debug)
 
     if result_list and len(result_list) > 0:
         return cast(dict[str, Any], result_list[0])
@@ -85,11 +81,9 @@ async def browse_papers_streaming_core(
         - final_results: Complete deduplicated results
         - streaming_stats: Timing and performance statistics
     """
-    # Import here to avoid circular dependencies
-    from source_crate import server
+    from source_crate.core import research
 
-    # Access the underlying function from the FunctionTool wrapper
-    result_list = await server.browse_papers_streaming.fn(
+    result_list = await research.browse_papers_streaming(
         query, limit, force_category, debug
     )
 

@@ -4,8 +4,7 @@ Core PDF conversion functionality for SourceCrateMCP.
 This module contains protocol-agnostic PDF processing functions that can be called
 from any interface (MCP, HTTP, CLI, etc.).
 
-Note: Currently these are wrappers that delegate to the implementations in server.py.
-Future refactoring will move the full implementation here.
+These adapters normalize the shared research service responses.
 """
 
 import logging
@@ -37,11 +36,9 @@ async def convert_pdf_to_text_core(
         - original_file: Original PDF file path
         - pages_extracted: Number of pages processed
     """
-    # Import here to avoid circular dependencies
-    from source_crate import server
+    from source_crate.core import research
 
-    # Access the underlying function from the FunctionTool wrapper
-    result = await server.convert_pdf_to_text.fn(file_path, output_path, title, authors)
+    result = await research.convert_pdf_to_text(file_path, output_path, title, authors)
     return cast(dict[str, Any], result)
 
 
@@ -70,11 +67,9 @@ async def convert_pdf_to_markdown_core(
         - original_file: Original PDF file path
         - pages_extracted: Number of pages processed
     """
-    # Import here to avoid circular dependencies
-    from source_crate import server
+    from source_crate.core import research
 
-    # Access the underlying function from the FunctionTool wrapper
-    result = await server.convert_pdf_to_markdown.fn(
+    result = await research.convert_pdf_to_markdown(
         file_path, title, authors, output_path
     )
     return cast(dict[str, Any], result)
@@ -102,9 +97,7 @@ async def batch_convert_pdfs_core(
         - failed_conversions: Number of PDFs that failed to convert
         - files: List of conversion results for each file
     """
-    # Import here to avoid circular dependencies
-    from source_crate import server
+    from source_crate.core import research
 
-    # Access the underlying function from the FunctionTool wrapper
-    result = await server.batch_convert_pdfs.fn(directory, output_dir)
+    result = await research.batch_convert_pdfs(directory, output_dir)
     return cast(dict[str, Any], result)

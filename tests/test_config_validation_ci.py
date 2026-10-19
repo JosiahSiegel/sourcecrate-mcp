@@ -123,7 +123,8 @@ def test_yaml_file_discovery():
 
         # Check that config directory exists
         ConfigManager()
-        config_dirs = [Path(".paperez/config"), Path.home() / ".paperez/config"]
+        from importlib.resources import files
+        config_dirs = [files("source_crate.default_configs")]
 
         found_files = False
         for config_dir in config_dirs:

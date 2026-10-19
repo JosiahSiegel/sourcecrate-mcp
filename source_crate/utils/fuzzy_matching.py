@@ -74,7 +74,7 @@ class FuzzyPaperMatcher:
         }
         words = normalized.split()
         words = [
-            w for w in words if w not in stop_words and len(w) > 1
+            w for w in words if w not in stop_words and (len(w) > 1 or w.isdigit())
         ]  # Also remove single letters
 
         return " ".join(words)
@@ -189,71 +189,49 @@ class FuzzyPaperMatcher:
             return 0.0
 
         # Normalize DOIs
-        norm1 = (
-            doi1.strip()
-            .lower()
-            .replace("https://doi.org/", "")
-            .replace("http://doi.org/", "")
-        )
-        norm2 = (
-            doi2.strip()
-            .lower()
-            .replace("https://doi.org/", "")
-            .replace("http://doi.org/", "")
-        )
+        def normalize(value: str) -> str:
+            return re.sub(
+                r"^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)", "", value.strip().lower()
+            ).strip()
 
-        if norm1 == norm2:
-            return 1.0
-        else:
-            return 0.0
+        norm1 = normalize(doi1)
+        norm2 = normalize(doi2)
+        return 1.0 if norm1 == norm2 else 0.0
 
     def calculate_match_score(
         self, paper1: dict[str, Any], paper2: dict[str, Any]
     ) -> MatchScore:
-        """Calculate comprehensive match score between two papers."""
-
-        # Calculate individual component scores
+        """Match identifiers first, then compare title, authors and year."""
         title_score = self.calculate_title_similarity(
             paper1.get("title", ""), paper2.get("title", "")
         )
-
         author_score = self.calculate_author_similarity(
             paper1.get("authors"), paper2.get("authors")
         )
-
         year_score = self.calculate_year_similarity(
             paper1.get("year"), paper2.get("year")
         )
-
         doi_score = self.calculate_doi_similarity(
             paper1.get("doi", ""), paper2.get("doi", "")
         )
-
-        # Weighted overall score
-        # Title is most important, followed by authors, then year, then DOI
-        weights = {"title": 0.5, "author": 0.3, "year": 0.1, "doi": 0.1}
-
-        # Calculate weighted overall score
         overall_score = (
-            title_score * weights["title"]
-            + author_score * weights["author"]
-            + year_score * weights["year"]
-            + doi_score * weights["doi"]
+            title_score * 0.5 + author_score * 0.3 + year_score * 0.1 + doi_score * 0.1
         )
-
-        # If DOI exists and matches perfectly, boost the score but don't override completely
+        title1 = self.normalize_title(paper1.get("title", ""))
+        title2 = self.normalize_title(paper2.get("title", ""))
         if doi_score == 1.0:
-            overall_score = min(
-                1.0, overall_score + 0.1
-            )  # Slight boost for matching DOI
-
-        # Determine confidence level
-        if overall_score >= 0.9:
-            confidence = "high"
-        elif overall_score >= 0.7:
-            confidence = "medium"
-        else:
-            confidence = "low"
+            overall_score = 1.0
+        elif paper1.get("doi") and paper2.get("doi"):
+            overall_score = 0.0
+        elif re.findall(r"\d+", title1) != re.findall(r"\d+", title2):
+            overall_score = 0.0
+        elif title1 and title1 == title2:
+            overall_score = 1.0
+        confidence = (
+            "high"
+            if overall_score >= 0.9
+            else "medium" if overall_score >= 0.7 else "low"
+        )
 
         return MatchScore(
             overall_score=overall_score,

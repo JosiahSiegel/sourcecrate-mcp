@@ -219,7 +219,7 @@ class ConfigManager:
                 for item in config_files.iterdir():
                     if item.name.endswith((".yaml", ".yml")):
                         try:
-                            content = item.read_text()
+                            content = item.read_text(encoding="utf-8")
                             file_config = yaml.safe_load(content)
                             if file_config:
                                 config_dict = self._smart_merge(

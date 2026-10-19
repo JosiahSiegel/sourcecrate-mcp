@@ -1,35 +1,8 @@
 {
   "mcpServers": {
-    "sourcecrate-remote": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git",
-        "sourcecrate"
-      ],
-      "env": {
-        "UNPAYWALL_EMAIL": "research@example.com",
-        "PATH": "/home/node/.local/bin:${PATH}"
-      }
-    },
-    "sourcecrate-local": {
-      "type": "stdio",
-      "command": "uvx",
-      "args": [
-        "--no-cache",
-        "--from",
-        "/mnt/d/repos/sourcecrate-mcp",
-        "sourcecrate"
-      ],
-      "env": {
-        "PATH": "/home/node/.local/bin:${PATH}"
-      }
-    },
-    "context7": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp"],
-      "env": {}
+    "sourcecrate": {
+      "command": "uv",
+      "args": ["run", "--locked", "sourcecrate"]
     }
   }
 }

@@ -29,13 +29,11 @@ python -m source_crate.http_server
 ```
 
 Server runs on:
-- **Port 9000** when using `local-manager.sh` script (recommended for development)
 - **Port 8000** when running directly via `sourcecrate-http` or Python module
 
 ## Base URL
 
 ```
-http://localhost:9000  # local-manager.sh (default for browser UI)
 http://localhost:8000  # direct server (Python/uvx)
 ```
 
@@ -215,7 +213,7 @@ Search with true progressive streaming via Server-Sent Events (SSE). Results app
     "doi": "10.1000/xyz",
     "pdf_url": "https://.../paper.pdf",
     "citation_count": 100,
-    "relevance_score": 0.85
+    "relevance_score": 85
   }],
   "total_so_far": 5
 }
@@ -261,42 +259,9 @@ Search with true progressive streaming via Server-Sent Events (SSE). Results app
 ```
 
 **JavaScript Client Example:**
-```javascript
-const eventSource = new EventSource(
-  '/api/v1/search/stream?query=machine+learning&limit=10&pdf_only=true&min_relevance=35'
-);
-
-eventSource.addEventListener('search_start', (e) => {
-  const data = JSON.parse(e.data);
-  console.log('Search started:', data.query);
-});
-
-eventSource.addEventListener('results', (e) => {
-  const data = JSON.parse(e.data);
-  console.log(`Found ${data.papers.length} papers from ${data.source}`);
-  // Add data.papers to UI
-});
-
-eventSource.addEventListener('progress', (e) => {
-  const data = JSON.parse(e.data);
-  console.log(`Progress: ${data.percentage}%`);
-});
-
-eventSource.addEventListener('complete', (e) => {
-  const data = JSON.parse(e.data);
-  console.log(`Search complete: ${data.total_results} papers`);
-  eventSource.close();
-});
-
-eventSource.addEventListener('error', (e) => {
-  const data = JSON.parse(e.data);
-  if (data.fatal) {
-    console.error('Fatal error:', data.error);
-    eventSource.close();
-  } else {
-    console.warn(`Source ${data.source} error:`, data.error);
-  }
-});
+```bash
+curl -N -H "Authorization: Bearer $SOURCECRATE_HTTP_TOKEN" \
+  'http://localhost:8000/api/v1/search/stream?query=quantum+computing&limit=10'
 ```
 
 **Features:**
@@ -557,55 +522,40 @@ All endpoints return standard error responses:
 **Swagger UI:** `http://localhost:9000/docs` (or `:8000/docs` if using direct server)
 **ReDoc:** `http://localhost:9000/redoc` (or `:8000/redoc` if using direct server)
 
-**Note:** The SSE streaming endpoint (`/api/v1/search/stream`) is best tested in a browser with EventSource or using the browser UI, as Swagger UI has limited SSE support.
+**Note:** The SSE streaming endpoint (`/api/v1/search/stream`) is best tested using authenticated fetch or curl, as Swagger UI has limited SSE support.
 
 ---
 
-## Authentication
+## Authentication and local files
 
-Currently, the API has no authentication. For production:
+Set `SOURCECRATE_HTTP_TOKEN` before startup and send `Authorization: Bearer <token>`
+on every API request, including SSE and PDF proxy downloads. Missing/invalid credentials
+return 401. If no server token is configured the API fails closed with 503.
+`/health` and the OpenAPI documentation are public. Swagger UI provides an **Authorize** button.
+The CLI binds to `127.0.0.1` by default. Set the token as a secret for public deployments.
 
-1. **Add API key authentication**:
-   ```python
-   from fastapi.security import APIKeyHeader
+`SOURCECRATE_HTTP_ROOT` selects the HTTP file workspace (default `.sourcecrate/http`).
+All relative input and output paths resolve under this root, including omitted output
+paths. Absolute paths must also be inside it. Input files must be PDFs; traversal and
+filesystem links are rejected. Local MCP stdio file operations retain their local paths.
 
-   api_key_header = APIKeyHeader(name="X-API-Key")
-
-   @app.post("/api/v1/search")
-   async def search(request: SearchRequest, api_key: str = Depends(api_key_header)):
-       # Validate API key
-       ...
-   ```
-
-2. **Add rate limiting**:
-   ```python
-   from slowapi import Limiter
-
-   limiter = Limiter(key_func=get_remote_address)
-
-   @app.post("/api/v1/search")
-   @limiter.limit("10/minute")
-   async def search(...):
-       ...
-   ```
-
----
+The PDF proxy accepts public HTTP(S) destinations on ports 80/443 only, validates each
+redirect and DNS address, and limits downloads to 25 MiB and five redirects.
 
 ## CORS Configuration
 
-CORS is enabled for all origins by default. For production, restrict to your domain:
+Cross-origin access is disabled by default. Set `SOURCECRATE_CORS_ORIGINS` to a
+comma-separated list such as `https://research.example,http://localhost:3000`.
+Bearer tokens go in request headers; do not embed deployment secrets in a public site.
 
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://yourdomain.com"],  # Restrict origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-```
+## Streaming and paper contract
 
----
+Use an SSE-capable fetch client with the bearer header. Native EventSource cannot set
+that header. The final `results` event includes `replace: true` and `final: true`;
+replace provisional results with its complete deduplicated `papers` list. The following
+`complete` event reports the final unique count. Relevance scores and `min_relevance`
+are percentages (0–100). Absent scores mean unscored, not zero relevance.
+The shared examples are in `tests/fixtures/paper-contract.json` in both repositories.
 
 ## Rate Limits
 
@@ -655,20 +605,9 @@ const papers = await response.json();
 ```
 
 ### JavaScript (SSE Streaming)
-```javascript
-const eventSource = new EventSource('/api/v1/search/stream?query=quantum+computing&limit=10');
-
-eventSource.addEventListener('results', (e) => {
-  const data = JSON.parse(e.data);
-  console.log(`Found ${data.papers.length} papers from ${data.source}`);
-  // Render papers to UI
-});
-
-eventSource.addEventListener('complete', (e) => {
-  const data = JSON.parse(e.data);
-  console.log(`Complete: ${data.total_results} papers`);
-  eventSource.close();
-});
+```bash
+curl -N -H "Authorization: Bearer $SOURCECRATE_HTTP_TOKEN" \
+  'http://localhost:8000/api/v1/search/stream?query=quantum+computing&limit=10'
 ```
 
 ### cURL

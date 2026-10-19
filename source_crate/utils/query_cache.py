@@ -22,7 +22,7 @@ class QueryCache:
 
     def __init__(self, default_ttl: int = 3600):  # 1 hour default TTL
         self.default_ttl = default_ttl
-        self.cache_prefix = "query_result:"
+        self.cache_prefix = "query_result:v2:"
         self.stats_key = "query_cache_stats"
 
     def _generate_cache_key(

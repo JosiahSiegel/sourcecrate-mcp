@@ -1,31 +1,15 @@
 repos:
   - repo: local
     hooks:
-      - id: comprehensive-validation
-        name: Comprehensive MCP Validation (matches CI workflow exactly)
-        entry: python3
-        args: ["scripts/validate_all.py"]
+      - id: code-quality
+        name: SourceCrate code quality
+        entry: uv run --locked --extra dev python scripts/validate_code_quality.py
         language: system
-        files: ^sourcecrate_mcp/.*\.py$
+        files: ^(source_crate/.*\.py|pyproject\.toml|uv\.lock)$
         pass_filenames: false
-        verbose: true
-
-  - repo: local
-    hooks:
-      - id: dependency-check
-        name: Dependency Validation
-        entry: python3
-        args: ["scripts/validate_dependencies.py"]
+      - id: offline-tests
+        name: SourceCrate offline tests
+        entry: uv run --locked --extra dev --extra http pytest -q
         language: system
-        files: ^(requirements.*\.txt|pyproject\.toml|setup\.py)$
-        pass_filenames: false
-
-  - repo: local
-    hooks:
-      - id: config-validation
-        name: Configuration Validation (on config changes)
-        entry: python3
-        args: ["scripts/validate_imports.py"]
-        language: system
-        files: \.sourcecrate/config/.*\.ya?ml$
+        files: ^(source_crate/|tests/|pyproject\.toml|uv\.lock)
         pass_filenames: false

@@ -42,7 +42,7 @@ sources:
     enabled: true
 
   # All other default sources are already ToS-compliant
-  # See sourcecrate_mcp/default_configs/base.yaml for full list
+  # See source_crate/default_configs/base.yaml for full list
 
 # ============================================================================
 # OPTIONAL: CORE Repository (Requires free API key)
@@ -103,7 +103,3 @@ sources:
 #   1. Copy this file to ~/.sourcecrate/config/config.yaml
 #   2. Set environment variables: export OPENALEX_EMAIL=your@email.com
 #
-# Fly.io deployment:
-#   1. Set secrets: fly secrets set OPENALEX_EMAIL=your@email.com
-#   2. Secrets automatically populate ${OPENALEX_EMAIL} in configs
-#   3. Deploy: fly deploy -a sourcecrate

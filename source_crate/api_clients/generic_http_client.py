@@ -108,9 +108,9 @@ class GenericHTTPClient(BaseAPIClient):
         for key, value in params.items():
             if isinstance(value, str):
                 # Pattern matches ${VAR} or $VAR
-                pattern = r'\$\{([A-Z_]+)\}|\$([A-Z_]+)'
+                pattern = r"\$\{([A-Z_]+)\}|\$([A-Z_]+)"
 
-                def replacer(match: re.Match[str]) -> str:
+                def replacer(match: re.Match[str], key: str = key) -> str:
                     var_name = match.group(1) or match.group(2)
                     env_value = os.getenv(var_name)
                     if env_value:
@@ -442,7 +442,9 @@ class GenericHTTPClient(BaseAPIClient):
         # Semantic Scholar: Check if openAccessPdf exists (even if URL is null)
         if self.source_name == "semantic_scholar":
             open_access_pdf = self._get_nested_value(item, "openAccessPdf")
-            is_open_access = bool(open_access_pdf)  # True if object exists, even if url is null
+            is_open_access = bool(
+                open_access_pdf
+            )  # True if object exists, even if url is null
 
         # OpenAlex: Check open_access object
         elif self.source_name == "openalex":
@@ -455,7 +457,13 @@ class GenericHTTPClient(BaseAPIClient):
             is_open_access = True
 
         # Preprint servers: Always open access
-        elif self.source_name in ["arxiv", "biorxiv", "medrxiv", "chemrxiv", "osf_preprints"]:
+        elif self.source_name in [
+            "arxiv",
+            "biorxiv",
+            "medrxiv",
+            "chemrxiv",
+            "osf_preprints",
+        ]:
             is_open_access = True
 
         # Europe PMC: Check isOpenAccess field
@@ -464,7 +472,9 @@ class GenericHTTPClient(BaseAPIClient):
             is_open_access = str(is_oa).upper() == "Y"
 
         # Fallback: If we have a valid pdf_url, it's likely open access
-        if not is_open_access and (paper.get("pdf_url") or paper.get("open_access_pdf")):
+        if not is_open_access and (
+            paper.get("pdf_url") or paper.get("open_access_pdf")
+        ):
             is_open_access = True
 
         # Add is_open_access flag to paper metadata
@@ -506,7 +516,9 @@ class GenericHTTPClient(BaseAPIClient):
                     # Rate limited - skip this source instead of waiting
                     # (waiting blocks streaming and causes timeouts)
                     retry_after = int(response.headers.get("Retry-After", 60))
-                    self.logger.warning(f"Rate limited (would need to wait {retry_after}s), skipping source")
+                    self.logger.warning(
+                        f"Rate limited (would need to wait {retry_after}s), skipping source"
+                    )
                     return []
 
                 if response.status_code != 200:

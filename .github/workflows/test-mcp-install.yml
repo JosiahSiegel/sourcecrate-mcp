@@ -1,338 +1,55 @@
-name: Test MCP Installation and Functionality
-
+name: Test MCP installation and functionality
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
-
+concurrency:
+  group: mcp-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  test-mcp:
-    runs-on: ${{ matrix.os }}
+  test:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: ['3.13']
-
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: ubuntu-latest
+            python: '3.13'
+          - os: windows-latest
+            python: '3.12'
+          - os: macos-latest
+            python: '3.12'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     env:
       PYTHONIOENCODING: utf-8
-      PYTHONLEGACYWINDOWSSTDIO: utf-8
-
+    defaults:
+      run:
+        shell: bash
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Configure Windows console encoding
-      if: runner.os == 'Windows'
-      run: |
-        chcp 65001
-
-    - name: Install uv and uvx (Unix)
-      if: runner.os != 'Windows'
-      run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-    - name: Install uv and uvx (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-        echo "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-    - name: Verify UV installation (Unix)
-      if: runner.os != 'Windows'
-      run: |
-        # Wait for PATH to update and verify uv/uvx are available
-        echo "Current PATH: $PATH"
-        which uv || echo "uv not found in PATH"
-        which uvx || echo "uvx not found in PATH"
-
-        # Try direct path
-        $HOME/.cargo/bin/uv --version || echo "Direct uv path failed"
-        $HOME/.cargo/bin/uvx --version || echo "Direct uvx path failed"
-
-    - name: Verify UV installation (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        # Check for uv/uvx in Windows
-        where uv || echo "uv not found in PATH"
-        where uvx || echo "uvx not found in PATH"
-
-        # Try direct path if PATH isn't updated yet
-        if (Test-Path "$env:USERPROFILE\.cargo\bin\uv.exe") {
-          & "$env:USERPROFILE\.cargo\bin\uv.exe" --version
-        } else {
-          echo "Direct uv path failed"
-        }
-
-        if (Test-Path "$env:USERPROFILE\.cargo\bin\uvx.exe") {
-          & "$env:USERPROFILE\.cargo\bin\uvx.exe" --version
-        } else {
-          echo "Direct uvx path failed"
-        }
-
-    - name: Test MCP Installation and Server Startup via uvx (Unix)
-      if: runner.os != 'Windows'
-      run: |
-        # Test uvx installation and verify package can be invoked
-        if command -v uvx >/dev/null 2>&1; then
-          echo "✓ Testing uvx installation..."
-          # Test that the package installs and responds to --help
-          uvx --from . sourcecrate --help > /dev/null
-          echo "✓ uvx installation working"
-        elif [ -f "$HOME/.cargo/bin/uvx" ]; then
-          echo "✓ Testing direct uvx path..."
-          # Test that the package installs and responds to --help
-          "$HOME/.cargo/bin/uvx" --from . sourcecrate --help > /dev/null
-          echo "✓ Direct uvx path working"
-        else
-          echo "❌ uvx not available - this is required for user installation"
-          exit 1
-        fi
-
-    - name: Test MCP Installation and Server Startup via uvx (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        # Test uvx installation and verify package can be invoked
-        if (Get-Command uvx -ErrorAction SilentlyContinue) {
-          echo "✓ Testing uvx installation..."
-          # Test that the package installs and responds to --help
-          uvx --from . sourcecrate --help | Out-Null
-          if ($LASTEXITCODE -ne 0) { throw "uvx installation test failed" }
-          echo "✓ uvx installation working"
-        } elseif (Test-Path "$env:USERPROFILE\.cargo\bin\uvx.exe") {
-          echo "✓ Testing direct uvx path..."
-          # Test that the package installs and responds to --help
-          & "$env:USERPROFILE\.cargo\bin\uvx.exe" --from . sourcecrate --help | Out-Null
-          if ($LASTEXITCODE -ne 0) { throw "Direct uvx installation test failed" }
-          echo "✓ Direct uvx path working"
-        } else {
-          echo "❌ uvx not available - this is required for user installation"
-          exit 1
-        }
-
-    - name: Install all dependencies (core + PDF + dev)
-      run: |
-        # Install ALL required dependencies for strict validation
-        python -m pip install fastmcp scholarly httpx aiohttp requests tenacity diskcache asyncio-throttle fake-useragent arxiv pymed semanticscholar free-proxy PyMuPDF pymupdf4llm pdfplumber lxml beautifulsoup4 pytest pytest-asyncio black ruff mypy types-PyYAML types-requests types-beautifulsoup4
-
-        # Test direct module import
-        python -c "import sys; sys.path.insert(0, '.'); from source_crate import server; print('✓ Direct server import successful')"
-
-    - name: Validate dependencies using shared script
-      run: |
-        python scripts/validate_dependencies.py
-
-    - name: Validate code quality using shared script
-      run: |
-        python scripts/validate_code_quality.py
-
-    - name: Test configuration loading
-      run: |
-        python -c "
-        from source_crate.config.manager import ConfigManager
-        config = ConfigManager().get_config()
-        print(f'Loaded {len(config.sources)} sources and {len(config.categories)} categories')
-        assert len(config.sources) > 0, 'No sources loaded'
-        assert len(config.categories) > 0, 'No categories loaded'
-        print('✓ Configuration loading successful')
-        "
-
-    - name: Validate imports and functionality using shared script
-      run: |
-        python scripts/validate_imports.py
-
-    - name: Test PDF processing capabilities (Unix)
-      if: runner.os != 'Windows'
-      run: |
-        python -c "
-        import tempfile
-        import os
-        from pathlib import Path
-
-        # Test PDF processing imports
-        try:
-            import pymupdf4llm
-            import fitz  # PyMuPDF is imported as fitz
-            print('✓ PDF processing dependencies available')
-        except ImportError as e:
-            print(f'❌ PDF processing dependencies missing: {e}')
-            raise
-
-        # Create a minimal test
-        from source_crate.utils.pdf_processor import extract_pdf_text_from_local_file
-        print('✓ PDF processor functions available')
-        "
-
-    - name: Test PDF processing capabilities (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        python -c "
-        import tempfile
-        import os
-        from pathlib import Path
-
-        # Test PDF processing imports
-        try:
-            import pymupdf4llm
-            import fitz  # PyMuPDF is imported as fitz
-            print('✓ PDF processing dependencies available')
-        except ImportError as e:
-            print(f'❌ PDF processing dependencies missing: {e}')
-            raise
-
-        # Create a minimal test
-        from source_crate.utils.pdf_processor import extract_pdf_text_from_local_file
-        print('✓ PDF processor functions available')
-        "
-
-    - name: Test configuration validation (CI-friendly)
-      run: |
-        python tests/test_config_validation_ci.py
-
-    - name: Test basic search functionality (mock mode)
-      run: |
-        python -c "
-        import sys
-        sys.path.insert(0, '.')
-        from source_crate.utils.query_intent import QueryIntentDetector
-        from source_crate.config.manager import ConfigManager
-
-        # Test query intent detector
-        detector = QueryIntentDetector()
-        analysis = detector.analyze_query('machine learning neural networks')
-        print(f'✓ Query analysis successful: {analysis.intent}')
-
-        # Test configuration-based search setup
-        config = ConfigManager().get_config()
-        print(f'✓ Found {len(config.sources)} sources for testing')
-
-        # Test that smart search functionality is available
-        from source_crate.utils.smart_search import smart_downloadable_search
-        print('✓ Smart search function imported successfully')
-        "
-
-    - name: Test MCP server startup (basic validation) (Unix)
-      if: runner.os != 'Windows'
-      run: |
-        timeout 30s python -c "
-        import asyncio
-        import signal
-        import sys
-        sys.path.insert(0, '.')
-
-        async def test_server_startup():
-            try:
-                # Import and test basic MCP server setup
-                from source_crate.server import mcp
-                print('✓ MCP server module loaded successfully')
-
-                # Test that tools are properly registered
-                tools = await mcp.get_tools()
-                expected_tools = [
-                    'browse_papers', 'download_papers', 'convert_pdf_to_text',
-                    'convert_pdf_to_markdown', 'batch_convert_pdfs', 'get_status', 'get_help'
-                ]
-
-                tool_names = list(tools.keys())
-                for expected in expected_tools:
-                    assert expected in tool_names, f'Missing tool: {expected}'
-
-                print(f'✓ All {len(expected_tools)} MCP tools registered correctly')
-                return True
-
-            except Exception as e:
-                print(f'❌ Server startup test failed: {e}')
-                import traceback
-                traceback.print_exc()
-                return False
-
-        result = asyncio.run(test_server_startup())
-        if not result:
-            print('❌ MCP server startup validation failed')
-            sys.exit(1)
-        print('✓ MCP server startup validation passed')
-        "
-
-    - name: Test MCP server startup (basic validation) (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        python -c "
-        import asyncio
-        import sys
-        sys.path.insert(0, '.')
-
-        async def test_server_startup():
-            try:
-                # Import and test basic MCP server setup
-                from source_crate.server import mcp
-                print('✓ MCP server module loaded successfully')
-
-                # Test that tools are properly registered
-                tools = await mcp.get_tools()
-                expected_tools = [
-                    'browse_papers', 'download_papers', 'convert_pdf_to_text',
-                    'convert_pdf_to_markdown', 'batch_convert_pdfs', 'get_status', 'get_help'
-                ]
-
-                tool_names = list(tools.keys())
-                for expected in expected_tools:
-                    assert expected in tool_names, f'Missing tool: {expected}'
-
-                print(f'✓ All {len(expected_tools)} MCP tools registered correctly')
-                return True
-
-            except Exception as e:
-                print(f'❌ Server startup test failed: {e}')
-                import traceback
-                traceback.print_exc()
-                return False
-
-        result = asyncio.run(test_server_startup())
-        if result:
-            print('✓ MCP server startup validation passed')
-        "
-
-    - name: Run comprehensive tests
-      run: |
-        python -m pytest tests/ -v --tb=short
-
-    - name: Test status and help tools (offline mode)
-      run: |
-        python scripts/validate_mcp_server.py
-
-    - name: Test MCP Tools with Realistic Scenarios and Error Handling
-      run: |
-        # All MCP tool testing is now handled by our shared validation script
-        # This includes: browse_papers, get_status, get_help functionality
-        # Plus error handling with empty queries, large limits, and special characters
-        echo "✅ MCP tool testing covered by shared validation scripts above"
-
-    - name: Summary
-      run: |
-        echo "=== Comprehensive MCP Test Summary ==="
-        echo "✅ MCP installation via uvx: VERIFIED"
-        echo "✅ Code compilation and linting: STRICT (no warnings ignored)"
-        echo "✅ Configuration loading: VERIFIED"
-        echo "✅ Core imports and dependencies: VERIFIED"
-        echo "✅ PDF processing capabilities: REQUIRED (fails if missing)"
-        echo "✅ MCP server startup: VERIFIED"
-        echo "✅ All MCP tools registration: VERIFIED"
-        echo "✅ Tool functionality with realistic scenarios: TESTED"
-        echo "✅ Error handling and edge cases: TESTED"
-        echo "✅ Platform-specific file operations: TESTED"
-        echo ""
-        echo "🎯 Platform: ${{ matrix.os }}"
-        echo "🐍 Python: ${{ matrix.python-version }}"
-        echo "📋 Test Quality: STRICT (no false positives or excuses)"
-        echo "🚀 Status: ALL COMPREHENSIVE TESTS PASSED ✅"
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.12.23'
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - run: uv sync --locked --extra dev --extra http
+      - run: uv run --locked python scripts/validate_code_quality.py
+      - run: uv run --locked pytest -q
+      - run: uv build
+      - name: Test installed CLI and MCP protocol outside checkout
+        run: |
+          wheel="$(python -c 'import glob; print(glob.glob("dist/*.whl")[0])')"
+          uvx --python "${{ matrix.python }}" --from "$wheel" sourcecrate --help
+          uvx --python "${{ matrix.python }}" --from "$wheel" sourcecrate --version
+          uv run --no-project --python "${{ matrix.python }}" --with "$wheel" python scripts/smoke_installed_mcp.py
+      - uses: actions/upload-artifact@v4
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
+        with:
+          name: distribution
+          path: dist/

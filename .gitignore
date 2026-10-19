@@ -90,8 +90,6 @@ __temp_cache__/
 secrets.txt
 config.json
 
-# Browser UI production config
-browser-ui/config.js
 
 # Logs
 *.log
@@ -106,3 +104,5 @@ test_*.json
 test_*
 *.png
 .claude
+# Keep regression tests visible to git.
+!tests/test_*.py

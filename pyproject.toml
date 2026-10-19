@@ -1,6 +1,6 @@
 [project]
 name = "sourcecrate"
-version = "2.0.0"
+version = "2.1.0"
 description = "SourceCrate - Academic paper research made easy with full-text retrieval and multi-source search"
 authors = [{name = "Josiah Siegel"}]
 readme = "README.md"
@@ -22,7 +22,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "fastmcp>=2.12.0",
+    "fastmcp>=4.1,<5",
     "scholarly>=1.7.11",
     "httpx[http2]>=0.25.0",
     "aiohttp>=3.8.0",
@@ -50,7 +50,7 @@ Issues = "https://github.com/JosiahSiegel/sourcecrate-mcp/issues"
 Documentation = "https://github.com/JosiahSiegel/sourcecrate-mcp#readme"
 
 [project.scripts]
-sourcecrate = "source_crate.install_and_run:main"
+sourcecrate = "source_crate.cli:main"
 sourcecrate-http = "source_crate.http_server:main"
 
 [project.optional-dependencies]
@@ -59,12 +59,16 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "black>=23.0",
     "ruff>=0.1.0",
-    "mypy>=1.0.0"
+    "mypy>=1.0.0",
+    "types-PyYAML",
+    "types-requests",
+    "types-beautifulsoup4"
 ]
 http = [
     "fastapi>=0.109.0",
     "uvicorn[standard]>=0.27.0",
     "gunicorn>=21.0.0",
+    "sse-starlette>=3,<4",
     "python-multipart>=0.0.6"  # For file uploads (if needed in future)
 ]
 

@@ -1,69 +1,13 @@
-# MCP Server Validation Scripts
+# Validation scripts
 
-This directory contains validation scripts for the MCP server to ensure it builds and functions correctly.
+Install the locked environment with `uv sync --locked --extra dev --extra http`.
 
-## Scripts
+- `uv run --locked python scripts/validate_code_quality.py`: syntax, Ruff, MyPy, Black.
+- `uv run --locked pytest -q`: offline regression suite, including HTTP and MCP adapters.
+- `uv run --locked python scripts/smoke_installed_mcp.py`: launch a real stdio server
+  outside the checkout, list all eight tools, and call `get_help`.
 
-### `simple_mcp_check.py`
-Simple pre-commit validation script that checks:
-- Python syntax compilation
-- Basic import functionality
-- Graceful handling of optional dependencies
-
-Usage:
-```bash
-python3 scripts/simple_mcp_check.py
-```
-
-### `validate_mcp_server.py`
-Comprehensive validation script that checks:
-- Python syntax (AST parsing)
-- Import resolution
-- MCP server structure (decorators, async functions)
-
-Usage:
-```bash
-python3 scripts/validate_mcp_server.py
-```
-
-## Pre-commit Integration
-
-The validation is integrated with pre-commit hooks in `.pre-commit-config.yaml`:
-
-1. **MCP Server Validation** - Runs on `sourcecrate_mcp_server.py` changes
-2. **Python Syntax Check** - Runs on all `.py` files
-
-### Setup Pre-commit
-
-```bash
-# Install pre-commit
-pip install pre-commit
-
-# Install hooks
-pre-commit install
-
-# Test hooks
-pre-commit run --all-files
-```
-
-### Manual Testing
-
-```bash
-# Test MCP server validation
-python3 scripts/simple_mcp_check.py
-
-# Test syntax compilation
-python3 -m py_compile sourcecrate_mcp_server.py
-```
-
-## What Gets Validated
-
-- ✅ Python syntax errors
-- ✅ Import statement validation
-- ✅ MCP server can be imported
-- ✅ Basic structure integrity
-- ⚠️ Graceful handling of missing optional dependencies (fastmcp, scholarly, etc.)
-
-## Integration with Git
-
-These hooks automatically run before commits to prevent broken code from being committed to the repository.
+CI also builds and installs a wheel into an isolated environment before running the
+stdio smoke test. Legacy validators for configuration, imports, dependencies and
+PDF processing remain available; `validate_mcp_server.py` and `validate_all.py` may
+contact external academic APIs, so they are manual diagnostics rather than CI gates.

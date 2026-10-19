@@ -47,6 +47,7 @@ def run_ruff():
             ["ruff", "check", "source_crate/"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=False,
         )
 
@@ -73,9 +74,16 @@ def run_mypy():
 
     try:
         result = subprocess.run(
-            ["mypy", "source_crate/", "--ignore-missing-imports"],
+            [
+                "mypy",
+                "source_crate/",
+                "--ignore-missing-imports",
+                "--python-version",
+                f"{sys.version_info.major}.{sys.version_info.minor}",
+            ],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=False,
         )
 
@@ -105,6 +113,7 @@ def run_black_check():
             ["black", "--check", "source_crate/", "scripts/"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
             check=False,
         )
 

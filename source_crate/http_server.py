@@ -16,7 +16,7 @@ All 8 core functions are available:
 - GET /api/v1/help - Configuration help
 
 Usage:
-    python -m sourcecrate_mcp.http_server
+    python -m source_crate.http_server
     # or
     sourcecrate-http  (if installed)
 
@@ -25,18 +25,24 @@ OpenAPI docs available at http://localhost:8000/docs
 """
 
 import logging
-from collections.abc import AsyncIterator
+import os
+import secrets
+from collections.abc import AsyncGenerator
+from contextlib import aclosing
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.security import HTTPBearer
 from pydantic import BaseModel, Field
 from sse_starlette.sse import EventSourceResponse
+from starlette.middleware.base import RequestResponseEndpoint
+
+from source_crate import __version__
 
 # Import core business logic
 from source_crate.core import (
@@ -56,6 +62,7 @@ from source_crate.utils.download_reliability import (
     get_download_reliability,
     record_download_attempt,
 )
+from source_crate.utils.public_download import UnsafeDownloadError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -64,19 +71,79 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="SourceCrateMCP HTTP API",
     description="Academic paper research made easy - REST API for searching, downloading, and converting research papers",
-    version="1.1.0",
+    version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
+
+@app.middleware("http")
+async def authenticate(
+    request: Request, call_next: RequestResponseEndpoint
+) -> Response:
+    # Preflight carries no credentials. CORSMiddleware validates its origin.
+    if (
+        request.url.path
+        in {"/health", "/docs", "/redoc", "/openapi.json", "/docs/oauth2-redirect"}
+        or request.method == "OPTIONS"
+    ):
+        return await call_next(request)
+    token = os.getenv("SOURCECRATE_HTTP_TOKEN", "")
+    if not token:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Set SOURCECRATE_HTTP_TOKEN to enable the HTTP API"},
+        )
+    supplied = request.headers.get("authorization", "")
+    if not secrets.compare_digest(supplied.encode(), f"Bearer {token}".encode()):
+        return JSONResponse(
+            status_code=401,
+            content={"detail": "Bearer token required"},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return await call_next(request)
+
+
 # Enable CORS for browser access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to specific domains
-    allow_credentials=True,
+    allow_origins=[
+        origin.strip()
+        for origin in os.getenv("SOURCECRATE_CORS_ORIGINS", "").split(",")
+        if origin.strip()
+    ],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def confined_path(value: str, *, pdf: bool = False) -> str:
+    """Resolve HTTP file arguments inside the configured workspace, including symlinks."""
+    root = Path(os.getenv("SOURCECRATE_HTTP_ROOT", ".sourcecrate/http")).resolve()
+    # Existing links could redirect later generated output files outside this root.
+    if root.exists():
+        for entry in root.rglob("*"):
+            if entry.is_symlink() or getattr(entry, "is_junction", lambda: False)():
+                raise HTTPException(
+                    status_code=400,
+                    detail="HTTP workspace must not contain filesystem links",
+                )
+    path = Path(value)
+    path = (path if path.is_absolute() else root / path).resolve()
+    if not path.is_relative_to(root):
+        raise HTTPException(
+            status_code=400, detail="Path must stay inside SOURCECRATE_HTTP_ROOT"
+        )
+    if pdf and (path.suffix.lower() != ".pdf" or not path.is_file()):
+        raise HTTPException(
+            status_code=400,
+            detail="Input must be an existing PDF inside SOURCECRATE_HTTP_ROOT",
+        )
+    return str(path)
 
 
 # ==================== Request/Response Models ====================
@@ -85,7 +152,12 @@ app.add_middleware(
 class SearchRequest(BaseModel):
     """Request model for paper search"""
 
-    query: str = Field(..., description="Search query (keywords, DOI, author, title)")
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+        description="Search query (keywords, DOI, author, title)",
+    )
     limit: int = Field(10, ge=1, le=50, description="Maximum number of results")
     force_category: str | None = Field(
         None, description="Force specific source category"
@@ -96,7 +168,12 @@ class SearchRequest(BaseModel):
 class DownloadRequest(BaseModel):
     """Request model for paper download"""
 
-    query: str = Field(..., description="Search query (keywords, DOI, author, title)")
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=2000,
+        description="Search query (keywords, DOI, author, title)",
+    )
     limit: int = Field(5, ge=1, le=20, description="Maximum papers to download")
     output_dir: str = Field(".sourcecrate", description="Output directory for files")
     force_category: str | None = Field(
@@ -142,8 +219,8 @@ class StatusRequest(BaseModel):
 # ==================== API Endpoints ====================
 
 
-# Root endpoint removed - StaticFiles serves browser-ui/index.html at /
-# API information available at /docs (FastAPI automatic documentation)
+# The separate sourcecrate repository serves the browser application.
+# API information is available at /docs.
 
 
 @app.get("/health")
@@ -152,28 +229,27 @@ async def health_check() -> dict[str, str]:
     return {"status": "healthy", "service": "sourcecrate-mcp"}
 
 
-@app.get("/debug/init")
+@app.get("/debug/init", dependencies=[Depends(bearer_scheme)])
 async def debug_init() -> dict[str, Any]:
     """Debug endpoint to test lazy loading initialization"""
     try:
-        from source_crate.server import _lazy_import_search_functions
+        from source_crate.core.research import _lazy_import_search_functions
 
         search_funcs = _lazy_import_search_functions()
         return {
             "status": "success",
             "search_functions_count": len(search_funcs) if search_funcs else 0,
-            "sources": list(search_funcs.keys()) if search_funcs else []
+            "sources": list(search_funcs.keys()) if search_funcs else [],
         }
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
-        return {
-            "status": "error",
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }
+
+        return {"status": "error", "error": str(e), "traceback": traceback.format_exc()}
 
 
-@app.post("/api/v1/search")
+@app.post("/api/v1/search", dependencies=[Depends(bearer_scheme)])
 async def search_papers(request: SearchRequest) -> dict[str, Any]:
     """
     Search academic papers and return metadata/abstracts.
@@ -190,12 +266,14 @@ async def search_papers(request: SearchRequest) -> dict[str, Any]:
             debug=request.debug,
         )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Search failed: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.post("/api/v1/search/streaming")
+@app.post("/api/v1/search/streaming", dependencies=[Depends(bearer_scheme)])
 async def search_papers_streaming(request: SearchRequest) -> dict[str, Any]:
     """
     Search academic papers with real-time streaming as sources complete.
@@ -217,20 +295,22 @@ async def search_papers_streaming(request: SearchRequest) -> dict[str, Any]:
             debug=request.debug,
         )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Streaming search failed: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.get("/api/v1/search/stream")
+@app.get("/api/v1/search/stream", dependencies=[Depends(bearer_scheme)])
 async def search_papers_sse(
     request: Request,
-    query: str,
-    limit: int = 10,
+    query: str = Query(..., min_length=1, max_length=2000),
+    limit: int = Query(10, ge=1, le=50),
     force_category: str | None = None,
     debug: bool = False,
     pdf_only: bool = False,
-    min_relevance: int = 0,
+    min_relevance: int = Query(0, ge=0, le=100),
 ) -> EventSourceResponse:
     """
     Search academic papers with true Server-Sent Events (SSE) streaming.
@@ -253,17 +333,10 @@ async def search_papers_sse(
     - `complete`: Search finished with final stats
     - `error`: Error occurred (continues searching other sources)
 
-    **Usage:**
-    ```javascript
-    const eventSource = new EventSource(`/api/v1/search/stream?query=machine+learning&limit=10`);
-    eventSource.addEventListener('results', (e) => {
-        const data = JSON.parse(e.data);
-        // Add data.papers to UI
-    });
-    eventSource.addEventListener('complete', (e) => {
-        eventSource.close();
-    });
-    ```
+    Use an SSE-capable fetch client with the Authorization: Bearer header.
+    Native EventSource cannot set this header. Each results event appends papers,
+    except the final results event with replace=true: replace the displayed list
+    with that authoritative, deduplicated snapshot.
 
     Args:
         query: Search query (keywords, DOI, author, title)
@@ -277,7 +350,7 @@ async def search_papers_sse(
         EventSourceResponse with HTTP/2-compatible SSE streaming
     """
 
-    async def event_generator() -> AsyncIterator[str]:
+    async def event_generator() -> AsyncGenerator[dict[str, str], None]:
         """
         Generate Server-Sent Events for progressive search results.
 
@@ -311,7 +384,7 @@ async def search_papers_sse(
             if min_relevance > 0:
                 relevance = paper.get("relevance_score", 0)
                 # Convert to percentage (0-100 scale)
-                relevance_pct = int(relevance * 100) if relevance else 0
+                relevance_pct = float(relevance) if relevance else 0
                 if relevance_pct < min_relevance:
                     return False
 
@@ -327,18 +400,18 @@ async def search_papers_sse(
             }
 
             # Get search functions and API status
-            from source_crate.server import (
+            from source_crate.core.research import (
                 _lazy_import_search_functions,
                 get_api_status,
             )
             from source_crate.utils.result_streaming import (
+                ResultStreamer,
                 create_streaming_search,
-                result_streamer,
             )
 
             # CRITICAL: Reset streaming state for each new request to prevent cache pollution
             # This ensures results from previous searches don't leak into new searches
-            result_streamer.reset_streaming_state()
+            result_streamer = ResultStreamer()
             logger.info(f"🔄 Reset streaming state for new search: query='{query}'")
 
             search_funcs = _lazy_import_search_functions()
@@ -350,6 +423,11 @@ async def search_papers_sse(
                 return
 
             api_status = get_api_status()
+            search_funcs = {
+                name: fn
+                for name, fn in search_funcs.items()
+                if api_status.get(name, True)
+            }
 
             # Filter sources by category if specified
             if force_category:
@@ -372,133 +450,133 @@ async def search_papers_sse(
             )  # Track delivered results to avoid duplicates
 
             # Stream results as they arrive
-            async for update in create_streaming_search(
-                search_functions=search_funcs,
-                query=query,
-                limit=limit,
-                api_status=api_status,
-            ):
-                # Check for connection timeout
-                elapsed = time.time() - start_time
-                if elapsed > max_duration:
-                    logger.warning(
-                        f"SSE connection timeout after {elapsed:.1f}s (max {max_duration}s)"
-                    )
-                    yield {
-                        "event": "error",
-                        "data": json.dumps(
-                            {
-                                "error": "Connection timeout",
-                                "elapsed": elapsed,
-                                "fatal": True,
-                            }
-                        ),
-                    }
-                    break
-
-                # Send keepalive comment to prevent client timeout
-                if time.time() - last_keepalive > keepalive_interval:
-                    yield {"comment": "keepalive"}
-                    last_keepalive = time.time()
-
-                update_type = update.type
-
-                if update_type == "result":
-                    # Early delivery - sorted top results
-                    if update.results:
-                        for result in update.results:
-                            result_id = id(result.data)
-                            if (
-                                result_id not in delivered_result_ids
-                                and should_include_result(result.data)
-                            ):
-                                all_results.append(result.data)
-                                delivered_result_ids.add(result_id)
-                                yield {
-                                    "event": "results",
-                                    "data": json.dumps(
-                                        {
-                                            "source": result.source,
-                                            "papers": [result.data],
-                                            "total_so_far": len(all_results),
-                                        }
-                                    ),
-                                }
-
-                elif update_type == "source_complete":
-                    # Source finished - only send notification (sorted results delivered via "result" and "final" updates)
-                    sources_completed += 1
-                    source_name = update.source
-
-                    # Send source completion notification
-                    result_count = (
-                        len(result_streamer.source_results.get(source_name, []))
-                        if source_name
-                        else 0
-                    )
-                    yield {
-                        "event": "source_complete",
-                        "data": json.dumps(
-                            {
-                                "source": source_name,
-                                "count": result_count,
-                                "completed": sources_completed,
-                                "total": total_sources,
-                            }
-                        ),
-                    }
-
-                    # Send progress update
-                    if total_sources > 0:
-                        progress_pct = (sources_completed / total_sources) * 100
+            async with aclosing(
+                create_streaming_search(
+                    search_functions=search_funcs,
+                    query=query,
+                    limit=limit,
+                    api_status=api_status,
+                    streamer=result_streamer,
+                )
+            ) as stream:
+                async for update in stream:
+                    # Check for connection timeout
+                    elapsed = time.time() - start_time
+                    if elapsed > max_duration:
+                        logger.warning(
+                            f"SSE connection timeout after {elapsed:.1f}s (max {max_duration}s)"
+                        )
                         yield {
-                            "event": "progress",
+                            "event": "error",
                             "data": json.dumps(
                                 {
+                                    "error": "Connection timeout",
+                                    "elapsed": elapsed,
+                                    "fatal": True,
+                                }
+                            ),
+                        }
+                        break
+
+                    # Send keepalive comment to prevent client timeout
+                    if time.time() - last_keepalive > keepalive_interval:
+                        yield {"comment": "keepalive"}
+                        last_keepalive = time.time()
+
+                    update_type = update.type
+
+                    if update_type == "result":
+                        # Early delivery - sorted top results
+                        if update.results:
+                            for result in update.results:
+                                result_id = id(result.data)
+                                if (
+                                    result_id not in delivered_result_ids
+                                    and should_include_result(result.data)
+                                ):
+                                    all_results.append(result.data)
+                                    delivered_result_ids.add(result_id)
+                                    yield {
+                                        "event": "results",
+                                        "data": json.dumps(
+                                            {
+                                                "source": result.source,
+                                                "papers": [result.data],
+                                                "total_so_far": len(all_results),
+                                            }
+                                        ),
+                                    }
+
+                    elif update_type == "source_complete":
+                        # Source finished - only send notification (sorted results delivered via "result" and "final" updates)
+                        sources_completed += 1
+                        source_name = update.source
+
+                        # Send source completion notification
+                        result_count = (
+                            len(result_streamer.source_results.get(source_name, []))
+                            if source_name
+                            else 0
+                        )
+                        yield {
+                            "event": "source_complete",
+                            "data": json.dumps(
+                                {
+                                    "source": source_name,
+                                    "count": result_count,
                                     "completed": sources_completed,
                                     "total": total_sources,
-                                    "percentage": progress_pct,
-                                    "results_count": len(all_results),
                                 }
                             ),
                         }
 
-                elif update_type == "error":
-                    # Source error (non-fatal, continue with other sources)
-                    error_msg = update.error or "Unknown error"
-                    yield {
-                        "event": "error",
-                        "data": json.dumps(
-                            {
-                                "source": update.source,
-                                "error": error_msg,
-                                "fatal": False,
+                        # Send progress update
+                        if total_sources > 0:
+                            progress_pct = (sources_completed / total_sources) * 100
+                            yield {
+                                "event": "progress",
+                                "data": json.dumps(
+                                    {
+                                        "completed": sources_completed,
+                                        "total": total_sources,
+                                        "percentage": progress_pct,
+                                        "results_count": len(all_results),
+                                    }
+                                ),
                             }
-                        ),
-                    }
 
-                elif update_type == "final":
-                    # All sources complete - send any remaining results
-                    if update.results:
-                        for result in update.results:
-                            result_id = id(result.data)
-                            if (
-                                result_id not in delivered_result_ids
-                                and should_include_result(result.data)
-                            ):
-                                all_results.append(result.data)
-                                delivered_result_ids.add(result_id)
-                                yield {
-                                    "event": "results",
-                                    "data": json.dumps(
-                                        {
-                                            "source": result.source,
-                                            "papers": [result.data],
-                                            "total_so_far": len(all_results),
-                                        }
-                                    ),
+                    elif update_type == "error":
+                        # Source error (non-fatal, continue with other sources)
+                        error_msg = update.error or "Unknown error"
+                        yield {
+                            "event": "error",
+                            "data": json.dumps(
+                                {
+                                    "source": update.source,
+                                    "error": error_msg,
+                                    "fatal": False,
                                 }
-                    break
+                            ),
+                        }
+
+                    elif update_type == "final":
+                        all_results = [
+                            result.data
+                            for result in (update.results or [])
+                            if should_include_result(result.data)
+                        ]
+                        yield {
+                            "event": "results",
+                            "data": json.dumps(
+                                {
+                                    "papers": all_results,
+                                    "replace": True,
+                                    "final": True,
+                                    "total_so_far": len(all_results),
+                                }
+                            ),
+                        }
+                        break
 
             # Send completion event
             yield {
@@ -519,7 +597,6 @@ async def search_papers_sse(
                 f"SSE client disconnected: query='{query}', elapsed={time.time() - start_time:.1f}s"
             )
             # Ensure streaming state is cleaned up
-            result_streamer.reset_streaming_state()
             raise  # Re-raise to properly close the connection
 
         except Exception as e:
@@ -534,7 +611,6 @@ async def search_papers_sse(
 
         finally:
             # Always clean up streaming state when connection closes
-            result_streamer.reset_streaming_state()
             logger.debug(
                 f"SSE connection closed: query='{query}', duration={time.time() - start_time:.1f}s"
             )
@@ -550,7 +626,7 @@ async def search_papers_sse(
     )
 
 
-@app.post("/api/v1/download")
+@app.post("/api/v1/download", dependencies=[Depends(bearer_scheme)])
 async def download_papers(request: DownloadRequest) -> dict[str, Any]:
     """
     Download academic papers and convert to markdown/PDF.
@@ -563,18 +639,20 @@ async def download_papers(request: DownloadRequest) -> dict[str, Any]:
         result = await download_papers_core(
             query=request.query,
             limit=request.limit,
-            output_dir=request.output_dir,
+            output_dir=confined_path(request.output_dir),
             force_category=request.force_category,
             convert_to_markdown=request.convert_to_markdown,
             debug=request.debug,
         )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Download failed: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.post("/api/v1/convert/pdf-to-text")
+@app.post("/api/v1/convert/pdf-to-text", dependencies=[Depends(bearer_scheme)])
 async def convert_pdf_to_text(request: ConvertPdfToTextRequest) -> dict[str, Any]:
     """
     Convert a local PDF file to plain text.
@@ -583,14 +661,12 @@ async def convert_pdf_to_text(request: ConvertPdfToTextRequest) -> dict[str, Any
     File must exist on server filesystem.
     """
     try:
-        # Validate file exists
-        if not Path(request.file_path).exists():
-            raise HTTPException(status_code=404, detail="PDF file not found")
-
         logger.info(f"PDF to text conversion: {request.file_path}")
         result = await convert_pdf_to_text_core(
-            file_path=request.file_path,
-            output_path=request.output_path,
+            file_path=confined_path(request.file_path, pdf=True),
+            output_path=confined_path(
+                request.output_path or f"{Path(request.file_path).stem}_full.txt"
+            ),
             title=request.title,
             authors=request.authors,
         )
@@ -602,7 +678,7 @@ async def convert_pdf_to_text(request: ConvertPdfToTextRequest) -> dict[str, Any
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.post("/api/v1/convert/pdf-to-markdown")
+@app.post("/api/v1/convert/pdf-to-markdown", dependencies=[Depends(bearer_scheme)])
 async def convert_pdf_to_markdown(
     request: ConvertPdfToMarkdownRequest,
 ) -> dict[str, Any]:
@@ -613,16 +689,14 @@ async def convert_pdf_to_markdown(
     File must exist on server filesystem.
     """
     try:
-        # Validate file exists
-        if not Path(request.file_path).exists():
-            raise HTTPException(status_code=404, detail="PDF file not found")
-
         logger.info(f"PDF to markdown conversion: {request.file_path}")
         result = await convert_pdf_to_markdown_core(
-            file_path=request.file_path,
+            file_path=confined_path(request.file_path, pdf=True),
             title=request.title,
             authors=request.authors,
-            output_path=request.output_path,
+            output_path=confined_path(
+                request.output_path or f"{Path(request.file_path).stem}_full.md"
+            ),
         )
         return result
     except HTTPException:
@@ -632,7 +706,7 @@ async def convert_pdf_to_markdown(
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.post("/api/v1/convert/batch")
+@app.post("/api/v1/convert/batch", dependencies=[Depends(bearer_scheme)])
 async def batch_convert_pdfs(request: BatchConvertRequest) -> dict[str, Any]:
     """
     Convert all PDFs in a directory to markdown format.
@@ -642,12 +716,13 @@ async def batch_convert_pdfs(request: BatchConvertRequest) -> dict[str, Any]:
     """
     try:
         # Validate directory exists
-        if not Path(request.directory).exists():
+        if not Path(confined_path(request.directory)).is_dir():
             raise HTTPException(status_code=404, detail="Directory not found")
 
         logger.info(f"Batch PDF conversion: {request.directory}")
         result = await batch_convert_pdfs_core(
-            directory=request.directory, output_dir=request.output_dir
+            directory=confined_path(request.directory),
+            output_dir=confined_path(request.output_dir or "."),
         )
         return result
     except HTTPException:
@@ -657,7 +732,7 @@ async def batch_convert_pdfs(request: BatchConvertRequest) -> dict[str, Any]:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.get("/api/v1/status")
+@app.get("/api/v1/status", dependencies=[Depends(bearer_scheme)])
 async def get_status(
     force_reload: bool = False, active_health_check: bool = False
 ) -> dict[str, Any]:
@@ -676,12 +751,14 @@ async def get_status(
             force_reload=force_reload, active_health_check=active_health_check
         )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Status check failed: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.get("/api/v1/help")
+@app.get("/api/v1/help", dependencies=[Depends(bearer_scheme)])
 async def get_help() -> dict[str, Any]:
     """
     Get configuration guidance and help.
@@ -692,12 +769,14 @@ async def get_help() -> dict[str, Any]:
     try:
         result = await get_help_core()
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Help retrieval failed: {e}")
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.get("/api/v1/proxy-download")
+@app.get("/api/v1/proxy-download", dependencies=[Depends(bearer_scheme)])
 async def proxy_download(url: str, filename: str | None = None) -> StreamingResponse:
     """
     Proxy download endpoint - fetches PDF from external source and streams it with download headers.
@@ -740,6 +819,10 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
                     detail=f"Failed to fetch PDF from source: HTTP {response.status_code}",
                 )
 
+            if not response.content.lstrip().startswith(b"%PDF-"):
+                raise HTTPException(
+                    status_code=502, detail="Source did not return a PDF"
+                )
             # Success - record it (no-op now, client-side tracking)
             record_download_attempt(url, success=True)
 
@@ -753,7 +836,9 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
                 },
             )
 
-        except httpx.TimeoutException:
+        except UnsafeDownloadError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except (httpx.TimeoutException, TimeoutError):
             logger.error(f"Timeout downloading PDF: {url}")
             record_download_attempt(url, success=False)
             raise HTTPException(
@@ -774,7 +859,7 @@ async def proxy_download(url: str, filename: str | None = None) -> StreamingResp
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.get("/api/v1/download-reliability")
+@app.get("/api/v1/download-reliability", dependencies=[Depends(bearer_scheme)])
 async def check_download_reliability(url: str) -> dict[str, Any]:
     """
     Get download reliability metadata (stateless, optimistic response).
@@ -817,6 +902,8 @@ async def check_download_reliability(url: str) -> dict[str, Any]:
             "stats": stats,
             "message": "PDF should download successfully (client should track reliability)",
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error checking download reliability: {e}")
         return {
@@ -855,18 +942,6 @@ async def internal_error_handler(request: Any, exc: Any) -> JSONResponse:
     )
 
 
-# ==================== Static File Serving ====================
-
-# Mount static files AFTER all API routes so API takes precedence
-# This serves the browser-ui directory with correct MIME types
-# Path is relative to /app (WORKDIR in Dockerfile)
-try:
-    app.mount("/", StaticFiles(directory="browser-ui", html=True), name="static")
-    logger.info("Static files mounted from browser-ui/")
-except RuntimeError as e:
-    logger.warning(f"Could not mount static files: {e}. Continuing without UI.")
-
-
 # ==================== Main Entry Point ====================
 
 
@@ -886,10 +961,12 @@ def main() -> None:
     parser.add_argument(
         "--host",
         type=str,
-        default="0.0.0.0",
-        help="Host to bind to (default: 0.0.0.0)",
+        default="127.0.0.1",
+        help="Host to bind to (default: 127.0.0.1)",
     )
     args = parser.parse_args()
+    if not os.getenv("SOURCECRATE_HTTP_TOKEN"):
+        parser.error("Set SOURCECRATE_HTTP_TOKEN before starting the HTTP API")
 
     logger.info("Starting SourceCrateMCP HTTP server...")
     logger.info(f"OpenAPI docs: http://localhost:{args.port}/docs")

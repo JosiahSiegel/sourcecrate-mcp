@@ -382,9 +382,9 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         print("Usage:")
-        print("  python -m sourcecrate_mcp.plugins.simple create <source_name>")
-        print("  python -m sourcecrate_mcp.plugins.simple register <plugin_file>")
-        print("  python -m sourcecrate_mcp.plugins.simple list")
+        print("  python -m source_crate.plugins.simple create <source_name>")
+        print("  python -m source_crate.plugins.simple register <plugin_file>")
+        print("  python -m source_crate.plugins.simple list")
         sys.exit(1)
 
     command = sys.argv[1]

@@ -114,7 +114,7 @@ class TestStreamingSearchIntegration:
             if update.type == "source_complete":
                 source_completions.append(update.source)
             elif update.type == "result":
-                if update.progress and update.progress.get("type") == "early_delivery":
+                if update.progress and update.progress.get("type") == "progressive_delivery":
                     early_results.extend(update.results or [])
                 else:
                     # Regular results during streaming
@@ -518,7 +518,7 @@ class TestStreamingWithMockMCPServer:
 
                     if (
                         update.progress
-                        and update.progress.get("type") == "early_delivery"
+                        and update.progress.get("type") == "progressive_delivery"
                     ):
                         early_results.extend(update_results)
                     else:
@@ -712,9 +712,10 @@ class TestStreamingPerformanceIntegration:
             if (
                 update.type == "result"
                 and update.progress
-                and update.progress.get("type") == "early_delivery"
+                and update.progress.get("type") == "progressive_delivery"
             ):
-                early_delivery_time = time.time() - start_time
+                if early_delivery_time is None:
+                    early_delivery_time = time.time() - start_time
             elif update.type == "final":
                 final_delivery_time = time.time() - start_time
                 break

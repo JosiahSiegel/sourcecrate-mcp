@@ -4,8 +4,7 @@ Core status and help functionality for SourceCrateMCP.
 This module contains protocol-agnostic system status and help functions that can
 be called from any interface (MCP, HTTP, CLI, etc.).
 
-Note: Currently these are wrappers that delegate to the implementations in server.py.
-Future refactoring will move the full implementation here.
+These adapters normalize the shared research service responses.
 """
 
 import logging
@@ -38,11 +37,9 @@ async def get_status_core(
         - recommendations: Specific recommendations for system improvements
         - monitoring_enabled: Whether health monitoring is active
     """
-    # Import here to avoid circular dependencies
-    from source_crate import server
+    from source_crate.core import research
 
-    # Access the underlying function from the FunctionTool wrapper
-    result = await server.get_status.fn(force_reload, active_health_check)
+    result = await research.get_status(force_reload, active_health_check)
     return cast(dict[str, Any], result)
 
 
@@ -61,9 +58,7 @@ async def get_help_core() -> dict[str, Any]:
         - examples: Common configuration examples
         - troubleshooting: Common issues and solutions
     """
-    # Import here to avoid circular dependencies
-    from source_crate import server
+    from source_crate.core import research
 
-    # Access the underlying function from the FunctionTool wrapper
-    result = await server.get_help.fn()
+    result = await research.get_help()
     return cast(dict[str, Any], result)

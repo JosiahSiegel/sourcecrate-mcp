@@ -81,7 +81,10 @@ async def test_mcp_server_startup() -> bool:
         print("  ✓ MCP server module loaded successfully")
 
         # Test that tools are properly registered
-        tools = await mcp.get_tools()
+        from fastmcp import Client
+
+        async with Client(mcp) as client:
+            tools = {tool.name: tool for tool in await client.list_tools()}
         expected_tools = [
             "browse_papers",
             "download_papers",
@@ -122,7 +125,7 @@ async def test_mcp_tools_functionality() -> bool:
 
         # Test get_status (should work offline)
         print("  📊 Testing get_status...")
-        status = await server.get_status.fn()
+        status = await server.get_status()
         if "api_status" not in status:
             print("  ❌ get_status missing api_status")
             return False
@@ -136,7 +139,7 @@ async def test_mcp_tools_functionality() -> bool:
 
         # Test get_help (should always work)
         print("  📖 Testing get_help...")
-        help_info = await server.get_help.fn()
+        help_info = await server.get_help()
         if "config_guide" not in help_info:
             print("  ❌ get_help missing config_guide")
             return False
@@ -152,7 +155,7 @@ async def test_mcp_tools_functionality() -> bool:
         print("  📚 Testing browse_papers...")
 
         # Test with basic query - must actually work
-        result = await server.browse_papers.fn("machine learning", limit=2)
+        result = await server.browse_papers("machine learning", limit=2)
         if not isinstance(result, list):
             print("  ❌ browse_papers should return a list")
             return False
@@ -181,7 +184,7 @@ async def test_mcp_tools_functionality() -> bool:
 
         # Test with empty query - should handle gracefully but not hide errors
         try:
-            result = await server.browse_papers.fn("", limit=1)
+            result = await server.browse_papers("", limit=1)
             if not isinstance(result, list):
                 print("  ❌ browse_papers empty query should return a list")
                 return False
@@ -199,7 +202,7 @@ async def test_mcp_tools_functionality() -> bool:
 
         # Test with special characters - should not crash
         try:
-            result = await server.browse_papers.fn("test & special <chars>", limit=1)
+            result = await server.browse_papers("test & special <chars>", limit=1)
             if not isinstance(result, list):
                 print("  ❌ browse_papers special chars should return a list")
                 return False

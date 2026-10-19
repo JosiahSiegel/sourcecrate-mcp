@@ -364,7 +364,7 @@ if (filteredResults.length === 0 && relevanceThreshold === 35) {
 4. **Hybrid Retrieval 2025**: "A hybrid retrieval system combining BM25 with semantic similarity" - Universidad de los Andes
 
 ### Implementation
-- File: `/workspace/browser-ui/app.js`
+- File: `js/processing-poc.js` in the neighboring `sourcecrate` repository
 - Functions:
   - `calculateCitationImpact()` (lines 465-471)
   - `calculateTitleMatchBoost()` (lines 480-498)

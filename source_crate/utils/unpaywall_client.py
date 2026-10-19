@@ -112,8 +112,8 @@ def get_unpaywall_client(email: str | None = None) -> UnpaywallClient:
     global _unpaywall_client
     if _unpaywall_client is None:
         # Priority: parameter > environment variable > default
-        final_email = email or os.getenv(
-            "UNPAYWALL_EMAIL", "research@sourcecrate-mcp.org"
+        final_email = (
+            email or os.getenv("UNPAYWALL_EMAIL") or "research@sourcecrate-mcp.org"
         )
         _unpaywall_client = UnpaywallClient(email=final_email)
         logger.info(f"Initialized Unpaywall client with email: {final_email}")

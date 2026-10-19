@@ -11,6 +11,8 @@ from urllib.parse import urlparse, urlunparse
 
 import httpx
 
+from .public_download import fetch_public
+
 logger = logging.getLogger(__name__)
 
 
@@ -80,37 +82,34 @@ async def try_download_with_adaptive_strategies(
         referer = f"{parsed_url.scheme}://{parsed_url.netloc}/"
 
     # Try multiple strategies if we encounter 403 errors
-    async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
-        # Strategy 1: Full browser headers + HTTPS
-        headers = build_browser_headers(referer)
-        response = await client.get(url, headers=headers)
+    # Strategy 1: Full browser headers + HTTPS
+    headers = build_browser_headers(referer)
+    response = await fetch_public(url, headers)
 
+    if response.status_code == 200:
+        return response, url
+
+    # Strategy 2: If 403, try without query parameters (some publishers block versioned URLs)
+    if response.status_code == 403 and parsed_url.query:
+        logger.info(f"Got 403, retrying without query parameters: {parsed_url.query}")
+        clean_url = urlunparse(parsed_url._replace(query="", fragment=""))
+        response = await fetch_public(clean_url, headers)
+        if response.status_code == 200:
+            return response, clean_url
+
+    # Strategy 3: If still 403, try with minimal headers (some sites block Sec-Fetch-* as bot detection)
+    if response.status_code == 403:
+        logger.info("Got 403, retrying with minimal headers")
+        minimal_headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "*/*",
+        }
+        response = await fetch_public(url, minimal_headers)
         if response.status_code == 200:
             return response, url
 
-        # Strategy 2: If 403, try without query parameters (some publishers block versioned URLs)
-        if response.status_code == 403 and parsed_url.query:
-            logger.info(
-                f"Got 403, retrying without query parameters: {parsed_url.query}"
-            )
-            clean_url = urlunparse(parsed_url._replace(query="", fragment=""))
-            response = await client.get(clean_url, headers=headers)
-            if response.status_code == 200:
-                return response, clean_url
-
-        # Strategy 3: If still 403, try with minimal headers (some sites block Sec-Fetch-* as bot detection)
-        if response.status_code == 403:
-            logger.info("Got 403, retrying with minimal headers")
-            minimal_headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Accept": "*/*",
-            }
-            response = await client.get(url, headers=minimal_headers)
-            if response.status_code == 200:
-                return response, url
-
-        # All strategies failed - return final response for error handling
-        return response, url
+    # All strategies failed - return final response for error handling
+    return response, url
 
 
 async def download_pdf(
@@ -368,48 +367,40 @@ async def download_pdf(
                     }
 
                     try:
-                        async with httpx.AsyncClient(
-                            timeout=60.0, follow_redirects=True
-                        ) as client:
-                            response = await client.get(
-                                oa_pdf_url, headers=enhanced_headers
+                        response = await fetch_public(oa_pdf_url, enhanced_headers)
+                        unpaywall_download_status = response.status_code
+
+                        if response.status_code == 200:
+                            with open(pdf_path, "wb") as f:
+                                f.write(response.content)
+
+                            logger.info(
+                                f"✅ Success! Downloaded from Unpaywall location {idx+1}"
                             )
-                            unpaywall_download_status = response.status_code
 
-                            if response.status_code == 200:
-                                with open(pdf_path, "wb") as f:
-                                    f.write(response.content)
+                            result = {
+                                "success": True,
+                                "pdf_path": pdf_path,
+                                "file_size": len(response.content),
+                                "filename": filename,
+                                "source": "unpaywall",
+                            }
 
-                                logger.info(
-                                    f"✅ Success! Downloaded from Unpaywall location {idx+1}"
+                            # Add diagnostic fields only in debug mode
+                            if debug:
+                                result["oa_version"] = oa_version
+                                result["oa_license"] = oa_license
+                                result["unpaywall_location_index"] = idx + 1
+                                result["unpaywall_alternatives_tried"] = len(
+                                    unpaywall_urls_tried
                                 )
 
-                                result = {
-                                    "success": True,
-                                    "pdf_path": pdf_path,
-                                    "file_size": len(response.content),
-                                    "filename": filename,
-                                    "source": "unpaywall",
-                                }
-
-                                # Add diagnostic fields only in debug mode
-                                if debug:
-                                    result["oa_version"] = oa_version
-                                    result["oa_license"] = oa_license
-                                    result["unpaywall_location_index"] = idx + 1
-                                    result["unpaywall_alternatives_tried"] = len(
-                                        unpaywall_urls_tried
-                                    )
-
-                                return result
-                            else:
-                                unpaywall_download_error = (
-                                    f"HTTP {response.status_code}"
-                                )
-                                logger.info(
-                                    f"  ❌ Location {idx+1} failed: HTTP {response.status_code}"
-                                )
-
+                            return result
+                        else:
+                            unpaywall_download_error = f"HTTP {response.status_code}"
+                            logger.info(
+                                f"  ❌ Location {idx+1} failed: HTTP {response.status_code}"
+                            )
                     except Exception as e:
                         unpaywall_download_error = str(e)
                         logger.warning(f"  ❌ Location {idx+1} failed: {e}")

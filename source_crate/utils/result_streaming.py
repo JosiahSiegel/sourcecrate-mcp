@@ -6,7 +6,7 @@ Provides incremental results as they become available from different sources.
 import asyncio
 import logging
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from typing import Any
 
@@ -87,7 +87,7 @@ class ResultStreamer:
         search_tasks: list[Any],  # List of search coroutines
         source_names: list[str],
         result_processor: Any | None = None,
-    ) -> AsyncIterator[StreamingUpdate]:
+    ) -> AsyncGenerator[StreamingUpdate, None]:
         """
         Stream search results from multiple sources as they become available.
 
@@ -457,8 +457,8 @@ class ResultStreamer:
                 paper = result.data.copy()
 
                 # Ensure source is set correctly (may be in _streaming_metadata)
-                if not paper.get('source'):
-                    paper['source'] = result.source or source_name
+                if not paper.get("source"):
+                    paper["source"] = result.source or source_name
 
                 all_papers.append(paper)
 
@@ -480,8 +480,10 @@ class ResultStreamer:
 
         for paper in deduplicated_papers:
             # Extract merged sources (if paper was merged from multiple sources)
-            merged_sources = paper.get('_merged_sources', [])
-            primary_source = merged_sources[0] if merged_sources else paper.get('source', 'unknown')
+            merged_sources = paper.get("_merged_sources", [])
+            primary_source = (
+                merged_sources[0] if merged_sources else paper.get("source", "unknown")
+            )
 
             # Create StreamedResult with merged paper
             result = StreamedResult(
@@ -489,7 +491,7 @@ class ResultStreamer:
                 data=paper,
                 timestamp=time.time(),
                 confidence_score=self._calculate_confidence(paper),
-                is_final=True
+                is_final=True,
             )
 
             final_results.append(result)
@@ -550,7 +552,8 @@ async def create_streaming_search(
     query: str,
     limit: int,
     api_status: dict[str, bool],
-) -> AsyncIterator[StreamingUpdate]:
+    streamer: ResultStreamer | None = None,
+) -> AsyncGenerator[StreamingUpdate, None]:
     """
     Create a streaming search across multiple sources.
 
@@ -591,7 +594,8 @@ async def create_streaming_search(
         streamed_result: StreamedResult,
     ) -> StreamedResult | None:
         """Process individual results for streaming."""
-        result = streamed_result.data
+        result = dict(streamed_result.data)
+        streamed_result.data = result
 
         # Calculate relevance score based on query
         relevance_score = relevance_scorer.score_paper_relevance(query, result)
@@ -602,7 +606,7 @@ async def create_streaming_search(
             "timestamp": streamed_result.timestamp,
             "confidence": streamed_result.confidence_score,
         }
-        result["relevance_score"] = relevance_score
+        result["relevance_score"] = relevance_score * 100
 
         # Update the streamed result's confidence with relevance score
         # This allows sorting by relevance in early results
@@ -611,7 +615,10 @@ async def create_streaming_search(
         return streamed_result
 
     # Stream results
-    async for update in result_streamer.stream_search_results(
-        search_tasks, source_names, process_result
-    ):
-        yield update
+    streamer = streamer if streamer is not None else ResultStreamer()
+    stream = streamer.stream_search_results(search_tasks, source_names, process_result)
+    try:
+        async for update in stream:
+            yield update
+    finally:
+        await stream.aclose()

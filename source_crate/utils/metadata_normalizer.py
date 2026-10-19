@@ -234,6 +234,7 @@ class MetadataNormalizer:
             Cleaned URL
         """
         import re
+
         from source_crate.config.singleton import get_config_manager
 
         # Get URL cleaning rules from config
@@ -341,7 +342,9 @@ class MetadataNormalizer:
                     }
 
                     # Check if domain supports HTTPS
-                    if any(supported in domain for supported in https_supported_domains):
+                    if any(
+                        supported in domain for supported in https_supported_domains
+                    ):
                         cleaned_url = cleaned_url.replace("http://", "https://", 1)
                         logger.debug(f"Upgraded to HTTPS: {domain}")
 
