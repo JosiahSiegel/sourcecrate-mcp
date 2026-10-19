@@ -39,7 +39,7 @@ async def resolve_public_host(url: httpx.URL) -> str:
             raise UnsafeDownloadError(
                 "Download host must resolve only to public addresses"
             )
-    return addresses[0][4][0]
+    return str(addresses[0][4][0])
 
 
 async def fetch_public(url: str, headers: dict[str, str]) -> httpx.Response:

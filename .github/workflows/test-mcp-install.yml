@@ -5,11 +5,9 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
-concurrency:
-  group: mcp-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   test:
     strategy:
@@ -41,6 +39,9 @@ jobs:
       - run: uv sync --locked --extra dev --extra http
       - run: uv run --locked python scripts/validate_code_quality.py
       - run: uv run --locked pytest -q
+      - name: Audit installed dependencies
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
+        run: uvx pip-audit --path "$(uv run --locked python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
       - run: uv build
       - name: Test installed CLI and MCP protocol outside checkout
         run: |

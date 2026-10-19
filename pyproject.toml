@@ -36,7 +36,6 @@ dependencies = [
     "pymed>=0.8.9",
     "semanticscholar>=0.8.0",
     "tenacity>=8.2.0",
-    "diskcache>=5.6.0",
     "free-proxy>=1.1.1",
     "rapidfuzz>=3.0.0",
     "rank-bm25>=0.2.2",  # Lightweight BM25 implementation (numpy only, no scipy)

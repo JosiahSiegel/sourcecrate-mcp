@@ -9,10 +9,7 @@ import logging
 import time
 from typing import Any
 
-from diskcache import Cache  # type: ignore
-
-# Create cache instance directly
-cache = Cache("/tmp/sourcecrate-mcp-cache", size_limit=1e9)  # 1GB cache
+from source_crate.utils.json_cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +159,7 @@ class QueryCache:
                     "Pattern-based cache clearing not implemented, clearing all query cache"
                 )
 
-            # Note: diskcache doesn't have a direct way to clear by prefix
+            # The cache interface does not currently clear by prefix
             # This is a limitation we'd need to work around
             logger.info("Cache clearing requested - manual key management needed")
             return cleared

@@ -201,7 +201,8 @@ on port 8000 with a bearer token when your application needs REST access.
 CI runs locked dependency installation, lint, typing, formatting, and offline tests
 on Linux, Windows, and macOS. It builds a wheel, installs it in an isolated environment,
 and checks an actual MCP handshake, tool discovery, and `get_help` outside the checkout.
-Release assets are built from the tested commit.
+Pushing a `v*` tag reruns these checks, verifies the package version, and publishes
+the tested wheel, source archive, and portable MCP configuration to GitHub Releases.
 
 ## 📋 Scope & Use Cases
 
@@ -313,7 +314,9 @@ Use `get_help` tool for complete configuration schemas and examples.
 - 📖 **Unlimited PDF Processing** - No page or character limits
 - 🔄 **Zero-Token Conversion** - PDF to markdown without AI usage
 - ⚡ **Intelligent Fallback** - Robust multi-source search
-- 🗄️ **Smart Caching** - 1GB disk cache for performance
+- 🗄️ **Smart Caching** - JSON-only SQLite cache with a 1GB payload budget, stored in
+  `~/.sourcecrate/cache` (override with `SOURCECRATE_CACHE_DIR`). Legacy shared pickle
+  caches are never loaded. Unavailable cache storage does not prevent research.
 
 ## 📚 Documentation
 

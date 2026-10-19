@@ -11,10 +11,8 @@ from typing import Any
 import fitz  # type: ignore  # PyMuPDF
 import requests
 from bs4 import BeautifulSoup
-from diskcache import Cache  # type: ignore
 
-# Create cache instance directly
-cache = Cache("/tmp/sourcecrate-mcp-cache", size_limit=1e9)  # 1GB cache
+from source_crate.utils.json_cache import cache
 
 logger = logging.getLogger(__name__)
 

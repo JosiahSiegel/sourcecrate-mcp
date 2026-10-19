@@ -49,7 +49,6 @@ def check_core_dependencies():
         ("aiohttp", "aiohttp"),
         ("requests", "requests"),
         ("tenacity", "tenacity"),
-        ("diskcache", "diskcache"),
         ("asyncio-throttle", "asyncio_throttle"),
         ("fake-useragent", "fake_useragent"),
         ("arxiv", "arxiv"),

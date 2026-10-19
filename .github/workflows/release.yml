@@ -1,0 +1,26 @@
+name: Publish tested MCP release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  tests:
+    uses: ./.github/workflows/test-mcp-install.yml
+  release:
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check tag matches package version
+        run: python -c 'import os,tomllib; assert os.environ["GITHUB_REF_NAME"] == "v" + tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]'
+      - uses: actions/download-artifact@v4
+        with:
+          name: distribution
+          path: dist
+      - name: Publish distribution and portable agent configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* mcp-config.json --verify-tag --generate-notes --title "SourceCrate $GITHUB_REF_NAME"
