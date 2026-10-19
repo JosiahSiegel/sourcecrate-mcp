@@ -1,5 +1,6 @@
 """Exercise real PDF files and the public download boundary without provider flakiness."""
 import asyncio
+import hashlib
 from pathlib import Path
 import socket
 import sys
@@ -40,6 +41,13 @@ class PdfTests(unittest.IsolatedAsyncioTestCase):
             result = await download([{"title": "../CON: test", "access_links": [{"type": "pdf", "url": "https://papers.example/a.pdf"}]}], self.root)
         self.assertEqual(result["downloaded"], 1)
         item = result["files"][0]
+        evidence = item["verification"]
+        self.assertEqual(evidence["status"], "verified")
+        self.assertEqual(evidence["identity"], "not_checked")
+        self.assertEqual(evidence["pages"], 1)
+        self.assertEqual(evidence["bytes"], len(self.body))
+        self.assertEqual(evidence["sha256"], hashlib.sha256(self.body).hexdigest())
+        self.assertEqual(evidence["final_url"], "https://papers.example/a.pdf")
         pdf = Path(item["pdf_path"])
         self.assertEqual(pdf.parent, self.root)
         self.assertIn("SourceCrate PDF validation", Path(item["conversion"]["output_path"]).read_text(encoding="utf-8"))
@@ -80,6 +88,30 @@ class PdfTests(unittest.IsolatedAsyncioTestCase):
                 with self.publisher(lambda _: httpx.Response(200, content=self.body, headers=headers)):
                     with self.assertRaisesRegex(ValueError, "exceeds"):
                         await public_download.fetch_public("https://papers.example/a.pdf", {})
+
+    async def test_pdf_suffix_redirecting_to_html_is_rejected_and_alternate_is_tried(self):
+        def response(request):
+            if request.url.path == "/missing.pdf":
+                return httpx.Response(302, headers={"location": "/"})
+            if request.url.path == "/":
+                return httpx.Response(200, headers={"content-type": "text/html"}, content=b"<html>Repository homepage</html>")
+            return httpx.Response(200, content=self.body)
+        paper = {"title": "Storytelling with Music", "access_links": [{"type": "pdf", "url": "https://papers.example/missing.pdf"}]}
+        with patch.object(public_download, "resolve_public_host", AsyncMock(return_value="93.184.215.14")), self.publisher(response):
+            result = await download([paper], self.root, False)
+            self.assertEqual(result["downloaded"], 0)
+            self.assertEqual(list(self.root.iterdir()), [])
+            paper["access_links"].append({"type": "pdf", "url": "https://papers.example/real.pdf"})
+            result = await download([paper], self.root, False)
+            self.assertEqual(result["downloaded"], 1)
+            self.assertEqual(result["files"][0]["verification"]["final_url"], "https://papers.example/real.pdf")
+
+    async def test_partial_or_empty_success_is_not_saved_as_a_pdf(self):
+        for status in [204, 206]:
+            with patch.object(public_download, "resolve_public_host", AsyncMock(return_value="93.184.215.14")), self.publisher(lambda _: httpx.Response(status, content=self.body)):
+                result = await download([{"access_links": [{"type": "pdf", "url": "https://papers.example/a.pdf"}]}], self.root, False)
+                self.assertEqual(result["downloaded"], 0)
+        self.assertEqual(list(self.root.iterdir()), [])
 
 
 if __name__ == "__main__":

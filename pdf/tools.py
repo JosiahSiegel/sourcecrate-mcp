@@ -51,11 +51,12 @@ async def download(papers, output_dir, convert_to_markdown=True):
                     response = await fetch_public(link["url"], {"User-Agent": "SourceCrate/3.0 (+https://sourcecrate.org)"})
                     response.raise_for_status()
                     title = re.sub(r'[^\w .-]', '_', paper.get("title") or "paper")[:100].strip(" .") or "paper"
-                    digest = hashlib.sha256(response.content).hexdigest()[:12]
-                    target = destination / f"paper-{title}-{digest}.pdf"
+                    digest = hashlib.sha256(response.content).hexdigest()
+                    target = destination / f"paper-{title}-{digest[:12]}.pdf"
                     with target.open("xb") as output:
                         output.write(response.content)
-                    result = {"success": True, "title": paper.get("title"), "url": link["url"], "pdf_path": str(target)}
+                    result = {"success": True, "title": paper.get("title"), "authors": paper.get("authors"), "doi": paper.get("doi"), "url": link["url"], "pdf_path": str(target),
+                              "verification": {"status": "verified", "format": "pdf", "identity": "not_checked", "final_url": str(response.url), "bytes": len(response.content), "sha256": digest, **response.extensions["sourcecrate_pdf"]}}
                     if convert_to_markdown:
                         try:
                             result["conversion"] = convert(target)

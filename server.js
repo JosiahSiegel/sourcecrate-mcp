@@ -2,7 +2,7 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
-import { browse, download, runPdf, sources } from './adapter.js';
+import { browse, download, runPdf, sources, DEFAULT_MIN_RELEVANCE } from './adapter.js';
 import packageInfo from './package.json' with { type: 'json' };
 
 // Source diagnostics belong on stderr; stdout is reserved for MCP messages.
@@ -12,14 +12,16 @@ const search = {
     query: z.string().trim().min(1).max(2000).describe('Title, author, DOI, or research topic'),
     limit: z.number().int().min(1).max(100).default(25).describe('Maximum candidates per source; results are merged and ranked together'),
     pdf_only: z.boolean().default(false),
+    min_relevance: z.number().min(0).max(100).default(DEFAULT_MIN_RELEVANCE).describe('Minimum lexical relevance score, 0–100; default 25 removes weak matches. Use 0 for all candidates. Scores are not confidence probabilities.'),
+    max_results: z.number().int().min(1).max(1000).optional().describe('Optional cap on final merged, filtered results; e.g. 20 for focused research. limit still controls candidates per source.'),
     sources: z.array(z.enum(sources)).min(1).optional().describe('Omit to search the same sources as sourcecrate.org')
 };
 const conversion = { file_path: z.string().min(1), output_path: z.string().min(1).optional() };
 const help = {
     website: 'https://sourcecrate.org',
-    search: 'Use browse_papers with a title and author together. Results use the website search engine, relevance scores (0–100), deduplication and link order. primary_url matches the result header on the site. limit is per source.',
+    search: 'Use browse_papers with a title and author together, or a focused academic topic. The site and MCP default to min_relevance 25; use 0 for all candidates or a higher cutoff for precision. max_results caps final results; limit is per source. Scores are lexical relevance, not confidence. Review filtered_out, total_matching and truncated. primary_url matches the site result header. Use regular web research for product documentation and practical guides.',
     availability: 'Providers may fail, rate-limit, or return different candidates over time or due to browser CORS. Inspect partial and source_status errors and warnings. Zenodo can fall back to its DataCite index (via: datacite); coverage may differ and direct file links are unavailable there. Links are metadata, not a guarantee of free access.',
-    pdf: 'PDF tools require uv on PATH; Python and pinned PDF dependencies are installed automatically on first use. download_papers writes PDFs and optionally Markdown. Conversion tools write local files; existing files are never overwritten.',
+    pdf: 'Search PDF links have verification: unverified. Provider metadata and URL suffixes do not prove a PDF exists. download_papers validates downloaded PDF contents before writing and returns verification evidence; bibliographic identity still requires review. PDF tools require uv on PATH; pinned dependencies are installed on first use. Existing files are never overwritten.',
     migration: 'v3 uses Node.js 22.12+ and npx. Replace the v2 uvx launch command. Category routing, YAML configuration, HTTP hosting and the independent Python search engine have been removed.',
     docs: 'https://github.com/JosiahSiegel/sourcecrate-mcp#readme'
 };
@@ -44,6 +46,7 @@ export function createServer() {
     tool('download_papers', 'Download PDFs from a SourceCrate search or explicit PDF links. Supply either query or pdf_urls. Writes local files, optionally converting to Markdown. Requires uv.', {
         query: search.query.optional(), pdf_urls: z.array(z.url()).min(1).max(10).optional(),
         limit: z.number().int().min(1).max(10).default(5), sources: search.sources,
+        min_relevance: search.min_relevance,
         output_dir: z.string().min(1), convert_to_markdown: z.boolean().default(true)
     }, download, true);
     for (const format of ['text', 'markdown']) {

@@ -4,7 +4,7 @@
       "command": "npx",
       "args": [
         "--yes",
-        "--package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.0.1/sourcecrate-mcp-3.0.1.tgz",
+        "--package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.1.0/sourcecrate-mcp-3.1.0.tgz",
         "sourcecrate"
       ]
     }

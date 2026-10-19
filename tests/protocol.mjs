@@ -29,9 +29,17 @@ export async function checkProtocol(serverPath, mode = 'legacy') {
         const alias = await call('browse_papers_streaming', { query });
         assert.equal(normal.papers[0].doi, '10.1234/exact');
         assert.deepEqual(normal.papers, alias.papers);
+        assert.equal(normal.filters.min_relevance, 25);
+        assert.equal(normal.filtered_out, 1);
+        const all = await call('browse_papers', { query, min_relevance: 0 });
+        assert.equal(all.papers.length, 3);
+        const capped = await call('browse_papers', { query, max_results: 1 });
+        assert.equal(capped.papers.length, 1);
+        assert.equal(capped.total_matching, 2);
+        assert.equal(capped.truncated, true);
         assert.equal(normal.papers[0].primary_url, 'https://example.org/book');
         for (const tool of ['browse_papers', 'browse_papers_streaming']) {
-            const recovered = await call(tool, { query: 'provider recovery climate', sources: ['datacite', 'zenodo'] });
+            const recovered = await call(tool, { query: 'provider recovery climate', min_relevance: 0, sources: ['datacite', 'zenodo'] });
             assert.equal(recovered.papers.length, 2);
             assert.equal(recovered.source_status.find(s => s.source === 'datacite').error, null);
             assert.equal(recovered.source_status.find(s => s.source === 'zenodo').via, 'datacite');

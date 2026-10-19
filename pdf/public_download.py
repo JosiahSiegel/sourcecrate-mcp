@@ -88,6 +88,9 @@ async def fetch_public(url: str, headers: dict[str, str]) -> httpx.Response:
                             raise UnsafeDownloadError("Download exceeds 25 MiB")
                         chunks.append(chunk)
                     body = b"".join(chunks)
+                    evidence = {}
+                    if 200 <= response.status_code < 300 and response.status_code != 200:
+                        raise ValueError("Server did not return a complete PDF (HTTP 200 required)")
                     if response.status_code == 200:
                         # Publisher login/challenge pages often return HTTP 200,
                         # sometimes even with an application/pdf content type.
@@ -99,6 +102,7 @@ async def fetch_public(url: str, headers: dict[str, str]) -> httpx.Response:
                             with pymupdf.open(stream=body, filetype="pdf") as document:
                                 if not document.is_pdf or document.page_count < 1:
                                     raise ValueError("PDF contains no pages")
+                                evidence = {"pages": document.page_count, "embedded_title": document.metadata.get("title") or None}
                         except Exception as exc:
                             raise ValueError(
                                 "Server returned an invalid PDF document"
@@ -112,5 +116,6 @@ async def fetch_public(url: str, headers: dict[str, str]) -> httpx.Response:
                         headers=response_headers,
                         content=body,
                         request=httpx.Request("GET", target),
+                        extensions={"sourcecrate_pdf": evidence},
                     )
     raise UnsafeDownloadError("Download did not complete")

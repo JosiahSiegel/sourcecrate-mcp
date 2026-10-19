@@ -13,7 +13,7 @@ Install **Node.js 22.12 or newer** (includes `npx`). Add the following to your a
       "command": "npx",
       "args": [
         "--yes",
-        "--package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.0.1/sourcecrate-mcp-3.0.1.tgz",
+        "--package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.1.0/sourcecrate-mcp-3.1.0.tgz",
         "sourcecrate"
       ]
     }
@@ -30,7 +30,7 @@ For clients on Windows that cannot launch `npx` directly, use `"command": "cmd"`
 Check the launcher with:
 
 ```sh
-npx --yes --package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.0.1/sourcecrate-mcp-3.0.1.tgz sourcecrate --version
+npx --yes --package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.1.0/sourcecrate-mcp-3.1.0.tgz sourcecrate --version
 ```
 
 Then ask your agent to call `get_status` and search for `game programming patterns Robert Nystrom`.
@@ -51,12 +51,14 @@ Then ask your agent to call `get_status` and search for `game programming patter
 Example search arguments:
 
 ```json
-{"query":"game programming patterns Robert Nystrom","limit":25}
+{"query":"game programming patterns Robert Nystrom","limit":25,"max_results":20}
 ```
 
-`limit` is the maximum number of candidates **per source**. All candidates are deduplicated and ranked together. Optional `sources` selects from the names returned by `get_status`; omit it for the website's defaults. `pdf_only` filters to available PDF links. `relevance_score` is 0–100. `primary_url` is the same destination as the website's clickable result header; `access_links` follows the same PDF/page ordering.
+`limit` is the maximum number of candidates **per source**. All candidates are deduplicated and ranked together. Optional `sources` selects from the names returned by `get_status`; omit it for the website's defaults. `min_relevance` defaults to **25** on the site and MCP, excluding weak lexical matches. Set it to `0` for all candidates, or raise it for more precision. `max_results` optionally caps the final merged, filtered set; it does not change the per-source candidate limit. Responses include `total_candidates`, `total_ranked` (deduplicated), `total_matching` (after filters, before the cap), `filtered_out`, `truncated`, and the applied `filters`. The site offers the same cutoff through its relevance selector.
 
-Exact title phrases and matching authors rank ahead of partial title or abstract mentions. The engine cannot return a book or paper that its providers do not index. Browser CORS, rate limits, changing provider data, and response timing can affect which candidates arrive. Inspect `partial` and `source_status`; identical candidates use identical scoring and ordering in both clients.
+`pdf_only` filters to provider-declared PDF links. `relevance_score` is a 0–100 lexical matching score, not a probability of relevance. Search `access_links` of type `pdf` carry `verification: "unverified"`: provider metadata and even a `.pdf` suffix can point to HTML or stale redirects. `primary_url` is the same destination as the website's clickable result header; `access_links` follows the same PDF/page ordering.
+
+Exact title phrases and matching authors rank ahead of partial title or abstract mentions. Short technical terms (AI, UI, 2D, 3D) are retained. The engine cannot return a book or paper that its providers do not index. SourceCrate is for academic discovery; use regular web research for product documentation, author websites and practical guidance. Browser CORS, rate limits, changing provider data, and response timing can affect which candidates arrive. Inspect `partial` and `source_status`; identical candidates use identical scoring and ordering in both clients.
 
 DataCite retries transient failures once within the search deadline. When Zenodo's
 direct API is blocked or unavailable, the engine searches its public DataCite index.
@@ -74,7 +76,7 @@ Example download arguments (use a path on the machine running the MCP):
 When you already have a PDF link from a result, supply `pdf_urls` instead of `query`
 to avoid repeating the search: `{"pdf_urls":["https://example.org/paper.pdf"],"output_dir":"./papers"}`.
 
-Downloads try up to three supplied PDF links per paper, validate public destinations at every redirect, cap each file at 25 MiB, and verify PDF contents before saving. Publisher login pages and access failures are reported; there is no paywall bypass. Conversion errors are reported separately from successful PDF downloads. Existing files are never overwritten. PDF calls have a five-minute server deadline; configure the client timeout accordingly for large batches. OCR is not installed; image-only scans may produce little or no text.
+Downloads try up to three supplied PDF links per paper, validate public destinations at every redirect, cap each file at 25 MiB, and verify PDF contents before saving. Publisher login pages and access failures are reported; there is no paywall bypass. Successful downloads include a `verification` object with final URL, byte count, SHA-256, page count and embedded PDF title when available. `status: "verified"` and `format: "pdf"` mean the downloaded bytes form a readable PDF; `identity: "not_checked"` means matching the document to the requested title/author still requires review. HTML pages and incomplete HTTP responses are rejected before saving. Conversion errors are reported separately from successful PDF downloads. Existing files are never overwritten. PDF calls have a five-minute server deadline; configure the client timeout accordingly for large batches. OCR is not installed; image-only scans may produce little or no text.
 
 ## Migrating from v2
 

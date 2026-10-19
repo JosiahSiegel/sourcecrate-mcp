@@ -1,14 +1,15 @@
 import { DOMParser } from 'linkedom';
-import { searchPapers, sources } from 'sourcecrate/search';
+import { searchPapers, sources, DEFAULT_MIN_RELEVANCE } from 'sourcecrate/search';
 import { getAccessLinks } from 'sourcecrate/access-links';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 globalThis.DOMParser ??= DOMParser;
-export { sources };
+export { sources, DEFAULT_MIN_RELEVANCE };
 
-export async function browse({ query, limit = 25, pdf_only = false, sources: selected }, signal) {
-    const result = await searchPapers(query, { limit, pdfOnly: pdf_only, sources: selected, signal });
+export async function browse({ query, limit = 25, pdf_only = false, min_relevance, max_results, sources: selected }, signal) {
+    const result = await searchPapers(query, { limit, pdfOnly: pdf_only, minRelevance: min_relevance,
+        maxResults: max_results, sources: selected, signal });
     return { ...result, query, papers: result.papers.map(paper => {
         const { pdfs, pages, firstUrl } = getAccessLinks(paper);
         return { ...paper, primary_url: firstUrl, access_links: [...pdfs, ...pages] };
@@ -48,5 +49,6 @@ export async function download(args, signal) {
     const papers = result.papers.filter(p => p.access_links.some(link => link.type === 'pdf')).slice(0, args.limit ?? 5);
     const files = await runPdf({ operation: 'download', papers, output_dir: args.output_dir,
         convert_to_markdown: args.convert_to_markdown ?? true }, signal);
-    return { query: args.query ?? null, source_status: result.source_status, partial: result.partial, ...files };
+    return { query: args.query ?? null, source_status: result.source_status, partial: result.partial,
+        ...(args.query ? { filters: result.filters, total_matching: result.total_matching, filtered_out: result.filtered_out } : {}), ...files };
 }

@@ -33,6 +33,11 @@ try {
         output_dir: directory, convert_to_markdown: true });
     console.log(JSON.stringify({ downloads, directory }));
     assert.ok(downloads.downloaded > 0, 'No live PDF downloaded; inspect provider failures above');
+    const evidence = downloads.files.find(file => file.success).verification;
+    assert.equal(evidence.status, 'verified');
+    assert.equal(evidence.identity, 'not_checked');
+    assert.ok(evidence.pages > 0 && evidence.bytes > 0);
+    assert.match(evidence.sha256, /^[a-f0-9]{64}$/);
     const pdf = downloads.files.find(file => file.success).pdf_path;
     const text = await call('convert_pdf_to_text', { file_path: pdf });
     assert.match(await readFile(text.output_path, 'utf8'), /residual/i);

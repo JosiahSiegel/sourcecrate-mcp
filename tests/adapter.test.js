@@ -5,6 +5,28 @@ import { searchPapers } from 'sourcecrate/search';
 import { getAccessLinks } from 'sourcecrate/access-links';
 import { mockSources, query, providerRecoveryFetch } from './mock-sources.mjs';
 
+test('MCP exposes the shared cutoff, opt-out, final cap and PDF-link classification', async () => {
+    globalThis.fetch = async () => Response.json({ results: [
+        { title: 'Sentient Sketchbook', open_access: { is_oa: true, oa_url: 'https://www.um.edu.mt/library/oar//handle/123456789/29607' } },
+        { title: 'Sentient Sketchbook evaluation', primary_location: { pdf_url: 'https://example.org/sketchbook.pdf' } },
+        { title: 'Corporate Strategic and Operational Controls' }
+    ] });
+    const args = { query: 'Sentient Sketchbook', sources: ['openalex'] };
+    const website = await searchPapers(args.query, { sources: args.sources });
+    const filtered = await browse(args);
+    assert.deepEqual(filtered.papers.map(p => p.title), website.papers.map(p => p.title));
+    assert.equal(filtered.filtered_out, 1);
+    assert.equal(filtered.filters.min_relevance, 25);
+    assert.equal(filtered.papers[0].pdf_url, null);
+    assert.equal(filtered.papers[0].access_links[0].type, 'page');
+    assert.equal(filtered.papers[1].access_links[0].verification, 'unverified');
+    assert.equal((await browse({ ...args, min_relevance: 0 })).papers.length, 3);
+    const capped = await browse({ ...args, max_results: 1 });
+    assert.equal(capped.total_results, 1);
+    assert.equal(capped.total_matching, 2);
+    assert.equal(capped.truncated, true);
+});
+
 test('site and MCP share DataCite retry, Zenodo fallback, warnings and landing links', async () => {
     const options = { sources: ['datacite', 'zenodo'] };
     globalThis.fetch = providerRecoveryFetch();
@@ -28,7 +50,8 @@ test('MCP uses the exact site ranking, scores and link destinations for title + 
     const website = await searchPapers(query);
     const mcp = await browse({ query });
     assert.equal(mcp.papers[0].doi, '10.1234/exact');
-    assert.equal(mcp.papers.length, 3);
+    assert.equal(mcp.papers.length, 2);
+    assert.equal(mcp.filtered_out, 1);
     for (let i = 0; i < mcp.papers.length; i++) {
         const { primary_url, access_links, ...paper } = mcp.papers[i];
         assert.deepEqual(paper, website.papers[i]);
@@ -63,7 +86,7 @@ test('XML source adapters work in Node with the browser-compatible parser', asyn
         if (String(url).includes('efetch.fcgi')) return new Response('<PubmedArticleSet><PubmedArticle><MedlineCitation><PMID>123</PMID><Article><ArticleTitle>PubMed parser test</ArticleTitle><AuthorList><Author><LastName>Nystrom</LastName><ForeName>Robert</ForeName></Author></AuthorList></Article></MedlineCitation></PubmedArticle></PubmedArticleSet>');
         return new Response('<feed xmlns="http://www.w3.org/2005/Atom"><entry><id>http://arxiv.org/abs/1512.03385v1</id><title>Deep Residual Learning for Image Recognition</title><author><name>Kaiming He</name></author><published>2015-12-10</published><summary>Residual learning</summary></entry></feed>');
     };
-    const result = await browse({ query: 'residual learning', sources: ['arxiv', 'pubmed'] });
+    const result = await browse({ query: 'residual learning', min_relevance: 0, sources: ['arxiv', 'pubmed'] });
     assert.equal(result.papers.length, 2);
     assert.ok(result.papers.some(p => p.authors.includes('Kaiming He')));
     assert.ok(result.papers.some(p => p.title === 'PubMed parser test'));
