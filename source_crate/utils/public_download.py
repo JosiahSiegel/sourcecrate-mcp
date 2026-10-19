@@ -87,6 +87,22 @@ async def fetch_public(url: str, headers: dict[str, str]) -> httpx.Response:
                         if size > MAX_DOWNLOAD_BYTES:
                             raise UnsafeDownloadError("Download exceeds 25 MiB")
                         chunks.append(chunk)
+                    body = b"".join(chunks)
+                    if response.status_code == 200:
+                        # Publisher login/challenge pages often return HTTP 200,
+                        # sometimes even with an application/pdf content type.
+                        if not body.lstrip().startswith(b"%PDF-"):
+                            raise ValueError("Server returned a non-PDF response")
+                        import pymupdf
+
+                        try:
+                            with pymupdf.open(stream=body, filetype="pdf") as document:
+                                if not document.is_pdf or document.page_count < 1:
+                                    raise ValueError("PDF contains no pages")
+                        except Exception as exc:
+                            raise ValueError(
+                                "Server returned an invalid PDF document"
+                            ) from exc
                     # The body is already decoded by httpx; remove encoding/length metadata.
                     response_headers = dict(response.headers)
                     response_headers.pop("content-encoding", None)
@@ -94,7 +110,7 @@ async def fetch_public(url: str, headers: dict[str, str]) -> httpx.Response:
                     return httpx.Response(
                         response.status_code,
                         headers=response_headers,
-                        content=b"".join(chunks),
+                        content=body,
                         request=httpx.Request("GET", target),
                     )
     raise UnsafeDownloadError("Download did not complete")

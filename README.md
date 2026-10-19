@@ -16,7 +16,7 @@ No SourceCrate account, API key, hosted service, or repository clone is required
 if needed. Preinstall once before connecting your agent (the first download can take minutes):
 
 ```sh
-uvx --python 3.12 --from git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.2 sourcecrate --version
+uvx --python 3.12 --from git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.3 sourcecrate --version
 ```
 
 Add this entry to your client's MCP server configuration, then restart/reconnect it:
@@ -28,7 +28,7 @@ Add this entry to your client's MCP server configuration, then restart/reconnect
       "command": "uvx",
       "args": [
         "--python", "3.12",
-        "--from", "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.2",
+        "--from", "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.3",
         "sourcecrate"
       ]
     }
@@ -48,6 +48,7 @@ from 0 to 100. Download and conversion tools write files; supply an explicit out
 directory. Remote academic sources may have their own availability or rate limits.
 Metadata browsing keeps papers without PDFs. Source discovery runs up to six requests
 at once with a 25-second overall budget; results identify timed-out sources when partial.
+Streaming searches give each source 15 seconds and report timeouts while retaining results from other sources.
 
 SourceCrate speaks standard MCP over stdin/stdout; diagnostics go to stderr. It does
 not expose a remote MCP URL. The optional REST API below is a separate interface.
@@ -108,7 +109,7 @@ in both repositories and should be updated together.
 
 #### Option 1: Direct from GitHub
 ```bash
-uvx --from 'sourcecrate[http] @ git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.2' sourcecrate-http
+uvx --from 'sourcecrate[http] @ git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.3' sourcecrate-http
 # Server runs on http://localhost:8000
 ```
 

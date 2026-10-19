@@ -12,6 +12,8 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+SOURCE_TIMEOUT_SECONDS = 15.0
+
 
 @dataclass
 class StreamedResult:
@@ -582,7 +584,12 @@ async def create_streaming_search(
             async def source_search(
                 func: Any = search_func, q: str = query, lim: int = limit
             ) -> Any:
-                return await func(q, lim)
+                try:
+                    return await asyncio.wait_for(func(q, lim), SOURCE_TIMEOUT_SECONDS)
+                except TimeoutError as exc:
+                    raise TimeoutError(
+                        f"Source exceeded {SOURCE_TIMEOUT_SECONDS:g}-second search deadline"
+                    ) from exc
 
             search_tasks.append(source_search)
             source_names.append(source_name)

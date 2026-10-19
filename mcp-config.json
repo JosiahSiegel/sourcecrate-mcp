@@ -4,7 +4,7 @@
       "command": "uvx",
       "args": [
         "--python", "3.12",
-        "--from", "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.2",
+        "--from", "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.3",
         "sourcecrate"
       ]
     }
