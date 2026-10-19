@@ -27,7 +27,7 @@
   "dependencies": {
     "@modelcontextprotocol/server": "2.3.1",
     "linkedom": "0.18.13",
-    "sourcecrate": "https://github.com/JosiahSiegel/sourcecrate/archive/a211d96fbd39199fddc8a626966b28471e8c6600.tar.gz",
+    "sourcecrate": "https://github.com/JosiahSiegel/sourcecrate/archive/fc4574f84f0bfe1aa6622e517f5ae55be0a4ff03.tar.gz",
     "zod": "4.6.7"
   },
   "devDependencies": {
