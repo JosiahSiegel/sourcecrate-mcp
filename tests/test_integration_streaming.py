@@ -114,7 +114,10 @@ class TestStreamingSearchIntegration:
             if update.type == "source_complete":
                 source_completions.append(update.source)
             elif update.type == "result":
-                if update.progress and update.progress.get("type") == "progressive_delivery":
+                if (
+                    update.progress
+                    and update.progress.get("type") == "progressive_delivery"
+                ):
                     early_results.extend(update.results or [])
                 else:
                     # Regular results during streaming
@@ -676,63 +679,46 @@ class TestStreamingPerformanceIntegration:
 
     @pytest.mark.asyncio
     async def test_streaming_early_delivery_timing(self) -> None:
-        """Test that early delivery happens within expected timeframes."""
+        """Early results must arrive before a blocked source can finish."""
+        release_delayed = asyncio.Event()
+        delayed_finished = asyncio.Event()
+        received_early = False
+        received_final = False
 
         async def instant_source(query: str, limit: int) -> list[dict[str, Any]]:
             return [
-                {"title": "Instant Result 1", "source": "InstantSource"},
-                {"title": "Instant Result 2", "source": "InstantSource"},
+                {"title": f"Instant Result {number}", "source": "InstantSource"}
+                for number in range(3)
             ]
-
-        async def quick_source(query: str, limit: int) -> list[dict[str, Any]]:
-            await asyncio.sleep(0.1)  # Quick response
-            return [{"title": "Quick Result", "source": "QuickSource"}]
 
         async def delayed_source(query: str, limit: int) -> list[dict[str, Any]]:
-            await asyncio.sleep(1.0)  # 1 second delay
-            return [
-                {"title": "Delayed Result 1", "source": "DelayedSource"},
-                {"title": "Delayed Result 2", "source": "DelayedSource"},
-            ]
+            await release_delayed.wait()
+            delayed_finished.set()
+            return [{"title": "Delayed Result", "source": "DelayedSource"}]
 
-        search_functions = {
-            "instant": instant_source,
-            "quick": quick_source,
-            "delayed": delayed_source,
-        }
-        api_status = {"instant": True, "quick": True, "delayed": True}
-
-        start_time = time.time()
-        early_delivery_time = None
-        final_delivery_time = None
-
-        async for update in create_streaming_search(
-            search_functions, "test query", 5, api_status
-        ):
-            if (
-                update.type == "result"
-                and update.progress
-                and update.progress.get("type") == "progressive_delivery"
+        # Timeout catches a regression that waits for every source before streaming.
+        async with asyncio.timeout(5):
+            async for update in create_streaming_search(
+                {"instant": instant_source, "delayed": delayed_source},
+                "test query",
+                5,
+                {"instant": True, "delayed": True},
             ):
-                if early_delivery_time is None:
-                    early_delivery_time = time.time() - start_time
-            elif update.type == "final":
-                final_delivery_time = time.time() - start_time
-                break
-
-        # Early delivery should happen quickly (within 0.5 seconds)
-        assert early_delivery_time is not None, "Early delivery should occur"
-        assert (
-            early_delivery_time < 0.5
-        ), f"Early delivery should be fast, took {early_delivery_time:.2f}s"
-
-        # Final delivery should include delayed source
-        assert (
-            final_delivery_time > early_delivery_time
-        ), "Final delivery should be after early delivery"
-        assert (
-            final_delivery_time >= 1.0
-        ), "Final delivery should wait for delayed source"
+                if (
+                    update.type == "result"
+                    and update.progress
+                    and update.progress.get("type") == "progressive_delivery"
+                    and not received_early
+                ):
+                    assert not delayed_finished.is_set()
+                    received_early = True
+                    release_delayed.set()
+                elif update.type == "final":
+                    assert received_early
+                    assert delayed_finished.is_set()
+                    received_final = True
+                    break
+        assert received_early and received_final
 
     @pytest.mark.asyncio
     async def test_streaming_concurrent_performance_scaling(self) -> None:
