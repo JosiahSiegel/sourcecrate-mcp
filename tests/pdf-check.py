@@ -18,7 +18,7 @@ class PdfTests(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()
         with pymupdf.open() as document:
             document.new_page().insert_text((72, 72), "SourceCrate PDF validation")
             self.body = document.tobytes()
