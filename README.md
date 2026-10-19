@@ -64,6 +64,9 @@ Example download arguments (use a path on the machine running the MCP):
 {"query":"deep residual learning for image recognition","limit":1,"output_dir":"./papers","convert_to_markdown":true}
 ```
 
+When you already have a PDF link from a result, supply `pdf_urls` instead of `query`
+to avoid repeating the search: `{"pdf_urls":["https://example.org/paper.pdf"],"output_dir":"./papers"}`.
+
 Downloads try up to three supplied PDF links per paper, validate public destinations at every redirect, cap each file at 25 MiB, and verify PDF contents before saving. Publisher login pages and access failures are reported; there is no paywall bypass. Conversion errors are reported separately from successful PDF downloads. Existing files are never overwritten. PDF calls have a five-minute server deadline; configure the client timeout accordingly for large batches. OCR is not installed; image-only scans may produce little or no text.
 
 ## Migrating from v2
@@ -84,6 +87,8 @@ npm run test:install
 Tests compare MCP results directly with the shared engine, exercise all eight tools over real MCP stdio (legacy and negotiated protocols), and verify real PDF conversion and download boundaries. The install test packs the distribution, installs it in a fresh temporary directory outside the checkout, and calls all eight tools. Provider fixtures make CI repeatable; live provider checks remain separate.
 
 CI runs on Linux, Windows, and macOS with Node 22 and uv. Tags must match `package.json`; the release workflow publishes the tested tarball and portable configuration only after all platforms pass. There is no npm registry credential or deployment service to configure.
+Run `node scripts/live-smoke.mjs` separately to check the real Nystrom book search,
+a public CVF PDF download, and text extraction; it requires live providers to be available.
 
 The implementation is `server.js` (MCP schemas), `adapter.js` (shared search + helper invocation), and `pdf/` (file operations). Do not add a second ranker or provider implementation here. Keep protocol diagnostics on stderr.
 

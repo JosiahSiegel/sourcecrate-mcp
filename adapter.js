@@ -41,9 +41,12 @@ export function runPdf(request, signal) {
 }
 
 export async function download(args, signal) {
-    const result = await browse({ ...args, pdf_only: true, limit: 25 }, signal);
+    if (Boolean(args.query) === Boolean(args.pdf_urls?.length)) throw new Error('Supply either query or pdf_urls');
+    const result = args.pdf_urls ? { papers: args.pdf_urls.map((url, i) => ({
+        title: `Document ${i + 1}`, access_links: [{ type: 'pdf', url }]
+    })), source_status: [], partial: false } : await browse({ ...args, pdf_only: true, limit: 25 }, signal);
     const papers = result.papers.filter(p => p.access_links.some(link => link.type === 'pdf')).slice(0, args.limit ?? 5);
     const files = await runPdf({ operation: 'download', papers, output_dir: args.output_dir,
         convert_to_markdown: args.convert_to_markdown ?? true }, signal);
-    return { query: args.query, source_status: result.source_status, partial: result.partial, ...files };
+    return { query: args.query ?? null, source_status: result.source_status, partial: result.partial, ...files };
 }

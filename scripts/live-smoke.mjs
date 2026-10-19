@@ -24,7 +24,8 @@ try {
     assert.equal(search.papers[0].title, 'Game Programming Patterns');
     assert.ok(search.papers[0].authors.includes('Robert Nystrom'));
     console.log(JSON.stringify({ search: search.papers[0], total: search.total_results, source_status: search.source_status }));
-    const downloads = await call('download_papers', { query: 'Deep Residual Learning for Image Recognition Kaiming He', limit: 1,
+    const downloads = await call('download_papers', {
+        pdf_urls: ['https://openaccess.thecvf.com/content_cvpr_2016/papers/He_Deep_Residual_Learning_CVPR_2016_paper.pdf'], limit: 1,
         output_dir: directory, convert_to_markdown: true });
     console.log(JSON.stringify({ downloads, directory }));
     assert.ok(downloads.downloaded > 0, 'No live PDF downloaded; inspect provider failures above');

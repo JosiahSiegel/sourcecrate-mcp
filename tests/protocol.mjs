@@ -32,6 +32,9 @@ export async function checkProtocol(serverPath, mode = 'legacy') {
         assert.equal(normal.papers[0].primary_url, 'https://example.org/book');
         const downloads = await call('download_papers', { query, output_dir: join(directory, 'downloads') });
         assert.equal(downloads.downloaded, 0);
+        const blocked = await call('download_papers', { pdf_urls: ['http://127.0.0.1/private.pdf'], output_dir: join(directory, 'downloads') });
+        assert.equal(blocked.downloaded, 0);
+        assert.match(blocked.files[0].errors[0].error, /public addresses/);
         const pdf = join(directory, 'sample.pdf');
         await copyFile(new URL('./fixtures/sample.pdf', import.meta.url), pdf);
         const text = await call('convert_pdf_to_text', { file_path: pdf });

@@ -41,8 +41,9 @@ export function createServer() {
     }
     tool('browse_papers', 'Search SourceCrate sources concurrently. Returns ranked papers, links, scores and provider errors. Start here for research; does not download.', search, browse);
     tool('browse_papers_streaming', 'Compatibility alias for browse_papers. Searches concurrently and returns one final ranked result with source statistics.', search, browse);
-    tool('download_papers', 'Search SourceCrate and download the highest-ranked available PDFs. Writes local files, optionally converting to Markdown. Requires uv.', {
-        query: search.query, limit: z.number().int().min(1).max(10).default(5), sources: search.sources,
+    tool('download_papers', 'Download PDFs from a SourceCrate search or explicit PDF links. Supply either query or pdf_urls. Writes local files, optionally converting to Markdown. Requires uv.', {
+        query: search.query.optional(), pdf_urls: z.array(z.url()).min(1).max(10).optional(),
+        limit: z.number().int().min(1).max(10).default(5), sources: search.sources,
         output_dir: z.string().min(1), convert_to_markdown: z.boolean().default(true)
     }, download, true);
     for (const format of ['text', 'markdown']) {
