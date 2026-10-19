@@ -16,7 +16,7 @@ No SourceCrate account, API key, hosted service, or repository clone is required
 if needed. Preinstall once before connecting your agent (the first download can take minutes):
 
 ```sh
-uvx --python 3.12 --from git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.1 sourcecrate --version
+uvx --python 3.12 --from git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.2 sourcecrate --version
 ```
 
 Add this entry to your client's MCP server configuration, then restart/reconnect it:
@@ -28,7 +28,7 @@ Add this entry to your client's MCP server configuration, then restart/reconnect
       "command": "uvx",
       "args": [
         "--python", "3.12",
-        "--from", "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.1",
+        "--from", "git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.2",
         "sourcecrate"
       ]
     }
@@ -108,7 +108,7 @@ in both repositories and should be updated together.
 
 #### Option 1: Direct from GitHub
 ```bash
-uvx --from 'sourcecrate[http] @ git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.1' sourcecrate-http
+uvx --from 'sourcecrate[http] @ git+https://github.com/JosiahSiegel/sourcecrate-mcp.git@v2.1.2' sourcecrate-http
 # Server runs on http://localhost:8000
 ```
 

@@ -1,6 +1,6 @@
 [project]
 name = "sourcecrate"
-version = "2.1.1"
+version = "2.1.2"
 description = "SourceCrate - Academic paper research made easy with full-text retrieval and multi-source search"
 authors = [{name = "Josiah Siegel"}]
 readme = "README.md"
@@ -32,7 +32,7 @@ dependencies = [
     "beautifulsoup4>=4.12.0",
     "asyncio-throttle>=1.0.2",
     "fake-useragent>=1.4.0",
-    "arxiv>=2.0.0",
+    "arxiv>=2.0.0,<5",
     "pymed>=0.8.9",
     "semanticscholar>=0.8.0",
     "tenacity>=8.2.0",

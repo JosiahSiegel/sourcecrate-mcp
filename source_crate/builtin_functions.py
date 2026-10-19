@@ -33,7 +33,7 @@ async def search_arxiv(query: str, limit: int = 5) -> list[dict[str, Any]]:
             )
 
             results = []
-            for paper in search.results():
+            for paper in arxiv.Client().results(search):
                 result = {
                     "title": paper.title,
                     "authors": [str(author) for author in paper.authors],
