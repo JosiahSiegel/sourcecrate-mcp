@@ -30,6 +30,15 @@ export async function checkProtocol(serverPath, mode = 'legacy') {
         assert.equal(normal.papers[0].doi, '10.1234/exact');
         assert.deepEqual(normal.papers, alias.papers);
         assert.equal(normal.papers[0].primary_url, 'https://example.org/book');
+        for (const tool of ['browse_papers', 'browse_papers_streaming']) {
+            const recovered = await call(tool, { query: 'provider recovery climate', sources: ['datacite', 'zenodo'] });
+            assert.equal(recovered.papers.length, 2);
+            assert.equal(recovered.source_status.find(s => s.source === 'datacite').error, null);
+            assert.equal(recovered.source_status.find(s => s.source === 'zenodo').via, 'datacite');
+            assert.match(recovered.source_status.find(s => s.source === 'zenodo').warning, /direct file links/);
+            assert.equal(recovered.partial, true);
+            assert.ok(recovered.papers.every(p => p.pdf_url === null));
+        }
         const downloads = await call('download_papers', { query, output_dir: join(directory, 'downloads') });
         assert.equal(downloads.downloaded, 0);
         const blocked = await call('download_papers', { pdf_urls: ['http://127.0.0.1/private.pdf'], output_dir: join(directory, 'downloads') });

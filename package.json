@@ -1,6 +1,6 @@
 {
   "name": "sourcecrate-mcp",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Thin MCP adapter for the SourceCrate search engine, with PDF download and conversion",
   "type": "module",
   "license": "MIT",
@@ -27,7 +27,7 @@
   "dependencies": {
     "@modelcontextprotocol/server": "2.3.1",
     "linkedom": "0.18.13",
-    "sourcecrate": "https://github.com/JosiahSiegel/sourcecrate/archive/fc4574f84f0bfe1aa6622e517f5ae55be0a4ff03.tar.gz",
+    "sourcecrate": "https://github.com/JosiahSiegel/sourcecrate/archive/56a1ae23ac49819f641ff669cfb60af207cdfb1d.tar.gz",
     "zod": "4.6.7"
   },
   "devDependencies": {

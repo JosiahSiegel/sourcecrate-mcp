@@ -13,7 +13,7 @@ Install **Node.js 22.12 or newer** (includes `npx`). Add the following to your a
       "command": "npx",
       "args": [
         "--yes",
-        "--package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.0.0/sourcecrate-mcp-3.0.0.tgz",
+        "--package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.0.1/sourcecrate-mcp-3.0.1.tgz",
         "sourcecrate"
       ]
     }
@@ -30,7 +30,7 @@ For clients on Windows that cannot launch `npx` directly, use `"command": "cmd"`
 Check the launcher with:
 
 ```sh
-npx --yes --package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.0.0/sourcecrate-mcp-3.0.0.tgz sourcecrate --version
+npx --yes --package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.0.1/sourcecrate-mcp-3.0.1.tgz sourcecrate --version
 ```
 
 Then ask your agent to call `get_status` and search for `game programming patterns Robert Nystrom`.
@@ -57,6 +57,13 @@ Example search arguments:
 `limit` is the maximum number of candidates **per source**. All candidates are deduplicated and ranked together. Optional `sources` selects from the names returned by `get_status`; omit it for the website's defaults. `pdf_only` filters to available PDF links. `relevance_score` is 0–100. `primary_url` is the same destination as the website's clickable result header; `access_links` follows the same PDF/page ordering.
 
 Exact title phrases and matching authors rank ahead of partial title or abstract mentions. The engine cannot return a book or paper that its providers do not index. Browser CORS, rate limits, changing provider data, and response timing can affect which candidates arrive. Inspect `partial` and `source_status`; identical candidates use identical scoring and ordering in both clients.
+
+DataCite retries transient failures once within the search deadline. When Zenodo's
+direct API is blocked or unavailable, the engine searches its public DataCite index.
+The source status includes `via: "datacite"` and a `warning`, and `partial` remains
+true because coverage may differ and the index does not provide direct file links.
+The site displays the same availability notice. A successful fallback is distinct
+from an `error`, which means neither route succeeded.
 
 Example download arguments (use a path on the machine running the MCP):
 

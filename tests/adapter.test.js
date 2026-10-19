@@ -3,7 +3,25 @@ import assert from 'node:assert/strict';
 import { browse } from '../adapter.js';
 import { searchPapers } from 'sourcecrate/search';
 import { getAccessLinks } from 'sourcecrate/access-links';
-import { mockSources, query } from './mock-sources.mjs';
+import { mockSources, query, providerRecoveryFetch } from './mock-sources.mjs';
+
+test('site and MCP share DataCite retry, Zenodo fallback, warnings and landing links', async () => {
+    const options = { sources: ['datacite', 'zenodo'] };
+    globalThis.fetch = providerRecoveryFetch();
+    const website = await searchPapers('climate', options);
+    globalThis.fetch = providerRecoveryFetch();
+    const mcp = await browse({ query: 'climate', ...options });
+    assert.equal(mcp.papers.length, 2);
+    assert.equal(mcp.partial, true);
+    assert.deepEqual(mcp.source_status, website.source_status);
+    assert.equal(mcp.source_status.find(s => s.source === 'zenodo').via, 'datacite');
+    for (let i = 0; i < mcp.papers.length; i++) {
+        const { primary_url, access_links, ...paper } = mcp.papers[i];
+        assert.deepEqual(paper, website.papers[i]);
+        assert.equal(primary_url, getAccessLinks(paper).firstUrl);
+        assert.ok(access_links.every(link => link.type !== 'pdf'));
+    }
+});
 
 test('MCP uses the exact site ranking, scores and link destinations for title + author', async () => {
     mockSources();

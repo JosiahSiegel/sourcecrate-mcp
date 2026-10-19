@@ -24,6 +24,10 @@ try {
     assert.equal(search.papers[0].title, 'Game Programming Patterns');
     assert.ok(search.papers[0].authors.includes('Robert Nystrom'));
     console.log(JSON.stringify({ search: search.papers[0], total: search.total_results, source_status: search.source_status }));
+    const providers = await call('browse_papers', { query: 'climate', sources: ['datacite', 'zenodo'], limit: 3 });
+    console.log(JSON.stringify({ providers: providers.source_status, total: providers.total_results }));
+    assert.ok(providers.source_status.every(source => !source.error && source.count > 0),
+        'DataCite or Zenodo unavailable; inspect live source status above');
     const downloads = await call('download_papers', {
         pdf_urls: ['https://openaccess.thecvf.com/content_cvpr_2016/papers/He_Deep_Residual_Learning_CVPR_2016_paper.pdf'], limit: 1,
         output_dir: directory, convert_to_markdown: true });

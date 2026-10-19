@@ -18,7 +18,7 @@ const conversion = { file_path: z.string().min(1), output_path: z.string().min(1
 const help = {
     website: 'https://sourcecrate.org',
     search: 'Use browse_papers with a title and author together. Results use the website search engine, relevance scores (0–100), deduplication and link order. primary_url matches the result header on the site. limit is per source.',
-    availability: 'Providers may fail, rate-limit, or return different candidates over time or due to browser CORS. Inspect partial and source_status. Links are metadata, not a guarantee of free access.',
+    availability: 'Providers may fail, rate-limit, or return different candidates over time or due to browser CORS. Inspect partial and source_status errors and warnings. Zenodo can fall back to its DataCite index (via: datacite); coverage may differ and direct file links are unavailable there. Links are metadata, not a guarantee of free access.',
     pdf: 'PDF tools require uv on PATH; Python and pinned PDF dependencies are installed automatically on first use. download_papers writes PDFs and optionally Markdown. Conversion tools write local files; existing files are never overwritten.',
     migration: 'v3 uses Node.js 22.12+ and npx. Replace the v2 uvx launch command. Category routing, YAML configuration, HTTP hosting and the independent Python search engine have been removed.',
     docs: 'https://github.com/JosiahSiegel/sourcecrate-mcp#readme'
