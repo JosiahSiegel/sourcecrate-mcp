@@ -2,6 +2,7 @@
 Smart search functionality that prioritizes downloadable papers.
 """
 
+import asyncio
 import json
 import logging
 from datetime import datetime
@@ -15,6 +16,10 @@ from .query_intent import QueryIntentDetector
 from .relevance_scorer import relevance_scorer
 
 logger = logging.getLogger(__name__)
+
+SEARCH_TIMEOUT_SECONDS = 25.0
+SOURCE_TIMEOUT_SECONDS = 15.0
+MAX_CONCURRENT_SOURCES = 6
 
 
 async def smart_downloadable_search(
@@ -258,9 +263,7 @@ async def smart_downloadable_search(
     )
     logger.info(f"   Top sources: {[s[0] for s in sources_to_search[:5]]}")
 
-    # Unified search loop: Search sources in priority order until done
-    logger.info("🔍 Searching sources in priority order")
-    for source_name, description in sources_to_search:
+    async def search_source(source_name: str, description: str) -> None:
         try:
             search_func = search_funcs.get(source_name)
             if search_func:
@@ -344,7 +347,10 @@ async def smart_downloadable_search(
                     )
 
                 logger.info(f"🔎 Searching {source_name}: {description}")
-                results = await search_func(optimized_query, search_limit_per_source)
+                results = await asyncio.wait_for(
+                    search_func(optimized_query, search_limit_per_source),
+                    timeout=SOURCE_TIMEOUT_SECONDS,
+                )
                 all_candidates.extend(results)
 
                 # Count papers with PDFs
@@ -373,11 +379,41 @@ async def smart_downloadable_search(
                 logger.warning(f"❌ {source_name}: Search function not available")
 
         except Exception as e:
+            if isinstance(e, TimeoutError):
+                search_log["timed_out_sources"].append(source_name)
             search_log["results_per_source"][source_name] = {
-                "error": str(e),
+                "error": str(e) or type(e).__name__,
                 "count": 0,
             }
             logger.warning(f"❌ {source_name} search failed: {e}")
+
+    semaphore = asyncio.Semaphore(MAX_CONCURRENT_SOURCES)
+
+    async def bounded_source(name: str, description: str) -> None:
+        async with semaphore:
+            await search_source(name, description)
+
+    tasks = {
+        asyncio.create_task(bounded_source(name, description)): name
+        for name, description in sources_to_search
+    }
+    search_log["search_strategy"] = "bounded_parallel"
+    search_log["timed_out_sources"] = []
+    try:
+        if tasks:
+            _, pending = await asyncio.wait(tasks, timeout=SEARCH_TIMEOUT_SECONDS)
+            for task in pending:
+                name = tasks[task]
+                search_log["timed_out_sources"].append(name)
+                search_log["results_per_source"][name] = {
+                    "error": "Search deadline exceeded",
+                    "count": 0,
+                }
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
     # Simplified: No conditional cascading - all sources searched in priority order
     search_log["total_candidates"] = len(all_candidates)
@@ -424,34 +460,10 @@ async def smart_downloadable_search(
 
     all_candidates.sort(key=pdf_priority_score, reverse=True)
 
-    # Remove duplicates by DOI and title (checks both independently)
-    # This catches preprint/published versions with different DOIs but same titles
-    seen_dois = set()
-    seen_titles = set()
-    unique_candidates = []
-    for paper in all_candidates:
-        # Check DOI duplication (normalize DOI format)
-        doi = (paper.get("doi") or "").strip()
-        # Normalize DOI: remove https://doi.org/ prefix for comparison
-        doi_normalized = (
-            doi.lower().replace("https://doi.org/", "").replace("http://doi.org/", "")
-        )
-        if doi_normalized and doi_normalized in seen_dois:
-            continue
+    # Use the shared identity contract: conflicting DOIs remain distinct.
+    from source_crate.utils.fuzzy_matching import FuzzyPaperMatcher
 
-        # Check title duplication
-        title = (paper.get("title") or "").strip().lower()
-        title_normalized = " ".join(title.split())  # Normalize whitespace
-        if title_normalized and title_normalized in seen_titles:
-            continue
-
-        # Add to seen sets (use normalized formats)
-        if doi_normalized:
-            seen_dois.add(doi_normalized)
-        if title_normalized:
-            seen_titles.add(title_normalized)
-
-        unique_candidates.append(paper)
+    unique_candidates = FuzzyPaperMatcher().deduplicate_papers(all_candidates)
 
     search_log["unique_candidates"] = len(unique_candidates)
     logger.info(f"📄 After deduplication: {len(unique_candidates)} unique papers")
@@ -501,21 +513,8 @@ async def smart_downloadable_search(
 
     # Handle metadata-only mode vs download testing
     if metadata_only:
-        # For metadata-only mode (browse_papers), filter to only include papers with PDF URLs
-        # This ensures consistency with download_papers behavior
-        papers_with_pdfs = [
-            p for p in unique_candidates if p.get("pdf_url") or p.get("open_access_pdf")
-        ]
-
-        papers_without_pdfs = len(unique_candidates) - len(papers_with_pdfs)
-        logger.info(
-            f"📄 Metadata-only mode: Filtered {len(unique_candidates)} candidates → {len(papers_with_pdfs)} with PDFs (filtered out {papers_without_pdfs} without PDFs)"
-        )
-
-        downloadable_papers = papers_with_pdfs[:limit]
-        logger.info(
-            f"📄 Returning top {len(downloadable_papers)} papers with PDF URLs (limit: {limit})"
-        )
+        # Browsing metadata must not discard papers solely because no PDF is available.
+        downloadable_papers = unique_candidates[:limit]
         attempted_downloads = 0
 
         # Mark metadata-only papers for distinction

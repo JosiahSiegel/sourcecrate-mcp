@@ -1,6 +1,6 @@
 [project]
 name = "sourcecrate"
-version = "2.1.0"
+version = "2.1.1"
 description = "SourceCrate - Academic paper research made easy with full-text retrieval and multi-source search"
 authors = [{name = "Josiah Siegel"}]
 readme = "README.md"

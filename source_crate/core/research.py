@@ -610,8 +610,7 @@ async def browse_papers(
     start_time = time.time()
     session_id = f"browse_{int(time.time() * 1000)}"
 
-    # Use smart_downloadable_search for consistency with download_papers
-    # This ensures both functions return the same papers for the same query
+    # Share source discovery and scoring; metadata browsing does not require PDFs.
     papers, search_log = await utils["smart_downloadable_search"](
         query,
         limit,
@@ -687,90 +686,39 @@ async def browse_papers(
         f"✅ PDF validation complete: {valid_count} valid, {invalid_count} invalid (took {validation_time:.2f}s)"
     )
 
-    # Convert to browse format (metadata only, remove download info)
-    # Filter to only include papers with validated PDF URLs
+    # Browsing keeps metadata even when no PDF is available.
     browse_results = []
-    non_downloadable_count = 0
     invalid_pdf_count = 0
     fallback_used = False
     original_category = None
-
     for paper in papers:
-        # Check if paper has PDF URL
         pdf_url = paper.get("pdf_url") or paper.get("open_access_pdf")
-
-        if pdf_url:
-            # Include ALL papers with PDF URLs regardless of validation status
-            # HEAD validation often fails due to anti-scraping even when GET works
-            browse_paper = {
-                k: v
-                for k, v in paper.items()
-                if k
-                not in [
-                    "download_success",
-                    "local_markdown",
-                    "markdown_characters",
-                    "_fallback_used",
-                    "_original_category",
-                ]
+        browse_paper = {
+            k: v
+            for k, v in paper.items()
+            if k
+            not in {
+                "download_success",
+                "local_markdown",
+                "markdown_characters",
+                "_fallback_used",
+                "_original_category",
             }
-            # Add downloadability indicators
-            browse_paper["is_downloadable"] = True
-            # Include validation status as informational (not filtering)
-            is_valid = validated_urls.get(pdf_url, False)
-            browse_paper["pdf_validated"] = is_valid
-            if not is_valid:
-                invalid_pdf_count += 1
-            browse_results.append(browse_paper)
-        else:
-            # Count papers without PDF URLs that were filtered out
-            non_downloadable_count += 1
-
-        # Check if any paper used fallback
+        }
+        browse_paper["is_downloadable"] = bool(pdf_url)
+        browse_paper["pdf_validated"] = (
+            validated_urls.get(pdf_url, False) if pdf_url else False
+        )
+        if pdf_url and not browse_paper["pdf_validated"]:
+            invalid_pdf_count += 1
+        browse_results.append(browse_paper)
         if paper.get("_fallback_used"):
             fallback_used = True
             original_category = paper.get("_original_category")
 
-    # Deduplicate browse_results by DOI and title (checks both independently)
-    # smart_downloadable_search already deduplicates but we do it again for safety
-    # This catches preprint/published versions with different DOIs but same titles
-    seen_dois = set()
-    seen_titles = set()
-    deduplicated_results = []
-    duplicate_count = 0
+    from source_crate.utils.fuzzy_matching import FuzzyPaperMatcher
 
-    for paper in browse_results:
-        # Check DOI duplication (normalize DOI format)
-        doi = (paper.get("doi") or "").strip()
-        # Normalize DOI: remove https://doi.org/ prefix for comparison
-        doi_normalized = (
-            doi.lower().replace("https://doi.org/", "").replace("http://doi.org/", "")
-        )
-        if doi_normalized and doi_normalized in seen_dois:
-            duplicate_count += 1
-            continue
-
-        # Check title duplication
-        title = (paper.get("title") or "").strip().lower()
-        title_normalized = " ".join(title.split())  # Normalize whitespace
-        if title_normalized and title_normalized in seen_titles:
-            duplicate_count += 1
-            continue
-
-        # Add to seen sets (use normalized formats)
-        if doi_normalized:
-            seen_dois.add(doi_normalized)
-        if title_normalized:
-            seen_titles.add(title_normalized)
-
-        deduplicated_results.append(paper)
-
-    if duplicate_count > 0:
-        logger.info(
-            f"🔄 Removed {duplicate_count} duplicate papers (showing {len(deduplicated_results)} unique papers)"
-        )
-
-    browse_results = deduplicated_results
+    browse_results = FuzzyPaperMatcher().deduplicate_papers(browse_results)
 
     # Enrich results with source metadata (config layer info)
     browse_results = _enrich_results_with_source_metadata(browse_results)
@@ -778,12 +726,6 @@ async def browse_papers(
     # Calculate source performance (embedded vs user-added contributions)
     source_performance = _calculate_source_performance(browse_results, get_api_status())
 
-    # Log filtering statistics
-    total_filtered = non_downloadable_count  # Only count papers without PDF URLs
-    if non_downloadable_count > 0:
-        logger.info(
-            f"📊 Filtered {non_downloadable_count} papers without PDF URLs (showing {len(browse_results)} papers with PDFs)"
-        )
     if invalid_pdf_count > 0:
         logger.info(
             f"⚠️  {invalid_pdf_count} papers have PDFs that failed HEAD validation (may still be downloadable via GET)"
@@ -810,15 +752,9 @@ async def browse_papers(
             "note": "PDF URLs validated via HEAD requests (informational only - papers shown regardless of validation result)",
         }
 
-    # Add filtering statistics if papers were filtered
-    if total_filtered > 0:
-        result["filtering_stats"] = {
-            "total_candidates": len(papers),
-            "papers_with_pdfs": len(browse_results),
-            "filtered_no_pdf": non_downloadable_count,
-            "papers_with_unvalidated_pdfs": invalid_pdf_count,
-            "note": "Only papers without PDF URLs are filtered. Papers with unvalidated PDFs are included (HEAD may fail while GET succeeds).",
-        }
+    if search_log.get("timed_out_sources"):
+        result["partial"] = True
+        result["timed_out_sources"] = search_log["timed_out_sources"]
 
     # Add fallback notification if used
     if fallback_used:

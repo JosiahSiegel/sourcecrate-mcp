@@ -501,7 +501,9 @@ class GenericHTTPClient(BaseAPIClient):
             if self.rate_limit_delay > 0:
                 await asyncio.sleep(self.rate_limit_delay)
 
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            async with httpx.AsyncClient(
+                timeout=self.timeout, follow_redirects=True, max_redirects=5
+            ) as client:
                 # Build request
                 url = f"{(self.base_url or '').rstrip('/')}{self.search_path}"
                 headers = self._build_headers()

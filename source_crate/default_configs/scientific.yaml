@@ -288,42 +288,6 @@ sources:
       # Monitor: https://fatcat.wiki/ for service status updates
     capability_profile: archive
 
-  unpaywall:
-    name: unpaywall
-    type: http_api
-    enabled: true
-    timeout: 30
-    max_retries: 3
-    cache_expire: 7200
-    config:
-      description: Unpaywall - 20M+ open access PDF URLs (FREE, CC0, no auth required)
-      coverage: open access papers, free PDFs for paywalled papers
-      base_url: https://api.unpaywall.org/v2
-      search_path: /search/
-      query_param: query
-      limit_param: ""  # Uses 'page' for pagination instead of limit
-      response_format: json
-      results_path: results
-      extra_params:
-        email: research@sourcecrate.org  # Use your email for better rate limits
-        is_oa: true  # Only return open access papers
-      field_mappings:
-        title: response.title
-        authors: response.z_authors
-        doi: response.doi
-        abstract: response.abstract
-        journal: response.journal_name
-        year: response.year
-        url: response.doi_url
-        pdf_url: response.best_oa_location.url_for_pdf
-        is_open_access: response.is_oa
-        citation_count: "0"  # Unpaywall doesn't provide citation counts
-      rate_limit_delay: 1.0  # 100K calls/day, conservative delay
-      # NOTE: Email is required by Unpaywall API (uses default research@sourcecrate.org)
-      # Users can override by setting a custom email in their config file
-      # Rate limit: 100K calls/day for free tier
-    capability_profile: open_access
-
   datacite:
     name: datacite
     type: http_api
@@ -406,7 +370,6 @@ categories:
       - openalex
       - doaj
       - fatcat_scholar
-      - unpaywall  # Added: Free PDFs for paywalled papers
       - datacite  # Added: DOI metadata for datasets
       - zenodo  # Added: CERN research repository
     max_results_per_source: 6
@@ -434,7 +397,6 @@ categories:
       - semantic_scholar
       - openalex
       - doaj
-      - unpaywall  # Added: 20M+ free PDFs
       - zenodo  # Added: CERN research data
     max_results_per_source: 5
     parallel_search: true
