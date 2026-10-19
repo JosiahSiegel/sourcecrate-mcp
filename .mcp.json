@@ -1,8 +1,12 @@
 {
   "mcpServers": {
     "sourcecrate": {
-      "command": "uv",
-      "args": ["run", "--locked", "sourcecrate"]
+      "command": "npx",
+      "args": [
+        "--yes",
+        "--package=https://github.com/JosiahSiegel/sourcecrate-mcp/releases/download/v3.0.0/sourcecrate-mcp-3.0.0.tgz",
+        "sourcecrate"
+      ]
     }
   }
 }

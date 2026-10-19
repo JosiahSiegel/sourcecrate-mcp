@@ -1,0 +1,36 @@
+{
+  "name": "sourcecrate-mcp",
+  "version": "3.0.0",
+  "description": "Thin MCP adapter for the SourceCrate search engine, with PDF download and conversion",
+  "type": "module",
+  "license": "MIT",
+  "repository": "github:JosiahSiegel/sourcecrate-mcp",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "bin": {
+    "sourcecrate": "server.js"
+  },
+  "files": [
+    "server.js",
+    "adapter.js",
+    "pdf/*.py",
+    "pdf/*.lock",
+    "README.md",
+    "mcp-config.json"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:pdf": "uv run --no-project --with httpx==0.28.1 --with pymupdf==2.0 --with pymupdf4llm==2.0 python tests/pdf-check.py",
+    "test:install": "node scripts/smoke-installed.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "linkedom": "0.18.13",
+    "sourcecrate": "https://github.com/JosiahSiegel/sourcecrate/archive/a211d96fbd39199fddc8a626966b28471e8c6600.tar.gz",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1"
+  }
+}

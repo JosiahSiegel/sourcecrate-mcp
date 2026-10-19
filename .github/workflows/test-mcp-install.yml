@@ -1,7 +1,7 @@
 name: Test MCP installation and functionality
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -13,44 +13,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-            python: '3.11'
-          - os: ubuntu-latest
-            python: '3.13'
-          - os: windows-latest
-            python: '3.12'
-          - os: macos-latest
-            python: '3.12'
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
       PYTHONIOENCODING: utf-8
-    defaults:
-      run:
-        shell: bash
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
       - uses: astral-sh/setup-uv@v7
         with:
           version: '0.12.23'
-          python-version: ${{ matrix.python }}
+          python-version: '3.12'
           enable-cache: true
-      - run: uv sync --locked --extra dev --extra http
-      - run: uv run --locked python scripts/validate_code_quality.py
-      - run: uv run --locked pytest -q
-      - name: Audit installed dependencies
-        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
-        run: uvx pip-audit --path "$(uv run --locked python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
-      - run: uv build
-      - name: Test installed CLI and MCP protocol outside checkout
-        run: |
-          wheel="$(python -c 'import glob; print(glob.glob("dist/*.whl")[0])')"
-          uvx --python "${{ matrix.python }}" --from "$wheel" sourcecrate --help
-          uvx --python "${{ matrix.python }}" --from "$wheel" sourcecrate --version
-          uv run --no-project --python "${{ matrix.python }}" --with "$wheel" python scripts/smoke_installed_mcp.py
+          cache-dependency-glob: 'pdf/tools.py.lock'
+      - run: npm ci
+      - run: npm audit --omit=dev
+      - run: npm test
+      - run: npm run test:pdf
+      - name: Test packaged installation outside checkout
+        run: npm run test:install
       - uses: actions/upload-artifact@v4
-        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.11'
+        if: matrix.os == 'ubuntu-latest'
         with:
           name: distribution
-          path: dist/
+          path: sourcecrate-mcp-*.tgz

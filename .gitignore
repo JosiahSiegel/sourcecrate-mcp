@@ -106,3 +106,7 @@ test_*
 .claude
 # Keep regression tests visible to git.
 !tests/test_*.py
+
+node_modules/
+*.tgz
+!tests/fixtures/sample.pdf

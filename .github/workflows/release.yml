@@ -14,13 +14,17 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
-      - name: Check tag matches package version
-        run: python -c 'import os,tomllib; assert os.environ["GITHUB_REF_NAME"] == "v" + tomllib.load(open("pyproject.toml", "rb"))["project"]["version"]'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Check tag matches package and configuration
+        run: |
+          node --input-type=module -e "import fs from 'node:fs'; const p=JSON.parse(fs.readFileSync('package.json')); if(process.env.GITHUB_REF_NAME !== 'v'+p.version || !fs.readFileSync('mcp-config.json','utf8').includes('/v'+p.version+'/')) process.exit(1)"
       - uses: actions/download-artifact@v4
         with:
           name: distribution
           path: dist
-      - name: Publish distribution and portable agent configuration
+      - name: Publish tested distribution and portable agent configuration
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/* mcp-config.json --verify-tag --generate-notes --title "SourceCrate $GITHUB_REF_NAME"
